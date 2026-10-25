@@ -4,7 +4,7 @@ Frontend français Vite + React + TypeScript, relié à l’API locale Relay. Au
 
 ## Développement
 
-Node.js 24+ compatible avec Vite 8. Dans `~/Downloads/agregateur-agent` :
+Node.js 24+ compatible avec Vite 8. Dans `~/Downloads/agregat-backend` :
 
 ```sh
 npm ci --ignore-scripts
@@ -25,11 +25,11 @@ Utiliser une suggestion, préparer le plan, puis **Lancer**. Le démonstrateur A
 ## Production locale
 
 ```sh
-# Dans agregateur-frontend
+# Dans agregat-frontend
 npm run build
 
 # Dans agregateur-agent (commit backend front-01 requis)
-AGENT_PLATFORM_WEB_DIR=/Users/diaw/Downloads/agregateur-frontend/dist AGENT_PLATFORM_NETWORK=0 AGENT_PLATFORM_BROWSER=fixture npm start
+AGENT_PLATFORM_WEB_DIR=/Users/diaw/Downloads/agregat-frontend/dist AGENT_PLATFORM_NETWORK=0 AGENT_PLATFORM_BROWSER=fixture npm start
 ```
 
 Ouvrir http://127.0.0.1:4310. Le backend sert `index.html` et les fichiers de `assets/`, avec confinement des chemins et des liens symboliques. API, Host/Origin et CSP restent contrôlés. `npm run preview` sert seulement le build pour inspection et n’a pas de proxy API ; utiliser le backend pour un parcours fonctionnel en production.
