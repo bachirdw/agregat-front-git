@@ -57,3 +57,4 @@ Les captures sont dans `.manager/reports/front-01-screens/`. Le rapport détaill
 - Interface responsive, thème clair/sombre persistant, clavier, focus visibles et préférences de mouvement/transparence/contraste. `⌘K`/`Ctrl+K` crée une mission ; `⌘Entrée`/`Ctrl+Entrée` prépare un plan ; Échap ferme filtres/navigation mobile.
 
 Versions directes épinglées dans `package.json`, graphe verrouillé dans `package-lock.json`. Voir `THIRD_PARTY_NOTICES.md` pour l’inventaire et les notices (régénération : `node scripts/dependency-notices.mjs`).
+# agregateur-agent-front
