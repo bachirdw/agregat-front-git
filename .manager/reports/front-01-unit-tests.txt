@@ -1,0 +1,13 @@
+
+> agre-agent-frontend@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /Users/diaw/Downloads/relay-frontend
+
+
+ Test Files  4 passed (4)
+      Tests  18 passed (18)
+   Start at  14:16:50
+   Duration  1.07s (environment 68%, tests 17%, import 13%, transform 1%)
+

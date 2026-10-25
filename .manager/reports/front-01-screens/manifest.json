@@ -1,0 +1,283 @@
+{
+  "pairs": [
+    {
+      "name": "01-accueil.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 130904
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 102864
+      }
+    },
+    {
+      "name": "02-mission-comparer-4.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 196165
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 138926
+      }
+    },
+    {
+      "name": "02-mission-lettre-3.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 197140
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 146511
+      }
+    },
+    {
+      "name": "02-mission-offres-2.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 197140
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 165659
+      }
+    },
+    {
+      "name": "02-mission-senior-0.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 184834
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 158444
+      }
+    },
+    {
+      "name": "02-mission-veille-1.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 196165
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 138598
+      }
+    },
+    {
+      "name": "03-agents.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 262746
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 159044
+      }
+    },
+    {
+      "name": "04-skills.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 151009
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 129877
+      }
+    },
+    {
+      "name": "05-domain-packs.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 174542
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 129086
+      }
+    },
+    {
+      "name": "06-consommation.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 126920
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 140481
+      }
+    },
+    {
+      "name": "07-suggestion-remplie.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 136773
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 111715
+      }
+    },
+    {
+      "name": "08-plan.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 197182
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 146721
+      }
+    },
+    {
+      "name": "09-execution.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 181745
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 141329
+      }
+    },
+    {
+      "name": "10-execution-suite.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 181730
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 158444
+      }
+    },
+    {
+      "name": "11-filtre-1-agent.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 262746
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 109849
+      }
+    },
+    {
+      "name": "11-filtre-2-modèle.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 154073
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 116258
+      }
+    },
+    {
+      "name": "11-filtre-3-skills.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 151003
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 126577
+      }
+    },
+    {
+      "name": "11-filtre-4-pack.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 154822
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 115078
+      }
+    },
+    {
+      "name": "11-filtre-5-mode.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 152308
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 116121
+      }
+    },
+    {
+      "name": "12-theme-sombre.png",
+      "reference": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 134085
+      },
+      "rendered": {
+        "width": 1440,
+        "height": 960,
+        "bytes": 102087
+      }
+    },
+    {
+      "name": "13-mobile.png",
+      "reference": {
+        "width": 390,
+        "height": 844,
+        "bytes": 54832
+      },
+      "rendered": {
+        "width": 390,
+        "height": 844,
+        "bytes": 58587
+      }
+    }
+  ],
+  "extra": [
+    "03-modeles.png",
+    "04-skills-quarantaine.png",
+    "14-markdown-mermaid.png",
+    "15-permission-acp.png"
+  ]
+}

@@ -1,0 +1,19 @@
+(node:67144) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ production réelle : accueil, filtres, plan → SSE → résultats, historique et galeries (8673.939333ms)
+✔ accord du workflow application-draft, refus puis reprise en place (9650.66775ms)
+✔ budget réel : estimation puis refus serveur, aucune mission créée (6811.515125ms)
+✔ thème sombre persistant, mobile sans débordement et navigation clavier (4710.501584ms)
+✔ proxy Vite : mutation avec Origin frontend réécrit, sécurité backend maintenue (9108.486792ms)
+✔ SSE réel : coupure réseau, reconnexion et revue après réouverture de la mission (25320.160209ms)
+✔ Markdown non fiable et Mermaid sous CSP de production, sans chargement externe (2872.701167ms)
+✔ Skills réels : source Git refusée, quarantaine, revue par hash et activation (4801.797167ms)
+✔ permission ACP réelle : décision ponctuelle, autorisation permanente masquée (7322.302334ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79624.506

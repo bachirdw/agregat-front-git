@@ -1,19 +1,230 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { Markdown } from './Markdown';
-import { Composer } from './Composer';
-import { PlanCard, RunView } from './Mission';
-import { Skills } from './Galleries';
-import type { Catalog, MissionInput, Plan, Run } from './types';
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { Markdown } from "./Markdown";
+import { Composer } from "./Composer";
+import { PlanCard, RunView } from "./Mission";
+import { Skills } from "./Galleries";
+import type { Catalog, MissionInput, Plan, Run } from "./types";
 afterEach(cleanup);
-const catalog:Catalog={live:false,agents:[{id:'fixture',name:'Démonstrateur ACP',installed:true,compatible:true,simulated:true}],packs:[{id:'najah',name:'Najah AI',description:'Test',skills:[],dags:[]}],skills:[],meters:{workflow_run:{category:'Workflows',unit:'run',billable:true}},pricing:{currency:'EUR',centsPerUnit:{workflow_run:0},monthlyCapCents:null}};
-const input:MissionInput={prompt:'emploi',agent:'fixture',pack:'najah',skills:[],model:'',budgetCents:0,mode:'workflow',workflow:'auto'};
-const plan:Plan={agent:'Démonstrateur ACP',pack:'Najah AI',steps:['Chercher','Classer'],cost:{platformCents:50,currency:'EUR',budgetCents:0,withinBudget:false,description:'Aucun modèle appelé',lines:[{dimension:'workflow_run',units:1,cents:50}]},permissions:['Aucun envoi'],simulated:true,routing:{reasons:['Choix manuel'],rejected:[]},workflow:null};
-describe('rendu fiable',()=>{
- it('Markdown : pas de HTML, de liens javascript ni d’images distantes ; tableaux et code lisibles',()=>{const {container}=render(<Markdown text={'<script>alert(1)</script>\n\n[mal](javascript:alert%281%29) [source](https://example.com)\n\n![pixel](https://tracker.test/x)\n\n| Colonne | Valeur |\n| --- | --- |\n| A | B |\n\n```js\nconst x=1;\n```'}/>);expect(container.querySelector('script')).toBeNull();expect(container.querySelector('img')).toBeNull();expect(container.querySelector('a[href^="javascript"]')).toBeNull();expect(container.querySelector('a')?.rel).toBe('noopener noreferrer');expect(screen.getByRole('table')).toBeTruthy();expect(screen.getByText('const x=1;')).toBeTruthy();});
- it('empêche de préparer avant le chargement du catalogue et invalide le formulaire par saisie',()=>{const onChange=vi.fn();const {rerender}=render(<Composer catalog={null} input={input} onChange={onChange} onPlan={vi.fn()} busy={false}/>);expect((screen.getByRole('button',{name:'Préparer le plan'}) as HTMLButtonElement).disabled).toBe(true);rerender(<Composer catalog={catalog} input={input} onChange={onChange} onPlan={vi.fn()} busy={false}/>);fireEvent.change(screen.getByLabelText('Objectif de la mission'),{target:{value:'autre'}});expect(onChange).toHaveBeenCalledWith({...input,prompt:'autre'});});
- it('plan réel : coût, budget, provenance et lancement explicite',()=>{const launch=vi.fn();render(<PlanCard plan={plan} catalog={catalog} busy={false} launch={launch} edit={vi.fn()}/>);expect(screen.getByRole('alert').textContent).toContain('supérieure au budget');expect(screen.getByText('Démonstration · données fictives')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'Lancer'}));expect(launch).toHaveBeenCalledOnce();});
- it('accord DAG utilise le bon run et affiche la sortie à relire',()=>{const act=vi.fn();const run={id:'r',state:'running',prompt:'lettre',mode:'workflow',plan:{workflow:{steps:[{id:'review',title:'Relire',kind:'approval',dependsOn:['draft']}]},steps:[]},steps:[{step_id:'review',state:'waiting_approval',attempt:0},{step_id:'draft',state:'succeeded',attempt:1,output:{summary:'Brouillon à compléter'}}]} as unknown as Run;render(<RunView run={run} events={[]} connection="Flux en direct" busy={false} act={act}/>);expect(screen.getByText('Brouillon à compléter')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'Approuver'}));expect(act).toHaveBeenCalledWith('/runs/r/steps/review',{approved:true});});
- it('workflow interrompu se reprend par API et non par nouveau lancement',()=>{const act=vi.fn();const run={id:'r',state:'interrupted',mode:'workflow',plan:{steps:[]},steps:[]} as unknown as Run;render(<RunView run={run} events={[]} connection="" busy={false} act={act}/>);fireEvent.click(screen.getByRole('button',{name:'Reprendre le workflow'}));expect(act).toHaveBeenCalledWith('/runs/r/resume',{});});
- it('quarantaine : lecture explicite et hash réel pour la revue',()=>{const act=vi.fn();render(<Skills catalog={{...catalog,skills:[{id:'third',name:'Tiers',version:'1',origin:'third-party',state:'quarantined',active:false,installed:false,integrity:true,hash:'abc',findings:[]}]}} busy={false} act={act}/>);const approve=screen.getByRole('button',{name:'Approuver après lecture'}) as HTMLButtonElement;expect(approve.disabled).toBe(true);fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(approve);expect(act).toHaveBeenCalledWith('/skills/third/review',{approved:true,hash:'abc'});});
+const catalog: Catalog = {
+  live: false,
+  agents: [
+    {
+      id: "fixture",
+      name: "Démonstrateur ACP",
+      installed: true,
+      compatible: true,
+      simulated: true,
+    },
+  ],
+  packs: [
+    {
+      id: "najah",
+      name: "Najah AI",
+      description: "Test",
+      skills: [],
+      dags: [],
+    },
+  ],
+  skills: [],
+  meters: {
+    workflow_run: { category: "Workflows", unit: "run", billable: true },
+  },
+  pricing: {
+    currency: "EUR",
+    centsPerUnit: { workflow_run: 0 },
+    monthlyCapCents: null,
+  },
+};
+const input: MissionInput = {
+  prompt: "emploi",
+  agent: "fixture",
+  pack: "najah",
+  skills: [],
+  model: "",
+  budgetCents: 0,
+  mode: "workflow",
+  workflow: "auto",
+};
+const plan: Plan = {
+  agent: "Démonstrateur ACP",
+  pack: "Najah AI",
+  steps: ["Chercher", "Classer"],
+  cost: {
+    platformCents: 50,
+    currency: "EUR",
+    budgetCents: 0,
+    withinBudget: false,
+    description: "Aucun modèle appelé",
+    lines: [{ dimension: "workflow_run", units: 1, cents: 50 }],
+  },
+  permissions: ["Aucun envoi"],
+  simulated: true,
+  routing: { reasons: ["Choix manuel"], rejected: [] },
+  workflow: null,
+};
+describe("rendu fiable", () => {
+  it("Markdown : pas de HTML, de liens javascript ni d’images distantes ; tableaux et code lisibles", () => {
+    const { container } = render(
+      <Markdown
+        text={
+          "<script>alert(1)</script>\n\n[mal](javascript:alert%281%29) [source](https://example.com)\n\n![pixel](https://tracker.test/x)\n\n| Colonne | Valeur |\n| --- | --- |\n| A | B |\n\n```js\nconst x=1;\n```"
+        }
+      />,
+    );
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector('a[href^="javascript"]')).toBeNull();
+    expect(container.querySelector("a")?.rel).toBe("noopener noreferrer");
+    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getByText("const x=1;")).toBeTruthy();
+  });
+  it("empêche de préparer avant le chargement du catalogue et invalide le formulaire par saisie", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <Composer
+        catalog={null}
+        input={input}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Préparer le plan",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    rerender(
+      <Composer
+        catalog={catalog}
+        input={input}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Objectif de la mission"), {
+      target: { value: "autre" },
+    });
+    expect(onChange).toHaveBeenCalledWith({ ...input, prompt: "autre" });
+  });
+  it("plan réel : coût, budget, provenance et lancement explicite", () => {
+    const launch = vi.fn();
+    render(
+      <PlanCard
+        plan={plan}
+        catalog={catalog}
+        busy={false}
+        launch={launch}
+        edit={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "supérieure au budget",
+    );
+    expect(screen.getByText("Démonstration · données fictives")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Lancer" }));
+    expect(launch).toHaveBeenCalledOnce();
+  });
+  it("accord DAG utilise le bon run et affiche la sortie à relire", () => {
+    const act = vi.fn();
+    const run = {
+      id: "r",
+      state: "running",
+      prompt: "lettre",
+      mode: "workflow",
+      plan: {
+        workflow: {
+          steps: [
+            {
+              id: "review",
+              title: "Relire",
+              kind: "approval",
+              dependsOn: ["draft"],
+            },
+          ],
+        },
+        steps: [],
+      },
+      steps: [
+        { step_id: "review", state: "waiting_approval", attempt: 0 },
+        {
+          step_id: "draft",
+          state: "succeeded",
+          attempt: 1,
+          output: { summary: "Brouillon à compléter" },
+        },
+      ],
+    } as unknown as Run;
+    render(
+      <RunView
+        run={run}
+        events={[]}
+        connection="Flux en direct"
+        busy={false}
+        act={act}
+      />,
+    );
+    expect(screen.getByText("Brouillon à compléter")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Approuver" }));
+    expect(act).toHaveBeenCalledWith("/runs/r/steps/review", {
+      approved: true,
+    });
+  });
+  it("workflow interrompu se reprend par API et non par nouveau lancement", () => {
+    const act = vi.fn();
+    const run = {
+      id: "r",
+      state: "interrupted",
+      mode: "workflow",
+      plan: { steps: [] },
+      steps: [],
+    } as unknown as Run;
+    render(
+      <RunView run={run} events={[]} connection="" busy={false} act={act} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reprendre le workflow" }),
+    );
+    expect(act).toHaveBeenCalledWith("/runs/r/resume", {});
+  });
+  it("quarantaine : lecture explicite et hash réel pour la revue", () => {
+    const act = vi.fn();
+    render(
+      <Skills
+        catalog={{
+          ...catalog,
+          skills: [
+            {
+              id: "third",
+              name: "Tiers",
+              version: "1",
+              origin: "third-party",
+              state: "quarantined",
+              active: false,
+              installed: false,
+              integrity: true,
+              hash: "abc",
+              findings: [],
+            },
+          ],
+        }}
+        busy={false}
+        act={act}
+      />,
+    );
+    const approve = screen.getByRole("button", {
+      name: "Approuver après lecture",
+    }) as HTMLButtonElement;
+    expect(approve.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(approve);
+    expect(act).toHaveBeenCalledWith("/skills/third/review", {
+      approved: true,
+      hash: "abc",
+    });
+  });
 });

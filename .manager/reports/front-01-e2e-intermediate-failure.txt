@@ -1,0 +1,32 @@
+(node:66602) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ production réelle : accueil, filtres, plan → SSE → résultats, historique et galeries (8175.312083ms)
+✔ accord du workflow application-draft, refus puis reprise en place (9517.898ms)
+✔ budget réel : estimation puis refus serveur, aucune mission créée (6445.577792ms)
+✔ thème sombre persistant, mobile sans débordement et navigation clavier (4627.109625ms)
+✔ proxy Vite : mutation avec Origin frontend réécrit, sécurité backend maintenue (8956.877541ms)
+✔ SSE réel : coupure réseau, reconnexion et revue après réouverture de la mission (26591.260541ms)
+✖ Markdown non fiable et Mermaid sous CSP de production, sans chargement externe (35996.286625ms)
+✔ Skills réels : source Git refusée, quarantaine, revue par hash et activation (5447.572459ms)
+✔ permission ACP réelle : décision ponctuelle, options permanentes masquées (7578.340958ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 8
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 113719.88225
+
+✖ failing tests:
+
+test at tests/e2e.test.mjs:369:1
+✖ Markdown non fiable et Mermaid sous CSP de production, sans chargement externe (35996.286625ms)
+  locator.waitFor: Timeout 30000ms exceeded.
+  Call log:
+  [2m  - waiting for getByRole('img', { name: 'Schéma Mermaid du résultat' }) to be visible[22m
+  
+      at TestContext.<anonymous> (/Users/diaw/Downloads/relay-frontend/tests/e2e.test.mjs:409:8) {
+    name: 'TimeoutError',
+    log: [ "  - waiting for getByRole('img', { name: 'Schéma Mermaid du résultat' }) to be visible" ]
+  }
