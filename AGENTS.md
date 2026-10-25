@@ -4,11 +4,11 @@ Tu es supervisé par un manager (Claude) qui relit chaque commit, relance les te
 Il préfère une erreur avouée à un succès inventé.
 
 ## Contexte
-- Ce dépôt : `~/Downloads/agregat-frontend` — le NOUVEAU frontend de la plateforme.
-- Backend existant (à ne pas casser) : `~/Downloads/agregat-backend` — API HTTP locale 127.0.0.1:4310,
+- Ce dépôt : `~/Downloads/agregat-front` — le NOUVEAU frontend de la plateforme.
+- Backend existant (à ne pas casser) : `~/Downloads/agregat-back` — API HTTP locale 127.0.0.1:4310,
   voir son `README.md`, `apps/api/server.js`, `apps/web/app.js` (ancien frontend, référence de comportement).
 - Maquette de référence : `design/maquette.html` (prototype interactif) et `design/screens/*.png` (captures).
-- Skills de design : `~/Downloads/agregat-backend/.claude/skills/apple-design/SKILL.md` et
+- Skills de design : `~/Downloads/agregat-back/.claude/skills/apple-design/SKILL.md` et
   `.../emil-design-eng/SKILL.md` — à lire et appliquer.
 - Langue : interface et rapports en français (accents corrects) ; code et identifiants en anglais.
 

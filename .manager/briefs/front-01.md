@@ -7,7 +7,7 @@ Rapport : `.manager/reports/front-01.md`. Commits `[front-01]`.
    parcours tous les écrans ; regarde `design/screens/*.png` (21 captures : accueil, missions, plan, exécution,
    accord, agents, skills, domain packs, consommation, filtres, thème sombre, mobile).
 2. Les Skills `apple-design` et `emil-design-eng` (chemins dans AGENTS.md).
-3. Le backend : `~/Downloads/agregat-backend/README.md`, `apps/api/server.js` (toutes les routes),
+3. Le backend : `~/Downloads/agregat-back/README.md`, `apps/api/server.js` (toutes les routes),
    `apps/web/app.js` (comportement actuel à conserver), `packages/orchestrator/index.js` (forme du plan),
    `packages/workflow-engine/index.js` (états d'étapes), `packages/billing/index.js` (coûts).
 
