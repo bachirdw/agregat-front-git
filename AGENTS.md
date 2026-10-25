@@ -4,7 +4,7 @@ Tu es supervisé par un manager (Claude) qui relit chaque commit, relance les te
 Il préfère une erreur avouée à un succès inventé.
 
 ## Contexte
-- Ce dépôt : `~/Downloads/relay-frontend` — le NOUVEAU frontend de la plateforme.
+- Ce dépôt : `~/Downloads/agregateur-frontend` — le NOUVEAU frontend de la plateforme.
 - Backend existant (à ne pas casser) : `~/Downloads/agregateur-agent` — API HTTP locale 127.0.0.1:4310,
   voir son `README.md`, `apps/api/server.js`, `apps/web/app.js` (ancien frontend, référence de comportement).
 - Maquette de référence : `design/maquette.html` (prototype interactif) et `design/screens/*.png` (captures).
