@@ -73,6 +73,14 @@ export interface MissionInput {
   budgetCents: number;
   mode: "agent" | "workflow";
   workflow: string;
+  attachments?: Attachment[];
+}
+// A file uploaded to POST /api/files; only its id is sent with a plan or run.
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
 }
 export interface Cost {
   platformCents: number;

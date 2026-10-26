@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Catalog, MissionInput, Plan, Run, RunEvent } from "./types";
 import { agentStatus, labels } from "./types";
-import { api, watchRun } from "./api";
+import { api, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PlanCard, RunView } from "./Mission";
@@ -24,6 +24,7 @@ const initial: MissionInput = {
   budgetCents: 0,
   mode: "workflow",
   workflow: "auto",
+  attachments: [],
 };
 export default function App() {
   const [catalog, setCatalog] = useState<Catalog | null>(null),
@@ -248,7 +249,7 @@ export default function App() {
     const candidate = structuredClone(input);
     const version = viewVersion.current;
     try {
-      const next = await api<Plan>("/plan", candidate);
+      const next = await api<Plan>("/plan", toApiInput(candidate));
       if (version !== viewVersion.current) return;
       setPlan(next);
       setPlanned(candidate);
@@ -267,7 +268,7 @@ export default function App() {
     setBusy(true);
     setError("");
     try {
-      const next = await api<Run>("/runs", planned);
+      const next = await api<Run>("/runs", toApiInput(planned));
       if (version === viewVersion.current) await openRun(next.id);
       await history();
       setPlanned(null);

@@ -111,6 +111,66 @@ describe("rendu fiable", () => {
     });
     expect(onChange).toHaveBeenCalledWith({ ...input, prompt: "autre" });
   });
+  it("bouton + : joindre un fichier, pastille, retrait et erreur de type", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          '{"id":"u1","name":"cv.pdf","size":2048,"type":"application/pdf"}',
+          { status: 201 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const onChange = vi.fn();
+    const { rerender, container } = render(
+      <Composer
+        catalog={catalog}
+        input={input}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    expect(screen.getByLabelText("Ajouter")).toBeTruthy();
+    expect(
+      screen.getByRole("menuitem", { name: "Ajouter un fichier" }),
+    ).toBeTruthy();
+    const picker = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    fireEvent.change(picker, {
+      target: { files: [new File(["%PDF FICTIF"], "cv.pdf")] },
+    });
+    await vi.waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith({
+        ...input,
+        attachments: [
+          { id: "u1", name: "cv.pdf", size: 2048, type: "application/pdf" },
+        ],
+      }),
+    );
+    const withFile = onChange.mock.calls.at(-1)![0];
+    rerender(
+      <Composer
+        catalog={catalog}
+        input={withFile}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    expect(screen.getByText("cv.pdf")).toBeTruthy();
+    expect(screen.getByText("2 Ko")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retirer cv.pdf" }));
+    expect(onChange).toHaveBeenLastCalledWith({ ...input, attachments: [] });
+    fireEvent.change(picker, {
+      target: { files: [new File(["x"], "photo.png")] },
+    });
+    expect((await screen.findByRole("alert")).textContent).toMatch(
+      /Type refusé/,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it("plan réel : coût, budget, provenance et lancement explicite", () => {
     const launch = vi.fn();
     render(

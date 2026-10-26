@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { api, ApiError, watchRun } from "./api";
+import { api, ApiError, toApiInput, uploadFile, watchRun } from "./api";
 describe("client HTTP", () => {
   it("envoie le contrat JSON avec en-tête applicatif et conserve la réponse", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response('{"ok":true}'));
@@ -103,5 +103,75 @@ describe("SSE", () => {
     source.send("update", { seq: "bad", type: "state", data: {} });
     expect(update).not.toHaveBeenCalled();
     expect(connection).toHaveBeenCalledWith(false);
+  });
+});
+describe("pièces jointes", () => {
+  it("envoie les octets bruts avec nom encodé et type exact déduit de l'extension", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        '{"id":"u1","name":"cv.md","size":5,"type":"text/markdown"}',
+        {
+          status: 201,
+        },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const file = new File(["FICTIF"], "mon cv é.md", { type: "" });
+    expect((await uploadFile(file)).id).toBe("u1");
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe("/api/files");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(file);
+    expect(init.headers).toEqual({
+      "x-platform-request": "1",
+      "x-file-name": encodeURIComponent("mon cv é.md"),
+      "content-type": "text/markdown",
+    });
+  });
+  it("refuse avant envoi : type, fichier vide, taille", async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    await expect(uploadFile(new File(["x"], "photo.png"))).rejects.toThrow(
+      /Type refusé/,
+    );
+    await expect(uploadFile(new File([], "vide.txt"))).rejects.toThrow(/vide/);
+    const big = new File(["x"], "gros.pdf");
+    Object.defineProperty(big, "size", { value: 10 * 1024 * 1024 + 1 });
+    await expect(uploadFile(big)).rejects.toThrow(/10 Mo/);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("relaie l'erreur du serveur", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response('{"error":"Conversion impossible"}', { status: 400 }),
+        ),
+    );
+    await expect(uploadFile(new File(["x"], "cv.pdf"))).rejects.toThrow(
+      "Conversion impossible",
+    );
+  });
+  it("le plan et le run ne reçoivent que les identifiants", () => {
+    const base = {
+      prompt: "p",
+      agent: "auto",
+      pack: "auto",
+      skills: [],
+      model: "",
+      budgetCents: 0,
+      mode: "agent" as const,
+      workflow: "auto",
+    };
+    expect(toApiInput({ ...base, attachments: [] })).toEqual(base);
+    expect(
+      toApiInput({
+        ...base,
+        attachments: [
+          { id: "u1", name: "cv.pdf", size: 3, type: "application/pdf" },
+        ],
+      }),
+    ).toEqual({ ...base, attachments: ["u1"] });
   });
 });

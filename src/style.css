@@ -505,6 +505,66 @@ textarea:focus-visible {
   left: auto;
   right: 0;
 }
+.attach-menu summary {
+  padding: 4px 6px;
+}
+.attach-menu summary[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+.attach-menu .popover {
+  width: 230px;
+  gap: 8px;
+}
+.attach-menu .popover button {
+  text-align: left;
+}
+.composer.dragging {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 2px 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  background: var(--fill2);
+  border-radius: 10px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12px;
+}
+.chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.chip small {
+  color: var(--muted);
+}
+.chip button {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 6px;
+}
+.chip button svg {
+  width: 12px;
+  height: 12px;
+}
+.chip.pending {
+  color: var(--muted);
+  padding-right: 10px;
+}
+.chip.error {
+  color: var(--red);
+  padding-right: 10px;
+}
 .send {
   border-radius: 50%;
   width: 32px;

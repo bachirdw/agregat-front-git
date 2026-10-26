@@ -1,8 +1,67 @@
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
-import type { Catalog, MissionInput } from "./types";
+import type { DragEvent, FormEvent, ReactNode } from "react";
+import type { Attachment, Catalog, MissionInput } from "./types";
+import { ATTACHMENT_MAX_COUNT, uploadFile } from "./api";
 import { money } from "./types";
 import { Icon } from "./Icon";
+function size(bytes: number) {
+  return bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} Ko`
+    : `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+}
+// "+" menu next to the prompt: attach a file (CV…), uploaded at once to POST /api/files.
+function AttachMenu({
+  disabled,
+  onPick,
+}: {
+  disabled: boolean;
+  onPick: () => void;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: Event) => {
+      if (!ref.current?.contains(e.target as Node))
+        ref.current?.removeAttribute("open");
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && ref.current?.open) {
+        ref.current.open = false;
+        ref.current.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", escape);
+    };
+  }, []);
+  return (
+    <details className="filter attach-menu" ref={ref}>
+      <summary
+        aria-label="Ajouter"
+        onClick={(e) => disabled && e.preventDefault()}
+        aria-disabled={disabled}
+      >
+        <Icon name="plus" />
+      </summary>
+      <div className="popover" role="menu">
+        <button
+          type="button"
+          role="menuitem"
+          disabled={disabled}
+          onClick={() => {
+            ref.current?.removeAttribute("open");
+            onPick();
+          }}
+        >
+          Ajouter un fichier
+        </button>
+        <small>PDF, DOCX, Markdown ou texte · 10 Mo max.</small>
+      </div>
+    </details>
+  );
+}
 function Filter({
   name,
   value,
@@ -60,6 +119,40 @@ export function Composer({
   disabled?: boolean;
 }) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(0);
+  const [fileError, setFileError] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const attachments = input.attachments || [];
+  // Latest input for uploads that finish after other edits.
+  const latest = useRef(input);
+  latest.current = input;
+  const addFiles = async (files: FileList | File[]) => {
+    setFileError("");
+    const list = [...files];
+    if (attachments.length + list.length > ATTACHMENT_MAX_COUNT) {
+      setFileError(`${ATTACHMENT_MAX_COUNT} fichiers maximum par mission.`);
+      return;
+    }
+    for (const file of list) {
+      setUploading((n) => n + 1);
+      try {
+        const added: Attachment = await uploadFile(file);
+        const now = latest.current;
+        onChange({ ...now, attachments: [...(now.attachments || []), added] });
+      } catch (e) {
+        setFileError(`${file.name} : ${(e as Error).message}`);
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
+  };
+  const drop = (e: DragEvent) => {
+    if (disabled || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    setDragging(false);
+    void addFiles(e.dataTransfer.files);
+  };
   const [budget, setBudget] = useState(String(input.budgetCents / 100));
   useEffect(
     () => setBudget(String(input.budgetCents / 100)),
@@ -73,15 +166,67 @@ export function Composer({
   const workflows = pack?.dags || catalog?.packs.flatMap((p) => p.dags) || [];
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (input.prompt.trim() && !busy && !disabled && catalog) onPlan();
+    if (input.prompt.trim() && !busy && !uploading && !disabled && catalog)
+      onPlan();
   };
   return (
     <div className="composer-dock">
       <form
-        className="composer"
+        className={dragging ? "composer dragging" : "composer"}
         onSubmit={submit}
         aria-label="Préparer une mission"
+        onDragOver={(e) => {
+          if (disabled || !e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node))
+            setDragging(false);
+        }}
+        onDrop={drop}
       >
+        <input
+          ref={fileRef}
+          type="file"
+          hidden
+          multiple
+          accept=".pdf,.docx,.md,.markdown,.txt"
+          aria-label="Fichier à joindre"
+          onChange={(e) => {
+            if (e.target.files?.length) void addFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        {(attachments.length > 0 || uploading > 0 || fileError) && (
+          <div className="attachments" aria-live="polite">
+            {attachments.map((a) => (
+              <span className="chip" key={a.id}>
+                <span>{a.name}</span>
+                <small>{size(a.size)}</small>
+                <button
+                  type="button"
+                  aria-label={`Retirer ${a.name}`}
+                  onClick={() =>
+                    set({
+                      attachments: attachments.filter((x) => x.id !== a.id),
+                    })
+                  }
+                >
+                  <Icon name="close" />
+                </button>
+              </span>
+            ))}
+            {uploading > 0 && (
+              <span className="chip pending">Envoi du fichier…</span>
+            )}
+            {fileError && (
+              <span className="chip error" role="alert">
+                {fileError}
+              </span>
+            )}
+          </div>
+        )}
         <textarea
           id="prompt"
           ref={promptRef}
@@ -104,6 +249,10 @@ export function Composer({
         />
         <div className="composer-bottom">
           <div className="filters">
+            <AttachMenu
+              disabled={disabled || uploading > 0}
+              onPick={() => fileRef.current?.click()}
+            />
             <Filter name="Agent" value={agent?.name || "Auto"}>
               <label>
                 Agent d’exécution
@@ -302,7 +451,13 @@ export function Composer({
             className="send primary"
             type="submit"
             aria-label="Préparer le plan"
-            disabled={busy || disabled || !catalog || !input.prompt.trim()}
+            disabled={
+              busy ||
+              uploading > 0 ||
+              disabled ||
+              !catalog ||
+              !input.prompt.trim()
+            }
           >
             {busy ? "…" : <Icon name="arrow" />}
           </button>
