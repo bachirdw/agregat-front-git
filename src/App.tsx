@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Catalog, MissionInput, Plan, Run, RunEvent } from "./types";
-import { agentStatus, labels } from "./types";
+import { agentStatus, finalStates, labels } from "./types";
 import { api, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
@@ -277,6 +277,19 @@ export default function App() {
     } finally {
       setBusy(false);
     }
+  };
+  // Follow-up in the same agent session (e.g. answering career-ops intake questions).
+  const canReply =
+    page === "mission" &&
+    !!run &&
+    run.mode !== "workflow" &&
+    finalStates.has(run.state) &&
+    !!run.resumable;
+  const reply = async () => {
+    if (!run || !input.prompt.trim()) return;
+    const prompt = input.prompt.trim();
+    await action(`/runs/${run.id}/resume`, { prompt });
+    setInput((old) => ({ ...old, prompt: "" }));
   };
   const action = async (path: string, body: unknown) => {
     if (busy) return;
@@ -603,9 +616,10 @@ export default function App() {
             catalog={catalog}
             input={input}
             onChange={change}
-            onPlan={() => void prepare()}
+            onPlan={() => void (canReply ? reply() : prepare())}
             busy={busy}
-            disabled={page === "mission"}
+            disabled={page === "mission" && !canReply}
+            reply={canReply}
           />
         )}
       </main>

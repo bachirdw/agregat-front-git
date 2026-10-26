@@ -110,6 +110,7 @@ export function Composer({
   onPlan,
   busy,
   disabled = false,
+  reply = false,
 }: {
   catalog: Catalog | null;
   input: MissionInput;
@@ -117,6 +118,7 @@ export function Composer({
   onPlan: () => void;
   busy: boolean;
   disabled?: boolean;
+  reply?: boolean;
 }) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -232,9 +234,11 @@ export function Composer({
           ref={promptRef}
           aria-label="Objectif de la mission"
           placeholder={
-            disabled
-              ? "Répondre ou ajuster · bientôt"
-              : "Décrivez votre objectif…"
+            reply
+              ? "Répondre à l’agent…"
+              : disabled
+                ? "Créez une nouvelle mission pour poursuivre"
+                : "Décrivez votre objectif…"
           }
           value={disabled ? "" : input.prompt}
           disabled={disabled}
@@ -450,7 +454,7 @@ export function Composer({
           <button
             className="send primary"
             type="submit"
-            aria-label="Préparer le plan"
+            aria-label={reply ? "Envoyer la réponse" : "Préparer le plan"}
             disabled={
               busy ||
               uploading > 0 ||
@@ -464,9 +468,11 @@ export function Composer({
         </div>
       </form>
       <small className="composer-note">
-        {disabled
-          ? "Conversation de suivi · bientôt. Créez une nouvelle mission pour poursuivre."
-          : "L’envoi prépare d’abord un plan. Rien n’est exécuté sans votre accord."}
+        {reply
+          ? "Votre réponse relance la même session de l’agent, avec son historique."
+          : disabled
+            ? "Cette mission ne peut pas être poursuivie. Créez une nouvelle mission."
+            : "L’envoi prépare d’abord un plan. Rien n’est exécuté sans votre accord."}
       </small>
     </div>
   );
