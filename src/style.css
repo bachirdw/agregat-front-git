@@ -1450,3 +1450,11 @@ summary {
   white-space: pre-wrap;
   font-size: 13px;
 }
+.career-offers > summary {
+  cursor: pointer;
+  padding: 0 16px 12px;
+  font-weight: 500;
+}
+.career-summary {
+  white-space: normal;
+}

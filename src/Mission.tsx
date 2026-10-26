@@ -469,8 +469,12 @@ export function RunView({
               </span>
             )}
           </div>
-          <h2>Synthèse</h2>
-          <Markdown text={run.result.summary} />
+          {run.pack !== "career-ops" && (
+            <>
+              <h2>Synthèse</h2>
+              <Markdown text={run.result.summary} />
+            </>
+          )}
           {!!run.result.opportunities?.length && (
             <>
               <div className="table-wrap card">

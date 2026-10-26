@@ -371,6 +371,7 @@ describe("career-ops", () => {
       />,
     );
     expect(await screen.findByText("Résumé FICTIF")).toBeTruthy();
+    expect(screen.getByText(/Toutes vos offres enregistrées · 2/)).toBeTruthy();
     const titles = screen.getAllByText(/^Poste /).map((n) => n.textContent);
     expect(titles).toEqual(["Poste b", "Poste a"]);
     expect(screen.getAllByText("<b>pas du HTML</b>").length).toBe(2);

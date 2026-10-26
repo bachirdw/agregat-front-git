@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api";
+import { Markdown } from "./Markdown";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
@@ -123,58 +124,64 @@ export function CareerResults({ run }: { run: Run }) {
   }, [run.id, done]);
   if (!done) return null;
   return (
-    <section className="card career" aria-label="Offres career-ops">
+    <section className="card career" aria-label="Résultat career-ops">
       <div className="card-pad">
         <small>career-ops · espace privé</small>
-        <h2>Offres trouvées</h2>
-        {result?.summary && <p className="career-summary">{result.summary}</p>}
-        {error && <p className="danger">{error}</p>}
-        {offers && !offers.length && (
-          <p>Aucune offre enregistrée pour l’instant.</p>
+        <h2>Réponse de l’agent</h2>
+        {result?.summary ? (
+          <div className="career-summary">
+            <Markdown text={result.summary} />
+          </div>
+        ) : (
+          !error && <p>Chargement…</p>
         )}
+        {error && <p className="danger">{error}</p>}
       </div>
-      {offers && offers.length > 0 && (
-        <ol className="offers">
-          {offers.map((o) => (
-            <li key={o.id} className="offer">
-              <div className="offer-head">
-                <span
-                  className="score"
-                  aria-label={`Note ${o.score ?? "non évaluée"} sur 5`}
-                >
-                  {o.score ?? "–"}
-                  <small>/5</small>
-                </span>
-                <span>
-                  <strong>{o.title}</strong>
-                  <small>
-                    {o.company} · {o.source}
-                    {o.simulated ? " · FICTIF" : ""}
-                  </small>
-                </span>
-                <a href={o.url} target="_blank" rel="noopener noreferrer">
-                  Voir l’offre ↗
-                </a>
-              </div>
-              {o.report && (
-                <details>
-                  <summary>Rapport A–H</summary>
-                  <dl>
-                    {Object.entries(o.report).map(([key, text]) => (
-                      <div key={key}>
-                        <dt>
-                          {key}
-                          {sections[key] ? ` · ${sections[key]}` : ""}
-                        </dt>
-                        <dd>{text}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </details>
-              )}
-            </li>
-          ))}
-        </ol>
+      {offers && (
+        <details className="career-offers">
+          <summary>Toutes vos offres enregistrées · {offers.length}</summary>
+          <ol className="offers">
+            {offers.map((o) => (
+              <li key={o.id} className="offer">
+                <div className="offer-head">
+                  <span
+                    className="score"
+                    aria-label={`Note ${o.score ?? "non évaluée"} sur 5`}
+                  >
+                    {o.score ?? "–"}
+                    <small>/5</small>
+                  </span>
+                  <span>
+                    <strong>{o.title}</strong>
+                    <small>
+                      {o.company} · {o.source}
+                      {o.simulated ? " · FICTIF" : ""}
+                    </small>
+                  </span>
+                  <a href={o.url} target="_blank" rel="noopener noreferrer">
+                    Voir l’offre ↗
+                  </a>
+                </div>
+                {o.report && (
+                  <details>
+                    <summary>Rapport A–H</summary>
+                    <dl>
+                      {Object.entries(o.report).map(([key, text]) => (
+                        <div key={key}>
+                          <dt>
+                            {key}
+                            {sections[key] ? ` · ${sections[key]}` : ""}
+                          </dt>
+                          <dd>{text}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ol>
+        </details>
       )}
     </section>
   );
