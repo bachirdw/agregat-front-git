@@ -194,9 +194,17 @@ export function RunView({
   act: (path: string, body: unknown) => Promise<void>;
 }) {
   const [timelineOpen, setTimelineOpen] = useState(!finalStates.has(run.state));
+  const [now, setNow] = useState(Date.now());
+  const hasExpiringPermission =
+    run.permissions?.some((p) => Number.isFinite(p.expiresAt)) ?? false;
   useEffect(() => {
     setTimelineOpen(!finalStates.has(run.state));
   }, [run.id, run.state]);
+  useEffect(() => {
+    if (!hasExpiringPermission) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasExpiringPermission]);
   const definitions = run.plan.workflow?.steps || [];
   const done = run.steps?.filter((s) => s.state === "succeeded").length || 0;
   const resumable =
@@ -405,7 +413,13 @@ export function RunView({
             </small>
             <h2>{p.tool.title || "Autorisation agent"}</h2>
             <pre>{JSON.stringify(p.tool, null, 2)}</pre>
-            <small>Une permission expirée est refusée par le serveur.</small>
+            <small role="timer">
+              {Number.isFinite(p.expiresAt)
+                ? now >= p.expiresAt!
+                  ? "Accord expiré"
+                  : `Expire dans ${Math.ceil((p.expiresAt! - now) / 1000)} s`
+                : "Une permission expirée est refusée par le serveur."}
+            </small>
           </div>
           <footer>
             {p.options
@@ -416,7 +430,9 @@ export function RunView({
                 <button
                   key={o.optionId}
                   className={o.kind === "allow_once" ? "primary" : ""}
-                  disabled={busy}
+                  disabled={
+                    busy || (p.expiresAt !== undefined && now >= p.expiresAt)
+                  }
                   onClick={() =>
                     void act(`/permissions/${p.id}`, { optionId: o.optionId })
                   }

@@ -109,6 +109,7 @@ export interface Step {
 }
 export interface Permission {
   id: string;
+  expiresAt?: number;
   tool: { title?: string; [key: string]: unknown };
   options: { optionId: string; name: string; kind: string }[];
 }

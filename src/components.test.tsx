@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { Markdown } from "./Markdown";
 import { Composer } from "./Composer";
 import { PlanCard, RunView } from "./Mission";
@@ -234,6 +240,51 @@ describe("rendu fiable", () => {
     expect(act).toHaveBeenCalledWith("/runs/r/steps/review", {
       approved: true,
     });
+  });
+  it("permission : l'expiration est visible et désactive l'accord", () => {
+    vi.useFakeTimers();
+    try {
+      const actPermission = vi.fn();
+      const run = {
+        id: "r",
+        state: "waiting_permission",
+        mode: "agent",
+        plan: { steps: [] },
+        permissions: [
+          {
+            id: "p",
+            expiresAt: Date.now() + 30000,
+            tool: { title: "FICTIF envoi" },
+            options: [
+              {
+                optionId: "allow",
+                name: "Approuver l’envoi",
+                kind: "allow_once",
+              },
+            ],
+          },
+        ],
+      } as unknown as Run;
+      render(
+        <RunView
+          run={run}
+          events={[]}
+          connection=""
+          busy={false}
+          act={actPermission}
+        />,
+      );
+      expect(screen.getByRole("timer").textContent).toContain("30 s");
+      const approve = screen.getByRole("button", {
+        name: "Approuver l’envoi",
+      }) as HTMLButtonElement;
+      expect(approve.disabled).toBe(false);
+      act(() => vi.advanceTimersByTime(31000));
+      expect(screen.getByRole("timer").textContent).toBe("Accord expiré");
+      expect(approve.disabled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it("workflow interrompu se reprend par API et non par nouveau lancement", () => {
     const act = vi.fn();
