@@ -1,3 +1,4 @@
+import { AgentActivity, CareerResults } from "./Career";
 import { useEffect, useState } from "react";
 import type { Catalog, Cost, Plan, Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
@@ -283,6 +284,7 @@ export function RunView({
                 </p>
               </div>
             )}
+            <AgentActivity events={events} />
             <details className="event-log">
               <summary>Journal en direct · {events.length} événements</summary>
               <ol>
@@ -299,6 +301,7 @@ export function RunView({
           </>
         )}
       </section>
+      {run.pack === "career-ops" && <CareerResults run={run} />}
       {run.error && (
         <section className="card error-card" role="alert">
           <small>Mission interrompue</small>

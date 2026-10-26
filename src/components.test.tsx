@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Markdown } from "./Markdown";
 import { Composer } from "./Composer";
 import { PlanCard, RunView } from "./Mission";
+import { activity, AgentActivity, CareerResults } from "./Career";
 import { Skills } from "./Galleries";
 import type { Catalog, MissionInput, Plan, Run } from "./types";
 afterEach(cleanup);
@@ -286,5 +287,95 @@ describe("rendu fiable", () => {
       approved: true,
       hash: "abc",
     });
+  });
+});
+describe("career-ops", () => {
+  it("activité : outils fusionnés par identifiant et texte de l'agent concaténé", () => {
+    const events = [
+      {
+        seq: 1,
+        type: "agent",
+        data: {
+          sessionUpdate: "tool_call",
+          toolCallId: "t1",
+          title: "jobs_search_live",
+          status: "in_progress",
+        },
+      },
+      {
+        seq: 2,
+        type: "agent",
+        data: {
+          sessionUpdate: "agent_message_chunk",
+          content: { type: "text", text: "Je cherche " },
+        },
+      },
+      {
+        seq: 3,
+        type: "agent",
+        data: {
+          sessionUpdate: "agent_message_chunk",
+          content: { type: "text", text: "des offres." },
+        },
+      },
+      {
+        seq: 4,
+        type: "agent",
+        data: {
+          sessionUpdate: "tool_call_update",
+          toolCallId: "t1",
+          status: "completed",
+        },
+      },
+      { seq: 5, type: "state", data: { state: "completed" } },
+    ];
+    expect(activity(events)).toEqual([
+      expect.objectContaining({
+        kind: "tool",
+        title: "jobs_search_live",
+        status: "completed",
+      }),
+      expect.objectContaining({ kind: "text", text: "Je cherche des offres." }),
+    ]);
+    render(<AgentActivity events={events} />);
+    expect(screen.getByText("jobs_search_live")).toBeTruthy();
+    expect(screen.getByText("terminé")).toBeTruthy();
+  });
+  it("offres : triées par note, lien externe, rapport en texte brut", async () => {
+    const offer = (id: string, score: number) => ({
+      id,
+      title: "Poste " + id,
+      company: "Entreprise FICTIVE",
+      url: "https://jobs.example.test/" + id,
+      source: "Fixture",
+      fetchedAt: "",
+      score,
+      report: { A: "<b>pas du HTML</b>", H: "Postuler" },
+      simulated: true,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) =>
+        path.includes("offers")
+          ? new Response(
+              JSON.stringify({ opportunities: [offer("a", 3), offer("b", 5)] }),
+            )
+          : new Response(JSON.stringify({ summary: "Résumé FICTIF" })),
+      ),
+    );
+    render(
+      <CareerResults
+        run={
+          { id: "r1", pack: "career-ops", state: "completed" } as unknown as Run
+        }
+      />,
+    );
+    expect(await screen.findByText("Résumé FICTIF")).toBeTruthy();
+    const titles = screen.getAllByText(/^Poste /).map((n) => n.textContent);
+    expect(titles).toEqual(["Poste b", "Poste a"]);
+    expect(screen.getAllByText("<b>pas du HTML</b>").length).toBe(2);
+    expect(screen.getAllByText("H · Prochaine action").length).toBe(2);
+    const link = screen.getAllByRole("link", { name: /Voir l’offre/ })[0];
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
   });
 });

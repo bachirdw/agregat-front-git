@@ -168,6 +168,7 @@ export interface RunEvent {
   seq: number;
   type: string;
   data: Record<string, unknown>;
+  at?: string;
 }
 export const finalStates = new Set([
   "completed",
@@ -205,4 +206,26 @@ export function agentStatus(a: Agent) {
           : a.probe
             ? "Authentification requise"
             : "Détecté · non testé";
+}
+// career-ops (agregat-back docs/api-career-ops.md). Texts are untrusted data: render as text only.
+export interface CareerOffer {
+  id: string;
+  title: string;
+  company: string;
+  url: string;
+  source: string;
+  fetchedAt: string;
+  score: number | null;
+  report: Record<string, string> | null;
+  simulated: boolean;
+}
+export interface CareerResult {
+  summary?: string;
+  simulated?: boolean;
+  evidence?: {
+    title?: string;
+    company?: string;
+    url?: string;
+    source?: string;
+  }[];
 }
