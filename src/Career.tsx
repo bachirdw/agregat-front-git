@@ -225,7 +225,8 @@ function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
     <>
       <div className="prompt-bubble">{prompt ?? "…"}</div>
       <div className="agent-turn">
-        {live && <AgentActivity events={live} />}
+        {live && !done && <AgentActivity events={live} />}
+        {live && done && <UsedTools events={live} />}
         {done && answer !== null && <Markdown text={answer} />}
         {!done &&
           !["failed", "cancelled", "interrupted"].includes(run.state) && (
@@ -295,6 +296,24 @@ function CareerOffers({ done }: { done: boolean }) {
             <a href={o.url} target="_blank" rel="noopener noreferrer">
               ↗
             </a>
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
+
+// Finished turn: only the answer stays visible; tool calls fold into one line (Claude-Code-like).
+function UsedTools({ events }: { events: RunEvent[] }) {
+  const tools = activity(events).filter((i) => i.kind === "tool");
+  if (!tools.length) return null;
+  return (
+    <details className="used-tools">
+      <summary>{tools.length} outils utilisés</summary>
+      <ol>
+        {tools.map((t) => (
+          <li key={t.id}>
+            <code>{t.kind === "tool" ? t.title : ""}</code>
           </li>
         ))}
       </ol>

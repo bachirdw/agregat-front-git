@@ -1487,3 +1487,15 @@ summary {
   gap: 6px;
   font-size: 13px;
 }
+.used-tools {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.used-tools > summary {
+  cursor: pointer;
+}
+.used-tools ol {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
