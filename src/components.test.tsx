@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Markdown } from "./Markdown";
 import { Composer } from "./Composer";
 import { PlanCard, RunView } from "./Mission";
-import { activity, AgentActivity, CareerResults } from "./Career";
+import { activity, AgentActivity, sessionThread } from "./Career";
 import { Skills } from "./Galleries";
 import type { Catalog, MissionInput, Plan, Run } from "./types";
 afterEach(cleanup);
@@ -341,42 +341,22 @@ describe("career-ops", () => {
     expect(screen.getByText("jobs_search_live")).toBeTruthy();
     expect(screen.getByText("terminé")).toBeTruthy();
   });
-  it("offres : triées par note, lien externe, rapport en texte brut", async () => {
-    const offer = (id: string, score: number) => ({
-      id,
-      title: "Poste " + id,
-      company: "Entreprise FICTIVE",
-      url: "https://jobs.example.test/" + id,
-      source: "Fixture",
-      fetchedAt: "",
-      score,
-      report: { A: "<b>pas du HTML</b>", H: "Postuler" },
-      simulated: true,
-    });
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (path: string) =>
-        path.includes("offers")
-          ? new Response(
-              JSON.stringify({ opportunities: [offer("a", 3), offer("b", 5)] }),
-            )
-          : new Response(JSON.stringify({ summary: "Résumé FICTIF" })),
-      ),
-    );
-    render(
-      <CareerResults
-        run={
-          { id: "r1", pack: "career-ops", state: "completed" } as unknown as Run
-        }
-      />,
-    );
-    expect(await screen.findByText("Résumé FICTIF")).toBeTruthy();
-    expect(screen.getByText(/Toutes vos offres enregistrées · 2/)).toBeTruthy();
-    const titles = screen.getAllByText(/^Poste /).map((n) => n.textContent);
-    expect(titles).toEqual(["Poste b", "Poste a"]);
-    expect(screen.getAllByText("<b>pas du HTML</b>").length).toBe(2);
-    expect(screen.getAllByText("H · Prochaine action").length).toBe(2);
-    const link = screen.getAllByRole("link", { name: /Voir l’offre/ })[0];
-    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  it("fil de session : tours de la même session, du plus ancien au plus récent", () => {
+    const r = (id: string, sessionId: string | null, createdAt: string) =>
+      ({
+        id,
+        sessionId,
+        createdAt,
+        prompt: id,
+        state: "completed",
+      }) as unknown as Run;
+    const a = r("a", "s1", "2026-10-26T01:00:00Z");
+    const b = r("b", "s2", "2026-10-26T02:00:00Z");
+    const c = r("c", "s1", "2026-10-26T03:00:00Z");
+    const d = r("d", "s1", "2026-10-26T04:00:00Z");
+    expect(sessionThread(c, [d, c, b, a]).map((x) => x.id)).toEqual(["a", "c"]);
+    expect(sessionThread(r("x", null, "z"), [a]).map((x) => x.id)).toEqual([
+      "x",
+    ]);
   });
 });

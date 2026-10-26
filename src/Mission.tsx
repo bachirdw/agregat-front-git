@@ -1,4 +1,4 @@
-import { AgentActivity, CareerResults } from "./Career";
+import { AgentActivity } from "./Career";
 import { useEffect, useState } from "react";
 import type { Catalog, Cost, Plan, Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
@@ -301,7 +301,6 @@ export function RunView({
           </>
         )}
       </section>
-      {run.pack === "career-ops" && <CareerResults run={run} />}
       {run.error && (
         <section className="card error-card" role="alert">
           <small>Mission interrompue</small>

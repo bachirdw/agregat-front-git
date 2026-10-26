@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { api } from "./api";
 import { Markdown } from "./Markdown";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
@@ -184,5 +185,119 @@ export function CareerResults({ run }: { run: Run }) {
         </details>
       )}
     </section>
+  );
+}
+
+// One career-ops conversation = the runs sharing an agent session, oldest first (Claude-Code-like).
+export function sessionThread(run: Run, runs: Run[]): Run[] {
+  const same = run.sessionId
+    ? runs.filter(
+        (r) => r.sessionId === run.sessionId && r.createdAt <= run.createdAt,
+      )
+    : [];
+  const all = same.some((r) => r.id === run.id) ? same : [...same, run];
+  return [...all].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const [answer, setAnswer] = useState<string | null>(null);
+  const done = run.state === "completed";
+  useEffect(() => {
+    const abort = new AbortController();
+    api<{ prompt: string }>(
+      `/career/runs/${run.id}/input`,
+      undefined,
+      abort.signal,
+    )
+      .then((r) => setPrompt(r.prompt))
+      .catch(() => !abort.signal.aborted && setPrompt(run.prompt));
+    if (done)
+      api<CareerResult>(
+        `/career/runs/${run.id}/result`,
+        undefined,
+        abort.signal,
+      )
+        .then((r) => setAnswer(r.summary || ""))
+        .catch(() => !abort.signal.aborted && setAnswer(null));
+    return () => abort.abort();
+  }, [run.id, done, run.prompt]);
+  return (
+    <>
+      <div className="prompt-bubble">{prompt ?? "…"}</div>
+      <div className="agent-turn">
+        {live && <AgentActivity events={live} />}
+        {done && answer !== null && <Markdown text={answer} />}
+        {!done &&
+          !["failed", "cancelled", "interrupted"].includes(run.state) && (
+            <p className="muted">L’agent travaille…</p>
+          )}
+        {["failed", "cancelled", "interrupted"].includes(run.state) && (
+          <p className="danger">{run.error || "Tour interrompu."}</p>
+        )}
+      </div>
+    </>
+  );
+}
+export function CareerThread({
+  run,
+  runs,
+  events,
+  children,
+}: {
+  run: Run;
+  runs: Run[];
+  events: RunEvent[];
+  children: ReactNode;
+}) {
+  const turns = sessionThread(run, runs);
+  return (
+    <div className="career-thread">
+      {turns.map((t) => (
+        <Turn key={t.id} run={t} live={t.id === run.id ? events : undefined} />
+      ))}
+      <CareerOffers done={run.state === "completed"} />
+      <details className="tech-details">
+        <summary>Détails techniques (coût, journal brut)</summary>
+        {children}
+      </details>
+    </div>
+  );
+}
+function CareerOffers({ done }: { done: boolean }) {
+  const [offers, setOffers] = useState<CareerOffer[] | null>(null);
+  useEffect(() => {
+    if (!done) return;
+    const abort = new AbortController();
+    api<{ opportunities: CareerOffer[] }>(
+      "/career/offers",
+      undefined,
+      abort.signal,
+    )
+      .then((o) =>
+        setOffers(
+          [...o.opportunities].sort(
+            (a, b) => (b.score ?? -1) - (a.score ?? -1),
+          ),
+        ),
+      )
+      .catch(() => {});
+    return () => abort.abort();
+  }, [done]);
+  if (!offers?.length) return null;
+  return (
+    <details className="career-offers card">
+      <summary>Toutes vos offres enregistrées · {offers.length}</summary>
+      <ol className="offer-lines">
+        {offers.map((o) => (
+          <li key={o.id}>
+            <strong>{o.score ?? "–"}/5</strong> {o.title} — {o.company} ·{" "}
+            {o.source}{" "}
+            <a href={o.url} target="_blank" rel="noopener noreferrer">
+              ↗
+            </a>
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }

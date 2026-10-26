@@ -4,6 +4,7 @@ import { agentStatus, finalStates, labels } from "./types";
 import { api, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
+import { CareerThread } from "./Career";
 import { PlanCard, RunView } from "./Mission";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
 type Page = "home" | "agents" | "skills" | "packs" | "usage" | "mission";
@@ -569,14 +570,28 @@ export default function App() {
           )}
           {page === "mission" && run && (
             <div className="thread">
-              <div className="prompt-bubble">{run.prompt}</div>
-              <RunView
-                run={run}
-                events={events}
-                connection={connection}
-                busy={busy}
-                act={action}
-              />
+              {run.pack === "career-ops" ? (
+                <CareerThread run={run} runs={runs} events={events}>
+                  <RunView
+                    run={run}
+                    events={events}
+                    connection={connection}
+                    busy={busy}
+                    act={action}
+                  />
+                </CareerThread>
+              ) : (
+                <>
+                  <div className="prompt-bubble">{run.prompt}</div>
+                  <RunView
+                    run={run}
+                    events={events}
+                    connection={connection}
+                    busy={busy}
+                    act={action}
+                  />
+                </>
+              )}
             </div>
           )}
           {catalog && ["agents", "skills", "packs", "usage"].includes(page) && (
