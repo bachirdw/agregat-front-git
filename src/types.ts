@@ -212,6 +212,7 @@ export function agentStatus(a: Agent) {
 // career-ops (agregat-back docs/api-career-ops.md). Texts are untrusted data: render as text only.
 export interface CareerOffer {
   id: string;
+  contractVersion?: 2;
   title: string;
   company: string;
   url: string;

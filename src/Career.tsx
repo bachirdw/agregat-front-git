@@ -379,7 +379,11 @@ export function CareerResults({ run }: { run: Run }) {
                         <div key={key}>
                           <dt>
                             {key}
-                            {sections[key] ? ` · ${sections[key]}` : ""}
+                            {key === "H" && !o.contractVersion
+                              ? " · Bloc historique"
+                              : sections[key]
+                                ? ` · ${sections[key]}`
+                                : ""}
                           </dt>
                           <dd>{text}</dd>
                         </div>

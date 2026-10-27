@@ -373,6 +373,42 @@ describe("rendu fiable", () => {
   });
 });
 describe("career-ops", () => {
+  it("choisir le pack career-ops sélectionne Gemini", () => {
+    const onChange = vi.fn();
+    const localCatalog = {
+      ...catalog,
+      live: true,
+      agents: [
+        ...catalog.agents,
+        { id: "gemini", name: "Gemini", installed: true, compatible: true },
+      ],
+      packs: [
+        ...catalog.packs,
+        {
+          id: "career-ops",
+          name: "career-ops",
+          description: "Test FICTIF",
+          skills: [],
+          dags: [],
+        },
+      ],
+    };
+    render(
+      <Composer
+        catalog={localCatalog}
+        input={{ ...input, agent: "codex", pack: "auto" }}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Pack"), {
+      target: { value: "career-ops" },
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ pack: "career-ops", agent: "gemini" }),
+    );
+  });
   it("rapport évalué A–G : G indique la légitimité, H reste facultatif", async () => {
     const offer = {
       id: "33333333-3333-4333-a333-333333333333",
@@ -407,6 +443,45 @@ describe("career-ops", () => {
     );
     expect(screen.getByText("Rapport A–G (H si applicable)")).toBeTruthy();
     expect(screen.queryByText("H · Réponses de candidature")).toBeNull();
+  });
+  it("ancien bloc H conserve un libellé neutre sans modifier le rapport", async () => {
+    const offer = {
+      id: "44444444-4444-4444-a444-444444444444",
+      title: "Poste FICTIF",
+      company: "Entreprise FICTIVE",
+      source: "Source FICTIVE",
+      url: "https://jobs.example.test/fictif",
+      score: 3,
+      simulated: true,
+      report: Object.fromEntries(
+        "ABCDEFGH".split("").map((key) => [key, `Bloc ${key} FICTIF`]),
+      ),
+    };
+    const current = {
+      ...offer,
+      id: "55555555-5555-4555-a555-555555555555",
+      contractVersion: 2,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          url.includes("/career/offers")
+            ? { opportunities: [offer, current] }
+            : { summary: "Résumé FICTIF" },
+      })),
+    );
+    render(
+      <CareerResults
+        run={{ id: "fictif", state: "completed" } as unknown as Run}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByText("H · Bloc historique")).toBeTruthy(),
+    );
+    expect(screen.getByText("H · Réponses de candidature")).toBeTruthy();
   });
   it("activité : outils fusionnés par identifiant et texte de l'agent concaténé", () => {
     const events = [

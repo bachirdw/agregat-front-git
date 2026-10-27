@@ -366,7 +366,13 @@ export function Composer({
                     value={input.pack}
                     disabled={disabled}
                     onChange={(e) =>
-                      set({ pack: e.target.value, workflow: "auto" })
+                      set({
+                        pack: e.target.value,
+                        workflow: "auto",
+                        ...(e.target.value === "career-ops"
+                          ? { agent: "gemini", model: "" }
+                          : {}),
+                      })
                     }
                   >
                     <option value="auto">Auto · selon l’objectif</option>

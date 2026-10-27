@@ -621,7 +621,15 @@ export default function App() {
               {page === "packs" && (
                 <Packs
                   catalog={catalog}
-                  choose={(pack) => choose({ pack, workflow: "auto" })}
+                  choose={(pack) =>
+                    choose({
+                      pack,
+                      workflow: "auto",
+                      ...(pack === "career-ops"
+                        ? { agent: "gemini", model: "" }
+                        : {}),
+                    })
+                  }
                 />
               )}{" "}
               {page === "usage" && (
