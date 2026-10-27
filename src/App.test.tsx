@@ -155,6 +155,76 @@ it("conserve le brouillon de réponse si la reprise échoue", async () => {
   await screen.findByText("Reprise impossible");
   expect((composer as HTMLTextAreaElement).value).toBe("Réponse à conserver");
 });
+it("en conversation, le défilement vers le haut compacte le composeur, le focus et le retour en bas le rouvrent", async () => {
+  const run = {
+    id: "00000000-0000-4000-8000-000000000002",
+    prompt: "Mission FICTIVE pour le défilement",
+    state: "completed",
+    mode: "agent",
+    agent: "fixture",
+    model: "",
+    pack: "core",
+    resumable: true,
+    plan: {
+      steps: [],
+      workflow: null,
+      cost: {
+        platformCents: 0,
+        currency: "EUR",
+        budgetCents: 0,
+        withinBudget: true,
+        description: "Fictif",
+        lines: [],
+      },
+    },
+    simulated: true,
+  } as unknown as Run;
+  vi.mocked(api).mockImplementation(
+    (path) =>
+      Promise.resolve(
+        path === "/catalog" ? catalog : path === "/runs" ? [run] : run,
+      ) as never,
+  );
+  const { container } = render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: /Mission FICTIVE pour le défilement/,
+    }),
+  );
+  await waitFor(() =>
+    expect(container.querySelector(".conversation-main")).toBeTruthy(),
+  );
+  const feed = container.querySelector<HTMLElement>(".scroll-content")!;
+  Object.defineProperties(feed, {
+    scrollHeight: { configurable: true, value: 1000 },
+    clientHeight: { configurable: true, value: 200 },
+    scrollTop: { configurable: true, writable: true, value: 800 },
+  });
+  fireEvent.scroll(feed);
+  feed.scrollTop = 450;
+  fireEvent.scroll(feed);
+  expect(
+    container.querySelector(".composer")?.getAttribute("data-compact"),
+  ).toBe("true");
+  expect(container.querySelector(".session-settings")).toBeNull();
+  fireEvent.focus(screen.getByLabelText("Objectif de la mission"));
+  expect(
+    container.querySelector(".composer")?.getAttribute("data-compact"),
+  ).toBe("false");
+  expect(container.querySelector(".session-settings")?.textContent).toContain(
+    "Pack · core",
+  );
+  feed.scrollTop = 200;
+  fireEvent.scroll(feed);
+  expect(
+    container.querySelector(".composer")?.getAttribute("data-compact"),
+  ).toBe("true");
+  feed.scrollTop = 790;
+  fireEvent.scroll(feed);
+  expect(
+    container.querySelector(".composer")?.getAttribute("data-compact"),
+  ).toBe("false");
+});
 it("une nouvelle mission ne conserve pas les pièces jointes précédentes", async () => {
   vi.mocked(api).mockImplementation(
     (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,

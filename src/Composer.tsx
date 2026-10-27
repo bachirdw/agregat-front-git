@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DragEvent, FormEvent, ReactNode } from "react";
 import type { Attachment, Catalog, MissionInput } from "./types";
 import { ATTACHMENT_MAX_COUNT, uploadFile } from "./api";
@@ -112,6 +112,9 @@ export function Composer({
   disabled = false,
   reply = false,
   scope = 0,
+  compact = false,
+  onOpen,
+  sessionSettings,
 }: {
   catalog: Catalog | null;
   input: MissionInput;
@@ -121,8 +124,39 @@ export function Composer({
   disabled?: boolean;
   reply?: boolean;
   scope?: number;
+  compact?: boolean;
+  onOpen?: () => void;
+  sessionSettings?: { agent: string; model: string; pack: string };
 }) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const measureRef = useRef<() => void>(() => {});
+  measureRef.current = () => {
+    const area = promptRef.current;
+    if (!area) return;
+    area.style.height = "auto";
+    if (!area.value || compact) {
+      area.style.overflowY = "hidden";
+      return;
+    }
+    const visibleHeight = window.visualViewport?.height || window.innerHeight;
+    const maxHeight = Math.max(100, Math.floor(visibleHeight * 0.4));
+    const wanted = area.scrollHeight;
+    area.style.height = `${Math.min(wanted, maxHeight)}px`;
+    area.style.overflowY = wanted > maxHeight ? "auto" : "hidden";
+  };
+  useLayoutEffect(
+    () => measureRef.current(),
+    [input.prompt, compact, reply, disabled],
+  );
+  useEffect(() => {
+    const resize = () => measureRef.current();
+    window.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("resize", resize);
+    };
+  }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(0);
   const [fileError, setFileError] = useState("");
@@ -188,8 +222,12 @@ export function Composer({
   return (
     <div className="composer-dock">
       <form
-        className={dragging ? "composer dragging" : "composer"}
+        className={"composer" + (dragging ? " dragging" : "")}
+        data-compact={compact}
         onSubmit={submit}
+        onClick={() => {
+          if (compact) onOpen?.();
+        }}
         aria-label="Préparer une mission"
         onDragOver={(e) => {
           if (disabled || reply || !e.dataTransfer.types.includes("Files"))
@@ -257,9 +295,14 @@ export function Composer({
                 : "Décrivez votre objectif…"
           }
           value={disabled ? "" : input.prompt}
+          rows={reply || compact || sessionSettings ? 1 : 3}
           disabled={disabled}
           maxLength={8000}
-          onChange={(e) => set({ prompt: e.target.value })}
+          onFocus={onOpen}
+          onChange={(e) => {
+            onOpen?.();
+            set({ prompt: e.target.value });
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
@@ -267,9 +310,23 @@ export function Composer({
             }
           }}
         />
+        {compact && disabled && (
+          <button className="compact-expand" type="button" onClick={onOpen}>
+            Afficher les réglages
+          </button>
+        )}
+        {sessionSettings && !compact && (
+          <div className="session-settings" aria-label="Réglages de la mission">
+            <span>Agent · {sessionSettings.agent}</span>
+            <span>Modèle · {sessionSettings.model || "Défaut"}</span>
+            <span>Pack · {sessionSettings.pack}</span>
+            <span>Skills · non transmis</span>
+            <small>Réglages de cette session</small>
+          </div>
+        )}
         <div className="composer-bottom">
           {!reply && (
-            <div className="filters">
+            <div className="filters" aria-hidden={compact}>
               <AttachMenu
                 disabled={disabled || uploading > 0}
                 onPick={() => fileRef.current?.click()}

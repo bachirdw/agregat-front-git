@@ -359,6 +359,22 @@ nav {
   overflow: auto;
   scroll-padding-top: 70px;
 }
+.conversation-main {
+  display: flex;
+  flex-direction: column;
+}
+.conversation-main .scroll-content {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+.conversation-main .composer-dock {
+  position: relative;
+  inset: auto;
+  flex: none;
+  width: calc(100% - 48px);
+  margin: 0 auto 16px;
+}
 .home {
   min-height: 100%;
   display: flex;
@@ -438,6 +454,15 @@ nav {
   border: 1px solid var(--sep);
   border-radius: 20px;
   padding: 12px 12px 10px;
+  transition: transform 520ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.composer[data-compact="true"] {
+  padding: 8px 10px;
+  transform: translateY(4px);
+}
+.composer[data-compact="true"] .filters,
+.composer-dock:has(.composer[data-compact="true"]) .composer-note {
+  display: none;
 }
 .composer:focus-within {
   border-color: var(--accent);
@@ -446,9 +471,9 @@ nav {
     0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 textarea {
-  resize: vertical;
-  min-height: 54px;
-  max-height: 170px;
+  resize: none;
+  min-height: 0;
+  max-height: 40dvh;
   width: 100%;
   background: transparent;
   border: 0;
@@ -456,6 +481,34 @@ textarea {
   font-size: 15px;
   line-height: 1.5;
   padding: 2px 4px;
+  overflow-y: hidden;
+}
+.composer[data-compact="true"] textarea {
+  max-height: 28px;
+}
+.compact-expand {
+  padding: 3px 6px;
+  margin-bottom: 4px;
+  color: var(--accentText);
+  background: transparent;
+  font-size: 11px;
+}
+.session-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 4px 0 8px;
+  animation: rise 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.session-settings span {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: var(--fill2);
+  color: var(--muted);
+  font-size: 11px;
+}
+.session-settings small {
+  flex-basis: 100%;
 }
 textarea:focus-visible {
   outline: none;
@@ -471,6 +524,7 @@ textarea:focus-visible {
   flex-wrap: wrap;
   flex: 1;
   min-width: 0;
+  animation: rise 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 .filter {
   position: relative;
@@ -598,7 +652,7 @@ textarea:focus-visible {
 .thread {
   max-width: 780px;
   width: 100%;
-  padding: 84px 24px 300px;
+  padding: 84px 24px 32px;
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -606,11 +660,64 @@ textarea:focus-visible {
 }
 .prompt-bubble {
   align-self: flex-end;
-  max-width: 85%;
+  width: fit-content;
+  max-width: min(80%, 560px);
   padding: 11px 15px;
-  border-radius: 20px 20px 6px 20px;
+  border-radius: 20px;
   background: var(--fill);
   font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  animation: rise 240ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.prompt-bubble-text {
+  display: block;
+}
+.prompt-bubble.collapsed .prompt-bubble-text {
+  max-height: 9.5em;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 75%, transparent);
+}
+.prompt-bubble-toggle {
+  display: block;
+  margin-top: 4px;
+  padding: 3px 0;
+  color: var(--accentText);
+  background: transparent;
+  font-size: 12px;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes dotp {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 .card {
   background: var(--card);
@@ -1221,6 +1328,9 @@ summary {
   .main:has(.home) .composer-dock {
     width: calc(100% - 32px);
   }
+  .conversation-main .composer-dock {
+    width: calc(100% - 32px);
+  }
   .composer-dock {
     left: 16px;
     right: 16px;
@@ -1245,10 +1355,10 @@ summary {
     max-height: 45vh;
   }
   .thread {
-    padding: 76px 18px 310px;
+    padding: 76px 18px 24px;
   }
   .prompt-bubble {
-    max-width: 92%;
+    max-width: min(85%, 560px);
   }
   .split {
     grid-template-columns: 1fr;
@@ -1313,6 +1423,9 @@ summary {
   }
   button:active {
     transform: none;
+  }
+  .spinner {
+    border-color: var(--accent);
   }
 }
 @media (prefers-reduced-transparency: reduce) {
@@ -1385,18 +1498,13 @@ summary {
 .fold > summary::before {
   content: "▸";
   flex: none;
-  transition: transform 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .fold[open] > summary::before {
   transform: rotate(90deg);
 }
 .fold > p {
   margin: 4px 0 0 14px;
-}
-@media (prefers-reduced-motion: reduce) {
-  .fold > summary::before {
-    transition: none;
-  }
 }
 .tool-icon {
   width: 10px;
@@ -1462,6 +1570,34 @@ summary {
   color: var(--muted);
   font-size: 13px;
 }
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 14px;
+}
+.thinking-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dotp 1.2s infinite;
+}
+.thinking-dots i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.thinking-dots i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: currentColor;
+  animation: caret 1s steps(1) infinite;
+}
 .spinner {
   width: 10px;
   height: 10px;
@@ -1474,12 +1610,6 @@ summary {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation: none;
-    border-color: var(--accent);
   }
 }
 /* career-ops offers */
@@ -1545,6 +1675,20 @@ summary {
 .career-thread {
   display: grid;
   gap: 14px;
+}
+.conversation-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  border-top: 1px solid var(--sep);
+  padding-top: 10px;
+}
+.conversation-status button {
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 12px;
 }
 .stop-button {
   justify-self: start;

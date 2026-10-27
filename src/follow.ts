@@ -18,6 +18,6 @@ export function useFollow(
   }, [scroll, active, content]);
   return (e: UIEvent<HTMLElement>) => {
     const el = e.currentTarget;
-    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
   };
 }

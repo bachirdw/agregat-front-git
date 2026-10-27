@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "./api";
 import { Markdown } from "./Markdown";
-import { finalStates } from "./types";
+import { PromptBubble } from "./PromptBubble";
+import { finalStates, labels, money } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
@@ -14,6 +15,7 @@ type Tool = {
   input?: unknown;
   output?: string;
   at?: string;
+  endAt?: string;
 };
 type Item =
   | Tool
@@ -61,6 +63,7 @@ export function activity(events: RunEvent[]): Item[] {
         items.push(tool);
       }
       if (u.status) tool.status = String(u.status);
+      if (u.status && !active(String(u.status))) tool.endAt = e.at;
       if (u.title) tool.title = String(u.title);
       if (u.rawInput !== undefined) tool.input = u.rawInput;
       tool.output = toolOutput(u) ?? tool.output;
@@ -100,7 +103,11 @@ export function waitingLabel(items: Item[]): string | null {
 function Waiting({ label }: { label: string }) {
   return (
     <p className="waiting" role="status">
-      <span className="spinner" aria-hidden="true" />
+      <span className="thinking-dots" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
       {label}
     </p>
   );
@@ -205,6 +212,15 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
     : failed.length
       ? "failed"
       : "completed";
+  const first = Date.parse(tools[0]?.at || "");
+  const last = Date.parse(tools.at(-1)?.endAt || "");
+  const duration =
+    status !== "in_progress" &&
+    Number.isFinite(first) &&
+    Number.isFinite(last) &&
+    last >= first
+      ? `${((last - first) / 1000).toFixed(1).replace(".", ",")} s`
+      : null;
   return (
     <>
       <details
@@ -214,8 +230,11 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
       >
         <summary>
           <StatusIcon status={status} />
-          {tools.length} actions
-          {failed.length > 0 && ` · ${failed.length} en échec`}
+          {status === "in_progress" ? "Exécute" : "A exécuté"} {tools.length}{" "}
+          commandes
+          {failed.length > 0 &&
+            ` · ${failed.length} ${failed.length > 1 ? "erreurs" : "erreur"}`}
+          {duration && ` · ${duration}`}
         </summary>
         <ol>
           {tools.map((t) => (
@@ -286,7 +305,12 @@ export function AgentActivity({
                 thinking={running && index === shown.length - 1}
               />
             ) : (
-              <p>{block.text}</p>
+              <p>
+                {block.text}
+                {running && index === shown.length - 1 && (
+                  <span className="stream-caret" aria-hidden="true" />
+                )}
+              </p>
             )}
           </li>
         ))}
@@ -436,7 +460,7 @@ function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
   }, [run.id, done, run.prompt]);
   return (
     <>
-      <div className="prompt-bubble">{prompt ?? "…"}</div>
+      <PromptBubble text={prompt ?? "…"} />
       <div className="agent-turn">
         {live && !done && <AgentActivity events={live} running={running} />}
         {live && done && <AgentActivity events={live} final />}
@@ -455,6 +479,7 @@ export function CareerThread({
   events,
   busy = false,
   stop,
+  resume,
   children,
 }: {
   run: Run;
@@ -462,6 +487,7 @@ export function CareerThread({
   events: RunEvent[];
   busy?: boolean;
   stop?: () => void;
+  resume?: () => void;
   children: ReactNode;
 }) {
   const turns = sessionThread(run, runs);
@@ -475,6 +501,28 @@ export function CareerThread({
           <span aria-hidden="true">■</span> Stop
         </button>
       )}
+      <div className="conversation-status" role="status">
+        <span
+          className={
+            finalStates.has(run.state) && run.state !== "completed"
+              ? "danger"
+              : ""
+          }
+        >
+          {labels[run.state] || run.state}
+        </span>
+        {run.usage && (
+          <small>{money(run.usage.platformCents, run.usage.currency)}</small>
+        )}
+        {resume &&
+          ((run.resumable && finalStates.has(run.state)) ||
+            (run.mode === "workflow" &&
+              ["failed", "cancelled", "interrupted"].includes(run.state))) && (
+            <button type="button" onClick={resume} disabled={busy}>
+              Reprendre
+            </button>
+          )}
+      </div>
       <CareerOffers done={run.state === "completed"} />
       <details className="tech-details">
         <summary>Détails techniques (coût, journal brut)</summary>

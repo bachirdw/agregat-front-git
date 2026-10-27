@@ -4,6 +4,7 @@ import { agentStatus, finalStates, labels } from "./types";
 import { api, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
+import { PromptBubble } from "./PromptBubble";
 import { CareerThread } from "./Career";
 import { useFollow } from "./follow";
 import { PlanCard, RunView } from "./Mission";
@@ -59,6 +60,8 @@ export default function App() {
   const current = useRef("");
   const viewVersion = useRef(0);
   const scroll = useRef<HTMLDivElement>(null);
+  const lastScrollTop = useRef(0);
+  const [composerCompact, setComposerCompact] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const follow = useFollow(scroll, page === "mission", events, run?.id);
   const report = (e: unknown) =>
@@ -102,6 +105,8 @@ export default function App() {
   }, [theme]);
   useEffect(() => {
     scroll.current?.scrollTo({ top: 0 });
+    lastScrollTop.current = 0;
+    setComposerCompact(false);
     document.title = `agre agent · ${titles[page]}`;
   }, [page, run?.id, plan]);
   const go = (next: Page) => {
@@ -478,7 +483,10 @@ export default function App() {
           </section>
         </aside>
       )}
-      <main id="main-content" className="main">
+      <main
+        id="main-content"
+        className={page === "mission" ? "main conversation-main" : "main"}
+      >
         <header className="toolbar">
           {!side && (
             <button
@@ -506,7 +514,21 @@ export default function App() {
             <Icon name="theme" />
           </button>
         </header>
-        <div className="scroll-content" ref={scroll} onScroll={follow}>
+        <div
+          className="scroll-content"
+          ref={scroll}
+          onScroll={(e) => {
+            follow(e);
+            if (page !== "mission") return;
+            const el = e.currentTarget;
+            const nearBottom =
+              el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+            if (nearBottom) setComposerCompact(false);
+            else if (el.scrollTop < lastScrollTop.current - 2)
+              setComposerCompact(true);
+            lastScrollTop.current = el.scrollTop;
+          }}
+        >
           {error && (
             <div className="global-error" role="alert">
               <strong>Impossible de terminer l’action</strong>
@@ -562,7 +584,7 @@ export default function App() {
           )}
           {plan && page === "home" && (
             <div className="thread">
-              <div className="prompt-bubble">{planned?.prompt}</div>
+              <PromptBubble text={planned?.prompt || ""} />
               <PlanCard
                 plan={plan}
                 catalog={catalog}
@@ -584,6 +606,7 @@ export default function App() {
                   events={events}
                   busy={busy}
                   stop={() => void action(`/runs/${run.id}/cancel`, {})}
+                  resume={() => void action(`/runs/${run.id}/resume`, {})}
                 >
                   <RunView
                     run={run}
@@ -595,7 +618,7 @@ export default function App() {
                 </CareerThread>
               ) : (
                 <>
-                  <div className="prompt-bubble">{run.prompt}</div>
+                  <PromptBubble key={run.id} text={run.prompt} />
                   <RunView
                     run={run}
                     events={events}
@@ -657,6 +680,13 @@ export default function App() {
             busy={busy}
             disabled={page === "mission" && !canReply}
             reply={canReply}
+            compact={page === "mission" && composerCompact}
+            onOpen={() => setComposerCompact(false)}
+            sessionSettings={
+              page === "mission" && run
+                ? { agent: run.agent, model: run.model || "", pack: run.pack }
+                : undefined
+            }
           />
         )}
       </main>
