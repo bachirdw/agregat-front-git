@@ -363,7 +363,7 @@ nav {
   min-height: 100%;
   display: flex;
   align-items: flex-end;
-  padding: 100px 24px calc(30vh + 270px);
+  padding: 24px 24px 22px;
 }
 .home-inner {
   width: 100%;
@@ -410,11 +410,27 @@ nav {
   margin: auto;
   z-index: 21;
 }
-.home + .composer-dock {
-  bottom: 30vh;
+/* Home: the composer stays in flow under the cards, so they can never slide beneath it. */
+.main:has(.home) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 52px 0 12vh;
+}
+.main:has(.home) .scroll-content {
+  height: auto;
+  min-height: 0;
+  flex: 0 1 auto;
+}
+.main:has(.home) .home {
+  min-height: 0;
 }
 .main:has(.home) .composer-dock {
-  bottom: calc(30vh + 22px);
+  position: relative;
+  inset: auto;
+  flex: none;
+  width: calc(100% - 48px);
+  margin: 0 auto;
 }
 .composer {
   background: var(--card);
@@ -1178,7 +1194,7 @@ summary {
     height: 52px;
   }
   .home {
-    padding: 100px 20px 290px;
+    padding: 20px 20px 16px;
     align-items: flex-start;
   }
   .home-inner {
@@ -1198,8 +1214,12 @@ summary {
   .suggestions button:last-child {
     grid-column: auto;
   }
+  .main:has(.home) {
+    justify-content: flex-start;
+    padding-bottom: 16px;
+  }
   .main:has(.home) .composer-dock {
-    bottom: 24px;
+    width: calc(100% - 32px);
   }
   .composer-dock {
     left: 16px;
@@ -1320,9 +1340,6 @@ summary {
 @media (min-width: 761px) {
   .home h1 {
     font-size: 36px;
-  }
-  .home {
-    padding-bottom: calc(30vh + 218px);
   }
 }
 @media (max-width: 760px) {
