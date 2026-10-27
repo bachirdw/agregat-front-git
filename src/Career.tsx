@@ -6,34 +6,59 @@ import { finalStates } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
+type Tool = {
+  kind: "tool";
+  id: string;
+  title: string;
+  status: string;
+  input?: unknown;
+  output?: string;
+  at?: string;
+};
 type Item =
-  | { kind: "tool"; id: string; title: string; status: string; at?: string }
+  | Tool
   | { kind: "text"; id: string; text: string; at?: string }
   | { kind: "thought"; id: string; text: string; at?: string };
+// Tool result as sent by the agent: rawOutput, else the text of its content blocks.
+function toolOutput(u: Record<string, unknown>): string | undefined {
+  if (u.rawOutput !== undefined && u.rawOutput !== null)
+    return typeof u.rawOutput === "string"
+      ? u.rawOutput
+      : JSON.stringify(u.rawOutput, null, 2);
+  const blocks = Array.isArray(u.content) ? u.content : [];
+  const text = blocks
+    .map((b: { content?: { text?: string }; text?: string }) =>
+      String(b?.content?.text ?? b?.text ?? ""),
+    )
+    .filter(Boolean)
+    .join("\n");
+  return text || undefined;
+}
 export function activity(events: RunEvent[]): Item[] {
   const items: Item[] = [];
-  const tools = new Map<string, Extract<Item, { kind: "tool" }>>();
+  const tools = new Map<string, Tool>();
   for (const e of events) {
     if (e.type !== "agent" || !e.data || typeof e.data !== "object") continue;
     const u = e.data as Record<string, unknown>;
     const update = u.sessionUpdate as string | undefined;
     if (update === "tool_call" || update === "tool_call_update") {
       const id = String(u.toolCallId ?? e.seq);
-      const known = tools.get(id);
-      if (known) {
-        if (u.status) known.status = String(u.status);
-        if (u.title) known.title = String(u.title);
-      } else {
-        const item = {
-          kind: "tool" as const,
+      let tool = tools.get(id);
+      if (!tool) {
+        tool = {
+          kind: "tool",
           id,
           title: String(u.title ?? u.kind ?? "Outil"),
-          status: String(u.status ?? "pending"),
+          status: "pending",
           at: e.at,
         };
-        tools.set(id, item);
-        items.push(item);
+        tools.set(id, tool);
+        items.push(tool);
       }
+      if (u.status) tool.status = String(u.status);
+      if (u.title) tool.title = String(u.title);
+      if (u.rawInput !== undefined) tool.input = u.rawInput;
+      tool.output = toolOutput(u) ?? tool.output;
       continue;
     }
     const content = u.content as { type?: string; text?: string } | undefined;
@@ -56,13 +81,12 @@ export function activity(events: RunEvent[]): Item[] {
   }
   return items;
 }
+const active = (status: string) => ["pending", "in_progress"].includes(status);
 // Short label while the agent works: a running tool means execution, otherwise it is thinking.
 export function waitingLabel(items: Item[]): string | null {
   const last = items.at(-1);
   if (last?.kind === "tool")
-    return ["pending", "in_progress"].includes(last.status)
-      ? "Exécution…"
-      : "Réflexion…";
+    return active(last.status) ? "Exécution…" : "Réflexion…";
   // Streaming text needs no indicator; a thought shows it inside its own block.
   return last?.kind === "text" || last?.kind === "thought"
     ? null
@@ -94,22 +118,144 @@ function Thought({ text, thinking }: { text: string; thinking: boolean }) {
     </details>
   );
 }
-const statusLabel: Record<string, string> = {
-  pending: "en attente",
-  in_progress: "en cours",
-  completed: "terminé",
-  failed: "échec",
-};
+function StatusIcon({ status }: { status: string }) {
+  if (active(status))
+    return <span className="spinner" role="img" aria-label="en cours" />;
+  return status === "failed" ? (
+    <span className="tool-icon failed" role="img" aria-label="échec">
+      ✗
+    </span>
+  ) : (
+    <span className="tool-icon done" role="img" aria-label="réussi">
+      ✓
+    </span>
+  );
+}
+// "browser_click(selector: …)" (Gemini) or "mcp.platform.browser_extract" + rawInput (Codex).
+export function describeTool(tool: Tool) {
+  const call = tool.title.match(/^([\w.-]+)\(([\s\S]*)\)$/);
+  if (call)
+    return {
+      name: call[1].split(".").pop()!,
+      summary: call[2],
+      params: tool.input === undefined ? call[2] : undefined,
+    };
+  const colon = tool.title.indexOf(": ");
+  const named = colon > 0 && colon < 40;
+  const args =
+    (tool.input as { arguments?: unknown } | undefined)?.arguments ??
+    tool.input;
+  return {
+    name: named ? tool.title.slice(0, colon) : tool.title.split(".").pop()!,
+    summary: named
+      ? tool.title.slice(colon + 2)
+      : args && typeof args === "object"
+        ? Object.entries(args)
+            .map(
+              ([k, v]) =>
+                `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`,
+            )
+            .join(", ")
+        : "",
+    params: undefined,
+  };
+}
+function ToolLine({ tool }: { tool: Tool }) {
+  const { name, summary, params } = describeTool(tool);
+  const input =
+    tool.input === undefined ? params : JSON.stringify(tool.input, null, 2);
+  return (
+    <details className={"fold tool " + tool.status}>
+      <summary>
+        <StatusIcon status={tool.status} />
+        <code>{name}</code>
+        {summary && <span className="tool-summary">{summary}</span>}
+      </summary>
+      <div className="tool-details">
+        {input && (
+          <>
+            <small>Paramètres</small>
+            <pre>{input}</pre>
+          </>
+        )}
+        <small>Résultat</small>
+        <pre>
+          {tool.output ??
+            (active(tool.status) ? "En cours…" : "Aucun résultat transmis.")}
+        </pre>
+      </div>
+    </details>
+  );
+}
+// Consecutive actions fold under one line; a failure stays visible while folded.
+function ToolGroup({ tools }: { tools: Tool[] }) {
+  const [open, setOpen] = useState(false);
+  const failed = tools.filter((t) => t.status === "failed");
+  const status = tools.some((t) => active(t.status))
+    ? "in_progress"
+    : failed.length
+      ? "failed"
+      : "completed";
+  return (
+    <>
+      <details
+        className={"fold tool-group " + status}
+        open={open}
+        onToggle={(e) => setOpen(e.currentTarget.open)}
+      >
+        <summary>
+          <StatusIcon status={status} />
+          {tools.length} actions
+          {failed.length > 0 && ` · ${failed.length} en échec`}
+        </summary>
+        <ol>
+          {tools.map((t) => (
+            <li key={t.id}>
+              <ToolLine tool={t} />
+            </li>
+          ))}
+        </ol>
+      </details>
+      {!open && failed.length > 0 && (
+        <ol className="tool-failures">
+          {failed.map((t) => (
+            <li key={t.id}>
+              <ToolLine tool={t} />
+            </li>
+          ))}
+        </ol>
+      )}
+    </>
+  );
+}
+type Block = Exclude<Item, Tool> | { kind: "tools"; id: string; tools: Tool[] };
+function blocks(items: Item[]): Block[] {
+  const out: Block[] = [];
+  for (const item of items) {
+    const last = out.at(-1);
+    if (item.kind !== "tool") out.push(item);
+    else if (last?.kind === "tools") last.tools.push(item);
+    else out.push({ kind: "tools", id: `tools-${item.id}`, tools: [item] });
+  }
+  return out;
+}
+// `final`: the run is over and its answer is shown apart, so only the folded steps remain.
 export function AgentActivity({
   events,
   running = false,
+  final = false,
 }: {
   events: RunEvent[];
   running?: boolean;
+  final?: boolean;
 }) {
   const items = useMemo(() => activity(events), [events]);
+  const shown = useMemo(
+    () => blocks(final ? items.filter((i) => i.kind !== "text") : items),
+    [items, final],
+  );
   const label = running ? waitingLabel(items) : null;
-  if (!items.length) return label ? <Waiting label={label} /> : null;
+  if (!shown.length) return label ? <Waiting label={label} /> : null;
   return (
     <>
       <ol
@@ -117,26 +263,24 @@ export function AgentActivity({
         aria-label="Activité de l’agent"
         aria-live="polite"
       >
-        {items.map((item, index) =>
-          item.kind === "tool" ? (
-            <li key={item.id} className={"activity-tool " + item.status}>
-              <span className="dot" aria-hidden="true" />
-              <code>{item.title}</code>
-              <small>{statusLabel[item.status] || item.status}</small>
-            </li>
-          ) : item.kind === "thought" ? (
-            <li key={item.id} className="activity-thought">
+        {shown.map((block, index) => (
+          <li key={block.id} className={"activity-" + block.kind}>
+            {block.kind === "tools" ? (
+              block.tools.length === 1 ? (
+                <ToolLine tool={block.tools[0]} />
+              ) : (
+                <ToolGroup tools={block.tools} />
+              )
+            ) : block.kind === "thought" ? (
               <Thought
-                text={item.text}
-                thinking={running && index === items.length - 1}
+                text={block.text}
+                thinking={running && index === shown.length - 1}
               />
-            </li>
-          ) : (
-            <li key={item.id} className="activity-text">
-              <p>{item.text}</p>
-            </li>
-          ),
-        )}
+            ) : (
+              <p>{block.text}</p>
+            )}
+          </li>
+        ))}
       </ol>
       {label && <Waiting label={label} />}
     </>
@@ -282,7 +426,7 @@ function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
       <div className="prompt-bubble">{prompt ?? "…"}</div>
       <div className="agent-turn">
         {live && !done && <AgentActivity events={live} running={running} />}
-        {live && done && <UsedTools events={live} />}
+        {live && done && <AgentActivity events={live} final />}
         {done && answer !== null && <Markdown text={answer} />}
         {!live && running && <Waiting label="Réflexion…" />}
         {["failed", "cancelled", "interrupted"].includes(run.state) && (
@@ -357,19 +501,3 @@ function CareerOffers({ done }: { done: boolean }) {
 }
 
 // Finished turn: only the answer stays visible; tool calls fold into one line (Claude-Code-like).
-function UsedTools({ events }: { events: RunEvent[] }) {
-  const tools = activity(events).filter((i) => i.kind === "tool");
-  if (!tools.length) return null;
-  return (
-    <details className="used-tools">
-      <summary>{tools.length} outils utilisés</summary>
-      <ol>
-        {tools.map((t) => (
-          <li key={t.id}>
-            <code>{t.kind === "tool" ? t.title : ""}</code>
-          </li>
-        ))}
-      </ol>
-    </details>
-  );
-}

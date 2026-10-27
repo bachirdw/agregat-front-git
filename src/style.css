@@ -1345,40 +1345,6 @@ summary {
   gap: 6px;
   font-size: 13px;
 }
-.activity-tool {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.activity-tool code {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex: 1;
-}
-.activity-tool small {
-  color: var(--muted);
-}
-.activity-tool .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex: none;
-}
-.activity-tool.in_progress .dot,
-.activity-tool.pending .dot {
-  background: var(--accent);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-.activity-tool.completed .dot {
-  background: #2f9e44;
-}
-.activity-tool.failed .dot {
-  background: var(--red);
-}
 .activity-text p,
 .activity-thought p {
   margin: 0;
@@ -1415,15 +1381,61 @@ summary {
     transition: none;
   }
 }
-@keyframes pulse {
-  50% {
-    opacity: 0.35;
-  }
+.tool-icon {
+  width: 10px;
+  flex: none;
+  text-align: center;
+  font-size: 12px;
 }
-@media (prefers-reduced-motion: reduce) {
-  .activity-tool .dot {
-    animation: none;
-  }
+.tool-icon.done {
+  color: var(--green);
+}
+.tool-icon.failed,
+.fold.failed > summary {
+  color: var(--red);
+}
+.fold.tool > summary::before {
+  display: none;
+}
+.fold.tool > summary code {
+  flex: none;
+  color: var(--label);
+}
+.fold.tool.failed > summary code {
+  color: var(--red);
+}
+.tool-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.tool-group > ol,
+.tool-failures {
+  list-style: none;
+  margin: 4px 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.tool-details {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0 18px;
+}
+.tool-details small {
+  color: var(--muted);
+}
+.tool-details pre {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 240px;
+  overflow: auto;
+  background: var(--fill2);
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .waiting {
   display: flex;
@@ -1541,16 +1553,4 @@ summary {
   display: grid;
   gap: 6px;
   font-size: 13px;
-}
-.used-tools {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-.used-tools > summary {
-  cursor: pointer;
-}
-.used-tools ol {
-  margin: 6px 0 0;
-  padding-left: 18px;
 }

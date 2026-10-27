@@ -390,7 +390,7 @@ describe("career-ops", () => {
     ]);
     render(<AgentActivity events={events} />);
     expect(screen.getByText("jobs_search_live")).toBeTruthy();
-    expect(screen.getByText("terminé")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "réussi" })).toBeTruthy();
   });
   it("fil de session : tours de la même session, du plus ancien au plus récent", () => {
     const r = (id: string, sessionId: string | null, createdAt: string) =>
