@@ -225,6 +225,19 @@ it("mesure le dock et garde le bas visible quand il grandit, sans déplacer une 
   unmount();
   expect(disconnect).toHaveBeenCalledOnce();
 });
+
+it("retire la réserve mesurée lorsqu'on quitte une page avec dock", async () => {
+  vi.mocked(api).mockImplementation(
+    (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,
+  );
+  const { container } = render(<App />);
+  await screen.findByRole("button", { name: "Préparer le plan" });
+  const main = container.querySelector<HTMLElement>(".main")!;
+  main.style.setProperty("--dock-h", "180px");
+  fireEvent.click(screen.getByRole("button", { name: "Agents" }));
+  expect(container.querySelector(".composer-dock")).toBeNull();
+  expect(main.style.getPropertyValue("--dock-h")).toBe("");
+});
 it("une API indisponible affiche une action de reconnexion", async () => {
   vi.mocked(api).mockRejectedValue(new Error("API locale inaccessible"));
   render(<App />);

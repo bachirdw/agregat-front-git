@@ -122,7 +122,11 @@ export default function App() {
     const main = mainRef.current;
     const feed = scroll.current;
     const dock = main?.querySelector<HTMLElement>(".composer-dock");
-    if (!main || !feed || !dock) return;
+    if (!main || !feed) return;
+    if (!dock) {
+      main.style.removeProperty("--dock-h");
+      return;
+    }
     const measure = () => {
       const height = Math.ceil(dock.getBoundingClientRect().height);
       const previous = parseFloat(main.style.getPropertyValue("--dock-h")) || 0;
