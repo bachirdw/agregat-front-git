@@ -440,11 +440,15 @@ export function CareerThread({
   run,
   runs,
   events,
+  busy = false,
+  stop,
   children,
 }: {
   run: Run;
   runs: Run[];
   events: RunEvent[];
+  busy?: boolean;
+  stop?: () => void;
   children: ReactNode;
 }) {
   const turns = sessionThread(run, runs);
@@ -453,6 +457,11 @@ export function CareerThread({
       {turns.map((t) => (
         <Turn key={t.id} run={t} live={t.id === run.id ? events : undefined} />
       ))}
+      {stop && !finalStates.has(run.state) && (
+        <button className="stop-button" disabled={busy} onClick={stop}>
+          <span aria-hidden="true">■</span> Stop
+        </button>
+      )}
       <CareerOffers done={run.state === "completed"} />
       <details className="tech-details">
         <summary>Détails techniques (coût, journal brut)</summary>

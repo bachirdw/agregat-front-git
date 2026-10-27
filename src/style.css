@@ -1529,6 +1529,15 @@ summary {
   display: grid;
   gap: 14px;
 }
+.stop-button {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.stop-button span {
+  font-size: 10px;
+}
 .agent-turn {
   line-height: 1.55;
 }

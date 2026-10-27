@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { useRef } from "react";
 import {
   cleanup,
   fireEvent,
@@ -6,8 +7,9 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { AgentActivity } from "./Career";
-import type { RunEvent } from "./types";
+import { AgentActivity, CareerThread } from "./Career";
+import { useFollow } from "./follow";
+import type { Run, RunEvent } from "./types";
 afterEach(cleanup);
 
 let seq = 0;
@@ -211,5 +213,77 @@ describe("conversation (c) : actions repliables et groupées", () => {
     expect(screen.queryByText("Intermédiaire.")).toBeNull();
     expect(container.querySelectorAll("details[open]")).toHaveLength(0);
     expect(container.querySelectorAll("details")).toHaveLength(2);
+  });
+});
+
+describe("conversation (d) : défilement et Stop", () => {
+  function Feed({ items, active = true }: { items: number; active?: boolean }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const onScroll = useFollow(ref, active, items);
+    return <div data-testid="feed" ref={ref} onScroll={onScroll} />;
+  }
+  // jsdom has no layout: give the container a fixed geometry and record scrollTo.
+  function geometry(el: HTMLElement, scrollTop: number) {
+    Object.defineProperties(el, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 200 },
+      scrollTop: { configurable: true, writable: true, value: scrollTop },
+    });
+    const calls: unknown[] = [];
+    el.scrollTo = ((options: unknown) =>
+      calls.push(options)) as typeof el.scrollTo;
+    return calls;
+  }
+  // jsdom implements no scrolling at all.
+  Element.prototype.scrollTo ??= () => {};
+  it("suit le bas tant que l'utilisateur n'a pas remonté, puis ne force plus", () => {
+    const { rerender } = render(<Feed items={1} />);
+    const feed = screen.getByTestId("feed");
+    const calls = geometry(feed, 800);
+    rerender(<Feed items={2} />);
+    expect(calls).toEqual([{ top: 1000 }]);
+    feed.scrollTop = 300; // the user scrolls up
+    fireEvent.scroll(feed);
+    rerender(<Feed items={3} />);
+    expect(calls).toHaveLength(1);
+    feed.scrollTop = 790; // back near the bottom
+    fireEvent.scroll(feed);
+    rerender(<Feed items={4} />);
+    expect(calls).toHaveLength(2);
+  });
+  it("hors mission : aucun défilement forcé", () => {
+    const { rerender } = render(<Feed items={1} active={false} />);
+    const calls = geometry(screen.getByTestId("feed"), 800);
+    rerender(<Feed items={2} active={false} />);
+    expect(calls).toEqual([]);
+  });
+  it("bouton Stop visible pendant l'exécution seulement, et il arrête la mission", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
+    const run = (state: string) =>
+      ({
+        id: "r1",
+        sessionId: null,
+        createdAt: "2026-10-27T00:00:00Z",
+        prompt: "FICTIF",
+        state,
+      }) as unknown as Run;
+    const stop = vi.fn();
+    const { rerender } = render(
+      <CareerThread run={run("running")} runs={[]} events={[]} stop={stop}>
+        {null}
+      </CareerThread>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Stop/ }));
+    expect(stop).toHaveBeenCalledTimes(1);
+    rerender(
+      <CareerThread run={run("cancelled")} runs={[]} events={[]} stop={stop}>
+        {null}
+      </CareerThread>,
+    );
+    expect(screen.queryByRole("button", { name: /Stop/ })).toBeNull();
+    vi.unstubAllGlobals();
   });
 });

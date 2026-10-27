@@ -5,6 +5,7 @@ import { api, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { CareerThread } from "./Career";
+import { useFollow } from "./follow";
 import { PlanCard, RunView } from "./Mission";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
 type Page = "home" | "agents" | "skills" | "packs" | "usage" | "mission";
@@ -59,6 +60,7 @@ export default function App() {
   const viewVersion = useRef(0);
   const scroll = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
+  const follow = useFollow(scroll, page === "mission", events);
   const report = (e: unknown) =>
     setError(e instanceof Error ? e.message : String(e));
   const history = useCallback(
@@ -499,7 +501,7 @@ export default function App() {
             <Icon name="theme" />
           </button>
         </header>
-        <div className="scroll-content" ref={scroll}>
+        <div className="scroll-content" ref={scroll} onScroll={follow}>
           {error && (
             <div className="global-error" role="alert">
               <strong>Impossible de terminer l’action</strong>
@@ -571,7 +573,13 @@ export default function App() {
           {page === "mission" && run && (
             <div className="thread">
               {run.pack === "career-ops" ? (
-                <CareerThread run={run} runs={runs} events={events}>
+                <CareerThread
+                  run={run}
+                  runs={runs}
+                  events={events}
+                  busy={busy}
+                  stop={() => void action(`/runs/${run.id}/cancel`, {})}
+                >
                   <RunView
                     run={run}
                     events={events}
