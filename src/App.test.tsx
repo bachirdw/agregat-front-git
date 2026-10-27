@@ -10,7 +10,11 @@ import {
 import App from "./App";
 import { api } from "./api";
 import type { Catalog, Plan, Run } from "./types";
-vi.mock("./api", () => ({ api: vi.fn(), watchRun: vi.fn(() => () => {}) }));
+vi.mock("./api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./api")>()),
+  api: vi.fn(),
+  watchRun: vi.fn(() => () => {}),
+}));
 const catalog: Catalog = {
   live: false,
   agents: [],
@@ -150,4 +154,57 @@ it("conserve le brouillon de réponse si la reprise échoue", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Envoyer la réponse" }));
   await screen.findByText("Reprise impossible");
   expect((composer as HTMLTextAreaElement).value).toBe("Réponse à conserver");
+});
+it("une nouvelle mission ne conserve pas les pièces jointes précédentes", async () => {
+  vi.mocked(api).mockImplementation(
+    (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(
+        '{"id":"f1","name":"cv-fictif.txt","size":4,"type":"text/plain"}',
+        {
+          status: 201,
+        },
+      ),
+    ),
+  );
+  render(<App />);
+  await screen.findByRole("button", { name: "Préparer le plan" });
+  fireEvent.change(screen.getByLabelText("Fichier à joindre"), {
+    target: {
+      files: [new File(["fake"], "cv-fictif.txt", { type: "text/plain" })],
+    },
+  });
+  await screen.findByText("cv-fictif.txt");
+  fireEvent.click(screen.getByRole("button", { name: /Nouvelle mission/ }));
+  expect(screen.queryByText("cv-fictif.txt")).toBeNull();
+});
+it("ignore un fichier dont l’envoi finit après le début d’une nouvelle mission", async () => {
+  vi.mocked(api).mockImplementation(
+    (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,
+  );
+  let finish!: (response: Response) => void;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>((resolve) => (finish = resolve))),
+  );
+  render(<App />);
+  await screen.findByRole("button", { name: "Préparer le plan" });
+  fireEvent.change(screen.getByLabelText("Fichier à joindre"), {
+    target: {
+      files: [new File(["fake"], "cv-fictif.txt", { type: "text/plain" })],
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Nouvelle mission/ }));
+  await act(async () =>
+    finish(
+      new Response(
+        '{"id":"f1","name":"cv-fictif.txt","size":4,"type":"text/plain"}',
+        { status: 201 },
+      ),
+    ),
+  );
+  expect(screen.queryByText("cv-fictif.txt")).toBeNull();
 });

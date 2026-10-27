@@ -118,6 +118,29 @@ describe("rendu fiable", () => {
     });
     expect(onChange).toHaveBeenCalledWith({ ...input, prompt: "autre" });
   });
+  it("en réponse, masque les réglages et pièces jointes que la reprise ignore", () => {
+    render(
+      <Composer
+        catalog={catalog}
+        input={{
+          ...input,
+          attachments: [
+            { id: "f1", name: "cv-fictif.txt", size: 4, type: "text/plain" },
+          ],
+        }}
+        onChange={vi.fn()}
+        onPlan={vi.fn()}
+        busy={false}
+        reply
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Envoyer la réponse" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("cv-fictif.txt")).toBeNull();
+    expect(screen.queryByLabelText("Ajouter")).toBeNull();
+    expect(screen.queryByLabelText(/Agent /)).toBeNull();
+  });
   it("bouton + : joindre un fichier, pastille, retrait et erreur de type", async () => {
     const fetcher = vi
       .fn()

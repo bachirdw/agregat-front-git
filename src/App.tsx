@@ -117,7 +117,7 @@ export default function App() {
     current.current = "";
     setPlan(null);
     setPlanned(null);
-    setInput((old) => ({ ...old, prompt: "" }));
+    setInput((old) => ({ ...old, prompt: "", attachments: [] }));
     setError("");
     if (innerWidth <= 760) setSide(false);
     requestAnimationFrame(() => document.getElementById("prompt")?.focus());
@@ -641,6 +641,7 @@ export default function App() {
         </div>
         {(page === "home" || page === "mission") && (
           <Composer
+            scope={viewVersion.current}
             catalog={catalog}
             input={input}
             onChange={change}
