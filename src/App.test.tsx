@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import App from "./App";
 import { api } from "./api";
-import type { Catalog, Plan } from "./types";
+import type { Catalog, Plan, Run } from "./types";
 vi.mock("./api", () => ({ api: vi.fn(), watchRun: vi.fn(() => () => {}) }));
 const catalog: Catalog = {
   live: false,
@@ -120,4 +120,34 @@ it("une API indisponible affiche une action de reconnexion", async () => {
     screen.getByRole("button", { name: "Réessayer la connexion" }),
   );
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
+it("conserve le brouillon de réponse si la reprise échoue", async () => {
+  const run = {
+    id: "00000000-0000-4000-8000-000000000001",
+    prompt: "Mission FICTIVE",
+    state: "completed",
+    mode: "agent",
+    pack: "core",
+    resumable: true,
+    plan: { steps: [], workflow: null },
+    simulated: true,
+  } as unknown as Run;
+  vi.mocked(api).mockImplementation((path) =>
+    path === "/catalog"
+      ? (Promise.resolve(catalog) as never)
+      : path === "/runs"
+        ? (Promise.resolve([run]) as never)
+        : path.endsWith("/resume")
+          ? Promise.reject(new Error("Reprise impossible"))
+          : (Promise.resolve(run) as never),
+  );
+  render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: /Mission FICTIVE/ }),
+  );
+  const composer = await screen.findByLabelText("Objectif de la mission");
+  fireEvent.change(composer, { target: { value: "Réponse à conserver" } });
+  fireEvent.click(screen.getByRole("button", { name: "Envoyer la réponse" }));
+  await screen.findByText("Reprise impossible");
+  expect((composer as HTMLTextAreaElement).value).toBe("Réponse à conserver");
 });

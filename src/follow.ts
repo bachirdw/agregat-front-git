@@ -6,8 +6,12 @@ export function useFollow(
   scroll: RefObject<HTMLElement | null>,
   active: boolean,
   content: unknown,
+  scope: unknown,
 ) {
   const stick = useRef(true);
+  useEffect(() => {
+    stick.current = true;
+  }, [scope]);
   useEffect(() => {
     const el = scroll.current;
     if (active && el && stick.current) el.scrollTo({ top: el.scrollHeight });

@@ -60,7 +60,7 @@ export default function App() {
   const viewVersion = useRef(0);
   const scroll = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
-  const follow = useFollow(scroll, page === "mission", events);
+  const follow = useFollow(scroll, page === "mission", events, run?.id);
   const report = (e: unknown) =>
     setError(e instanceof Error ? e.message : String(e));
   const history = useCallback(
@@ -291,10 +291,14 @@ export default function App() {
   const reply = async () => {
     if (!run || !input.prompt.trim()) return;
     const prompt = input.prompt.trim();
-    await action(`/runs/${run.id}/resume`, { prompt });
-    setInput((old) => ({ ...old, prompt: "" }));
+    try {
+      await action(`/runs/${run.id}/resume`, { prompt }, true);
+      setInput((old) => ({ ...old, prompt: "" }));
+    } catch {
+      // The action already displayed the error; keep the draft for retry.
+    }
   };
-  const action = async (path: string, body: unknown) => {
+  const action = async (path: string, body: unknown, throwOnError = false) => {
     if (busy) return;
     setBusy(true);
     setError("");
@@ -320,6 +324,7 @@ export default function App() {
       }
     } catch (e) {
       report(e);
+      if (throwOnError) throw e;
     } finally {
       setBusy(false);
     }

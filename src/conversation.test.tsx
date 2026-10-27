@@ -217,9 +217,17 @@ describe("conversation (c) : actions repliables et groupées", () => {
 });
 
 describe("conversation (d) : défilement et Stop", () => {
-  function Feed({ items, active = true }: { items: number; active?: boolean }) {
+  function Feed({
+    items,
+    active = true,
+    runId = "r1",
+  }: {
+    items: number;
+    active?: boolean;
+    runId?: string;
+  }) {
     const ref = useRef<HTMLDivElement>(null);
-    const onScroll = useFollow(ref, active, items);
+    const onScroll = useFollow(ref, active, items, runId);
     return <div data-testid="feed" ref={ref} onScroll={onScroll} />;
   }
   // jsdom has no layout: give the container a fixed geometry and record scrollTo.
@@ -256,6 +264,15 @@ describe("conversation (d) : défilement et Stop", () => {
     const calls = geometry(screen.getByTestId("feed"), 800);
     rerender(<Feed items={2} active={false} />);
     expect(calls).toEqual([]);
+  });
+  it("suit la nouvelle mission après une remontée dans la précédente", () => {
+    const { rerender } = render(<Feed items={1} runId="r1" />);
+    const feed = screen.getByTestId("feed");
+    const calls = geometry(feed, 800);
+    feed.scrollTop = 200;
+    fireEvent.scroll(feed);
+    rerender(<Feed items={2} runId="r2" />);
+    expect(calls).toEqual([{ top: 1000 }]);
   });
   it("bouton Stop visible pendant l'exécution seulement, et il arrête la mission", () => {
     vi.stubGlobal(
