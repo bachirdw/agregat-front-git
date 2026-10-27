@@ -157,7 +157,7 @@ describe("conversation (c) : actions repliables et groupées", () => {
     expect(JSON.parse(pres[0]!)).toMatchObject({ arguments: { limit: 3 } });
     expect(JSON.parse(pres[1]!)).toEqual({ count: 2 });
   });
-  it("actions consécutives regroupées « N actions », repliées ; un échec reste visible en rouge", async () => {
+  it("actions consécutives regroupées « N commandes », repliées ; un échec reste visible en rouge", async () => {
     const events = [
       tool("a", "browser_snapshot()"),
       update("a", "completed"),
@@ -178,7 +178,7 @@ describe("conversation (c) : actions repliables et groupées", () => {
       container.querySelector<HTMLDetailsElement>("details.tool-group")!;
     expect(group.open).toBe(false);
     expect(group.querySelector("summary")!.textContent).toContain(
-      "3 actions · 1 en échec",
+      "A exécuté 3 commandes · 1 erreur",
     );
     const failures = container.querySelector(".tool-failures")!;
     expect(failures.querySelectorAll("details.tool.failed")).toHaveLength(1);
@@ -224,6 +224,18 @@ describe("conversation (c) : actions repliables et groupées", () => {
     const { container } = render(<AgentActivity events={events} />);
     expect(container.querySelectorAll("details.tool-group")).toHaveLength(1);
     expect(container.querySelectorAll(".activity > li")).toHaveLength(3);
+  });
+  it("affiche la durée mesurée du groupe quand les événements sont horodatés", () => {
+    const events = [
+      { ...tool("a", "x()"), at: "2026-10-28T00:00:00.000Z" },
+      { ...update("a", "completed"), at: "2026-10-28T00:00:01.000Z" },
+      { ...tool("b", "y()"), at: "2026-10-28T00:00:01.000Z" },
+      { ...update("b", "completed"), at: "2026-10-28T00:00:02.500Z" },
+    ];
+    const { container } = render(<AgentActivity events={events} />);
+    expect(
+      container.querySelector(".tool-group summary")?.textContent,
+    ).toContain("2,5 s");
   });
   it("mission finie : seules les étapes repliées restent, le texte intermédiaire disparaît", () => {
     const events = [
@@ -282,6 +294,18 @@ describe("conversation (d) : défilement et Stop", () => {
     rerender(<Feed items={4} />);
     expect(calls).toHaveLength(2);
   });
+  it("cesse de suivre à 40 px du bas, comme l'export", () => {
+    const { rerender } = render(<Feed items={1} />);
+    const feed = screen.getByTestId("feed");
+    const calls = geometry(feed, 750); // 50 px from bottom
+    fireEvent.scroll(feed);
+    rerender(<Feed items={2} />);
+    expect(calls).toHaveLength(0);
+    feed.scrollTop = 770; // 30 px from bottom
+    fireEvent.scroll(feed);
+    rerender(<Feed items={3} />);
+    expect(calls).toHaveLength(1);
+  });
   it("hors mission : aucun défilement forcé", () => {
     const { rerender } = render(<Feed items={1} active={false} />);
     const calls = geometry(screen.getByTestId("feed"), 800);
@@ -325,5 +349,38 @@ describe("conversation (d) : défilement et Stop", () => {
     );
     expect(screen.queryByRole("button", { name: /Stop/ })).toBeNull();
     vi.unstubAllGlobals();
+  });
+  it("ligne de statut : coût réel connu et reprise uniquement pour une session terminée et reprenable", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
+    const run = (state: string) =>
+      ({
+        id: "r1",
+        sessionId: null,
+        createdAt: "2026-10-27T00:00:00Z",
+        prompt: "FICTIF",
+        state,
+        mode: "agent",
+        resumable: true,
+        usage: { platformCents: 25, currency: "EUR", byDimension: [] },
+      }) as unknown as Run;
+    const resume = vi.fn();
+    const { rerender } = render(
+      <CareerThread run={run("running")} runs={[]} events={[]} resume={resume}>
+        {null}
+      </CareerThread>,
+    );
+    expect(screen.queryByRole("button", { name: "Reprendre" })).toBeNull();
+    rerender(
+      <CareerThread run={run("failed")} runs={[]} events={[]} resume={resume}>
+        {null}
+      </CareerThread>,
+    );
+    expect(screen.getByRole("status").textContent).toContain("Échec");
+    expect(screen.getByRole("status").textContent).toContain("0,25");
+    fireEvent.click(screen.getByRole("button", { name: "Reprendre" }));
+    expect(resume).toHaveBeenCalledOnce();
   });
 });
