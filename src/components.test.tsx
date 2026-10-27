@@ -5,14 +5,23 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { Markdown } from "./Markdown";
 import { Composer } from "./Composer";
 import { PlanCard, RunView } from "./Mission";
-import { activity, AgentActivity, sessionThread } from "./Career";
+import {
+  activity,
+  AgentActivity,
+  CareerResults,
+  sessionThread,
+} from "./Career";
 import { Skills } from "./Galleries";
 import type { Catalog, MissionInput, Plan, Run } from "./types";
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 const catalog: Catalog = {
   live: false,
   agents: [
@@ -364,6 +373,41 @@ describe("rendu fiable", () => {
   });
 });
 describe("career-ops", () => {
+  it("rapport évalué A–G : G indique la légitimité, H reste facultatif", async () => {
+    const offer = {
+      id: "33333333-3333-4333-a333-333333333333",
+      title: "Poste FICTIF",
+      company: "Entreprise FICTIVE",
+      source: "Source FICTIVE",
+      url: "https://jobs.example.test/fictif",
+      score: 3,
+      simulated: true,
+      report: Object.fromEntries(
+        "ABCDEFG".split("").map((key) => [key, `Bloc ${key} FICTIF`]),
+      ),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          url.includes("/career/offers")
+            ? { opportunities: [offer] }
+            : { summary: "Résumé FICTIF" },
+      })),
+    );
+    render(
+      <CareerResults
+        run={{ id: "fictif", state: "completed" } as unknown as Run}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByText("G · Légitimité de l’annonce")).toBeTruthy(),
+    );
+    expect(screen.getByText("Rapport A–G (H si applicable)")).toBeTruthy();
+    expect(screen.queryByText("H · Réponses de candidature")).toBeNull();
+  });
   it("activité : outils fusionnés par identifiant et texte de l'agent concaténé", () => {
     const events = [
       {

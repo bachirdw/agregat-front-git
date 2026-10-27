@@ -297,8 +297,8 @@ export function AgentActivity({
 }
 
 const sections: Record<string, string> = {
-  G: "Inconnues et preuves",
-  H: "Prochaine action",
+  G: "Légitimité de l’annonce",
+  H: "Réponses de candidature",
 };
 export function CareerResults({ run }: { run: Run }) {
   const [offers, setOffers] = useState<CareerOffer[] | null>(null);
@@ -373,7 +373,7 @@ export function CareerResults({ run }: { run: Run }) {
                 </div>
                 {o.report && (
                   <details>
-                    <summary>Rapport A–H</summary>
+                    <summary>Rapport A–G (H si applicable)</summary>
                     <dl>
                       {Object.entries(o.report).map(([key, text]) => (
                         <div key={key}>
