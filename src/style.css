@@ -1386,7 +1386,34 @@ summary {
 }
 .activity-thought {
   color: var(--muted);
-  font-style: italic;
+}
+.fold > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--muted);
+  min-width: 0;
+}
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+.fold > summary::before {
+  content: "▸";
+  flex: none;
+  transition: transform 0.15s ease;
+}
+.fold[open] > summary::before {
+  transform: rotate(90deg);
+}
+.fold > p {
+  margin: 4px 0 0 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fold > summary::before {
+    transition: none;
+  }
 }
 @keyframes pulse {
   50% {

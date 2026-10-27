@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { AgentActivity } from "./Career";
 import type { RunEvent } from "./types";
 afterEach(cleanup);
@@ -52,5 +52,34 @@ describe("conversation (a) : flux et indicateur d'attente", () => {
   it("mission finie : aucun indicateur", () => {
     render(<AgentActivity events={[tool("t1", "x()")]} />);
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("conversation (b) : bloc de réflexion repliable", () => {
+  it("replié par défaut ; indicateur dans le bloc pendant la réflexion ; « Réflexion » une fois fini", () => {
+    const events = [thought("Je compare les offres.")];
+    const { rerender, container } = render(
+      <AgentActivity events={events} running />,
+    );
+    const block = () =>
+      container.querySelector<HTMLDetailsElement>("details.fold")!;
+    expect(block().open).toBe(false);
+    expect(block().querySelector("summary")!.textContent).toBe("Réflexion…");
+    expect(block().querySelector(".spinner")).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
+    rerender(<AgentActivity events={[...events, text("Voici.")]} running />);
+    expect(block().open).toBe(false);
+    expect(block().querySelector("summary")!.textContent).toBe("Réflexion");
+    expect(block().querySelector(".spinner")).toBeNull();
+  });
+  it("au clic, le raisonnement se déplie en texte grisé", () => {
+    const { container } = render(
+      <AgentActivity events={[thought("Raisonnement FICTIF.")]} />,
+    );
+    const block = container.querySelector<HTMLDetailsElement>("details.fold")!;
+    fireEvent.click(block.querySelector("summary")!);
+    expect(block.open).toBe(true);
+    expect(block.closest(".activity-thought")).toBeTruthy();
+    expect(screen.getByText("Raisonnement FICTIF.")).toBeTruthy();
   });
 });

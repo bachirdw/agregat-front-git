@@ -63,7 +63,10 @@ export function waitingLabel(items: Item[]): string | null {
     return ["pending", "in_progress"].includes(last.status)
       ? "Exécution…"
       : "Réflexion…";
-  return last?.kind === "text" ? null : "Réflexion…";
+  // Streaming text needs no indicator; a thought shows it inside its own block.
+  return last?.kind === "text" || last?.kind === "thought"
+    ? null
+    : "Réflexion…";
 }
 function Waiting({ label }: { label: string }) {
   return (
@@ -71,6 +74,24 @@ function Waiting({ label }: { label: string }) {
       <span className="spinner" aria-hidden="true" />
       {label}
     </p>
+  );
+}
+// Reasoning stays folded by default, even once finished.
+function Thought({ text, thinking }: { text: string; thinking: boolean }) {
+  return (
+    <details className="fold">
+      <summary>
+        {thinking ? (
+          <>
+            <span className="spinner" aria-hidden="true" />
+            Réflexion…
+          </>
+        ) : (
+          "Réflexion"
+        )}
+      </summary>
+      <p>{text}</p>
+    </details>
   );
 }
 const statusLabel: Record<string, string> = {
@@ -96,16 +117,22 @@ export function AgentActivity({
         aria-label="Activité de l’agent"
         aria-live="polite"
       >
-        {items.map((item) =>
+        {items.map((item, index) =>
           item.kind === "tool" ? (
             <li key={item.id} className={"activity-tool " + item.status}>
               <span className="dot" aria-hidden="true" />
               <code>{item.title}</code>
               <small>{statusLabel[item.status] || item.status}</small>
             </li>
+          ) : item.kind === "thought" ? (
+            <li key={item.id} className="activity-thought">
+              <Thought
+                text={item.text}
+                thinking={running && index === items.length - 1}
+              />
+            </li>
           ) : (
-            <li key={item.id} className={"activity-" + item.kind}>
-              {item.kind === "thought" && <small>Réflexion</small>}
+            <li key={item.id} className="activity-text">
               <p>{item.text}</p>
             </li>
           ),
