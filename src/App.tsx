@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { Catalog, MissionInput, Plan, Run, RunEvent } from "./types";
 import { agentStatus, finalStates, labels } from "./types";
 import { api, toApiInput, watchRun } from "./api";
@@ -60,6 +66,7 @@ export default function App() {
   const current = useRef("");
   const viewVersion = useRef(0);
   const scroll = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const lastScrollTop = useRef(0);
   const [composerCompact, setComposerCompact] = useState(false);
   const navRef = useRef<HTMLElement>(null);
@@ -104,11 +111,40 @@ export default function App() {
     }
   }, [theme]);
   useEffect(() => {
-    scroll.current?.scrollTo({ top: 0 });
+    scroll.current?.scrollTo({
+      top: page === "home" && plan ? scroll.current.scrollHeight : 0,
+    });
     lastScrollTop.current = 0;
     setComposerCompact(false);
     document.title = `agre agent · ${titles[page]}`;
   }, [page, run?.id, plan]);
+  useLayoutEffect(() => {
+    const main = mainRef.current;
+    const feed = scroll.current;
+    const dock = main?.querySelector<HTMLElement>(".composer-dock");
+    if (!main || !feed || !dock) return;
+    const measure = () => {
+      const height = Math.ceil(dock.getBoundingClientRect().height);
+      const previous = parseFloat(main.style.getPropertyValue("--dock-h")) || 0;
+      if (height <= 0 || height === previous) return;
+      // In conversation the dock is in the flex flow: growth already shrank the
+      // feed before ResizeObserver fires, so include that growth in the threshold.
+      const atBottom =
+        feed.scrollHeight - feed.scrollTop - feed.clientHeight <
+        40 + Math.max(0, height - previous);
+      main.style.setProperty("--dock-h", `${height}px`);
+      if (atBottom) {
+        requestAnimationFrame(() => {
+          if (scroll.current === feed) feed.scrollTop = feed.scrollHeight;
+        });
+      }
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(dock);
+    return () => observer.disconnect();
+  }, [page, plan, run?.id]);
   const go = (next: Page) => {
     viewVersion.current++;
     setPage(next);
@@ -485,6 +521,7 @@ export default function App() {
       )}
       <main
         id="main-content"
+        ref={mainRef}
         className={page === "mission" ? "main conversation-main" : "main"}
       >
         <header className="toolbar">
@@ -592,7 +629,10 @@ export default function App() {
                 launch={() => void launch()}
                 edit={() => {
                   setPlan(null);
-                  document.getElementById("prompt")?.focus();
+                  setPlanned(null);
+                  requestAnimationFrame(() =>
+                    document.getElementById("prompt")?.focus(),
+                  );
                 }}
               />
             </div>
@@ -680,8 +720,16 @@ export default function App() {
             busy={busy}
             disabled={page === "mission" && !canReply}
             reply={canReply}
-            compact={page === "mission" && composerCompact}
-            onOpen={() => setComposerCompact(false)}
+            compact={
+              (page === "home" && !!plan) ||
+              (page === "mission" && composerCompact)
+            }
+            onOpen={() => {
+              if (page === "home" && plan) {
+                setPlan(null);
+                setPlanned(null);
+              } else setComposerCompact(false);
+            }}
             sessionSettings={
               page === "mission" && run
                 ? { agent: run.agent, model: run.model || "", pack: run.pack }

@@ -110,6 +110,121 @@ it("une réponse de plan tardive ne remplace pas une nouvelle mission", async ()
       .value,
   ).toBe("");
 });
+it("affiche le plan avec un composeur compact, place les actions en bas et rouvre Modifier", async () => {
+  const plan = {
+    agent: "fixture",
+    pack: "core",
+    steps: ["Étape fictive"],
+    cost: {
+      platformCents: 0,
+      currency: "EUR",
+      budgetCents: 0,
+      withinBudget: true,
+      description: "Test fictif",
+      lines: [],
+    },
+    permissions: [],
+    simulated: true,
+    routing: { reasons: [], rejected: [] },
+    workflow: null,
+  } as Plan;
+  vi.mocked(api).mockImplementation(
+    (path) =>
+      Promise.resolve(
+        path === "/catalog" ? catalog : path === "/plan" ? plan : [],
+      ) as never,
+  );
+  const { container } = render(<App />);
+  const feed = container.querySelector<HTMLElement>(".scroll-content")!;
+  Object.defineProperty(feed, "scrollHeight", {
+    configurable: true,
+    value: 1000,
+  });
+  fireEvent.change(screen.getByLabelText("Objectif de la mission"), {
+    target: {
+      value:
+        "Ligne fictive 1\nLigne fictive 2\nLigne fictive 3\nLigne fictive 4",
+    },
+  });
+  await waitFor(() =>
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Préparer le plan",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Préparer le plan" }));
+  await screen.findByRole("region", { name: "Plan proposé" });
+  expect(
+    container.querySelector(".composer")?.getAttribute("data-compact"),
+  ).toBe("true");
+  expect(feed.scrollTo).toHaveBeenCalledWith({ top: 1000 });
+  fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
+  expect(
+    container.querySelector(".composer")?.getAttribute("data-compact"),
+  ).toBe("false");
+  expect(document.activeElement).toBe(
+    screen.getByLabelText("Objectif de la mission"),
+  );
+});
+
+it("mesure le dock et garde le bas visible quand il grandit, sans déplacer une lecture plus haut", async () => {
+  let resize!: () => void;
+  const observe = vi.fn();
+  const disconnect = vi.fn();
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(callback: () => void) {
+        resize = callback;
+      }
+      observe = observe;
+      disconnect = disconnect;
+    },
+  );
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    callback(0);
+    return 1;
+  });
+  vi.mocked(api).mockImplementation(
+    (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,
+  );
+  const { container, unmount } = render(<App />);
+  await screen.findByRole("button", { name: "Préparer le plan" });
+  const main = container.querySelector<HTMLElement>(".main")!;
+  const feed = container.querySelector<HTMLElement>(".scroll-content")!;
+  const dock = container.querySelector<HTMLElement>(".composer-dock")!;
+  let dockHeight = 100;
+  dock.getBoundingClientRect = () => ({ height: dockHeight }) as DOMRect;
+  Object.defineProperties(feed, {
+    scrollHeight: {
+      configurable: true,
+      get: () =>
+        1000 + (parseInt(main.style.getPropertyValue("--dock-h")) || 0) - 100,
+    },
+    clientHeight: { configurable: true, get: () => 200 - (dockHeight - 100) },
+    scrollTop: { configurable: true, writable: true, value: 0 },
+  });
+  resize();
+  expect(observe).toHaveBeenCalledWith(dock);
+  expect(main.style.getPropertyValue("--dock-h")).toBe("100px");
+  feed.scrollTop = 800;
+  dockHeight = 180;
+  resize();
+  expect(main.style.getPropertyValue("--dock-h")).toBe("180px");
+  expect(feed.scrollTop).toBe(1080);
+  feed.scrollTop = 200;
+  dockHeight = 220;
+  resize();
+  expect(feed.scrollTop).toBe(200);
+  dockHeight = 0;
+  resize();
+  expect(main.style.getPropertyValue("--dock-h")).toBe("220px");
+  unmount();
+  expect(disconnect).toHaveBeenCalledOnce();
+});
 it("une API indisponible affiche une action de reconnexion", async () => {
   vi.mocked(api).mockRejectedValue(new Error("API locale inaccessible"));
   render(<App />);

@@ -358,6 +358,8 @@ nav {
   height: 100%;
   overflow: auto;
   scroll-padding-top: 70px;
+  padding-bottom: calc(var(--dock-h, 0px) + 24px);
+  scroll-padding-bottom: calc(var(--dock-h, 0px) + 24px);
 }
 .conversation-main {
   display: flex;
@@ -437,6 +439,8 @@ nav {
   height: auto;
   min-height: 0;
   flex: 0 1 auto;
+  padding-bottom: 0;
+  scroll-padding-bottom: 0;
 }
 .main:has(.home) .home {
   min-height: 0;

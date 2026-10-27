@@ -183,3 +183,13 @@ it("les animations du composeur et des messages ont une règle de réduction glo
   expect(css).toContain("@keyframes dotp");
   expect(css).toContain("@keyframes caret");
 });
+
+it("réserve la hauteur mesurée du dock et règle le scroll-padding en bas", () => {
+  const css = readFileSync("src/style.css", "utf8");
+  expect(css).toMatch(
+    /\.scroll-content\s*\{[^}]*padding-bottom:\s*calc\(var\(--dock-h/,
+  );
+  expect(css).toMatch(
+    /\.scroll-content\s*\{[^}]*scroll-padding-bottom:\s*calc\(var\(--dock-h/,
+  );
+});
