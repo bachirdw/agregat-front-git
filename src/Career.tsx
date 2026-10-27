@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "./api";
 import { Markdown } from "./Markdown";
+import { finalStates } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
@@ -55,36 +56,63 @@ export function activity(events: RunEvent[]): Item[] {
   }
   return items;
 }
+// Short label while the agent works: a running tool means execution, otherwise it is thinking.
+export function waitingLabel(items: Item[]): string | null {
+  const last = items.at(-1);
+  if (last?.kind === "tool")
+    return ["pending", "in_progress"].includes(last.status)
+      ? "Exécution…"
+      : "Réflexion…";
+  return last?.kind === "text" ? null : "Réflexion…";
+}
+function Waiting({ label }: { label: string }) {
+  return (
+    <p className="waiting" role="status">
+      <span className="spinner" aria-hidden="true" />
+      {label}
+    </p>
+  );
+}
 const statusLabel: Record<string, string> = {
   pending: "en attente",
   in_progress: "en cours",
   completed: "terminé",
   failed: "échec",
 };
-export function AgentActivity({ events }: { events: RunEvent[] }) {
+export function AgentActivity({
+  events,
+  running = false,
+}: {
+  events: RunEvent[];
+  running?: boolean;
+}) {
   const items = useMemo(() => activity(events), [events]);
-  if (!items.length) return null;
+  const label = running ? waitingLabel(items) : null;
+  if (!items.length) return label ? <Waiting label={label} /> : null;
   return (
-    <ol
-      className="activity"
-      aria-label="Activité de l’agent"
-      aria-live="polite"
-    >
-      {items.map((item) =>
-        item.kind === "tool" ? (
-          <li key={item.id} className={"activity-tool " + item.status}>
-            <span className="dot" aria-hidden="true" />
-            <code>{item.title}</code>
-            <small>{statusLabel[item.status] || item.status}</small>
-          </li>
-        ) : (
-          <li key={item.id} className={"activity-" + item.kind}>
-            {item.kind === "thought" && <small>Réflexion</small>}
-            <p>{item.text}</p>
-          </li>
-        ),
-      )}
-    </ol>
+    <>
+      <ol
+        className="activity"
+        aria-label="Activité de l’agent"
+        aria-live="polite"
+      >
+        {items.map((item) =>
+          item.kind === "tool" ? (
+            <li key={item.id} className={"activity-tool " + item.status}>
+              <span className="dot" aria-hidden="true" />
+              <code>{item.title}</code>
+              <small>{statusLabel[item.status] || item.status}</small>
+            </li>
+          ) : (
+            <li key={item.id} className={"activity-" + item.kind}>
+              {item.kind === "thought" && <small>Réflexion</small>}
+              <p>{item.text}</p>
+            </li>
+          ),
+        )}
+      </ol>
+      {label && <Waiting label={label} />}
+    </>
   );
 }
 
@@ -202,6 +230,7 @@ function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
   const done = run.state === "completed";
+  const running = !finalStates.has(run.state);
   useEffect(() => {
     const abort = new AbortController();
     api<{ prompt: string }>(
@@ -225,13 +254,10 @@ function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
     <>
       <div className="prompt-bubble">{prompt ?? "…"}</div>
       <div className="agent-turn">
-        {live && !done && <AgentActivity events={live} />}
+        {live && !done && <AgentActivity events={live} running={running} />}
         {live && done && <UsedTools events={live} />}
         {done && answer !== null && <Markdown text={answer} />}
-        {!done &&
-          !["failed", "cancelled", "interrupted"].includes(run.state) && (
-            <p className="muted">L’agent travaille…</p>
-          )}
+        {!live && running && <Waiting label="Réflexion…" />}
         {["failed", "cancelled", "interrupted"].includes(run.state) && (
           <p className="danger">{run.error || "Tour interrompu."}</p>
         )}

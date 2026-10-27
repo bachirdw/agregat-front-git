@@ -292,7 +292,10 @@ export function RunView({
                 </p>
               </div>
             )}
-            <AgentActivity events={events} />
+            <AgentActivity
+              events={events}
+              running={!finalStates.has(run.state)}
+            />
             <details className="event-log">
               <summary>Journal en direct · {events.length} événements</summary>
               <ol>

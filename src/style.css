@@ -1398,6 +1398,34 @@ summary {
     animation: none;
   }
 }
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--fillH);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  flex: none;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-color: var(--accent);
+  }
+}
 /* career-ops offers */
 .career-summary {
   white-space: pre-wrap;
