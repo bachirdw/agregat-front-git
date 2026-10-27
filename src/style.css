@@ -363,7 +363,7 @@ nav {
   min-height: 100%;
   display: flex;
   align-items: flex-end;
-  padding: 100px 24px calc(30vh + 200px);
+  padding: 100px 24px calc(30vh + 270px);
 }
 .home-inner {
   width: 100%;

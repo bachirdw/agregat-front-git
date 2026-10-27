@@ -48,7 +48,12 @@ export function activity(events: RunEvent[]): Item[] {
         tool = {
           kind: "tool",
           id,
-          title: String(u.title ?? u.kind ?? "Outil"),
+          title: String(
+            u.title ??
+              (u.status === "failed"
+                ? "Appel d’outil refusé"
+                : (u.kind ?? "Outil")),
+          ),
           status: "pending",
           at: e.at,
         };
@@ -162,6 +167,8 @@ export function describeTool(tool: Tool) {
 }
 function ToolLine({ tool }: { tool: Tool }) {
   const { name, summary, params } = describeTool(tool);
+  const visibleSummary =
+    tool.title === "Appel d’outil refusé" ? tool.output : summary;
   const input =
     tool.input === undefined ? params : JSON.stringify(tool.input, null, 2);
   return (
@@ -169,7 +176,9 @@ function ToolLine({ tool }: { tool: Tool }) {
       <summary>
         <StatusIcon status={tool.status} />
         <code>{name}</code>
-        {summary && <span className="tool-summary">{summary}</span>}
+        {visibleSummary && (
+          <span className="tool-summary">{visibleSummary}</span>
+        )}
       </summary>
       <div className="tool-details">
         {input && (

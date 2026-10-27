@@ -191,6 +191,29 @@ describe("conversation (c) : actions repliables et groupées", () => {
       expect(container.querySelector(".tool-failures")).toBeNull(),
     );
   });
+  it("appel refusé avant exécution : titre de secours et erreur visibles sans ouvrir le détail", () => {
+    const { container } = render(
+      <AgentActivity
+        events={[
+          ev({
+            sessionUpdate: "tool_call_update",
+            toolCallId: "rejected",
+            kind: "other",
+            status: "failed",
+            content: [
+              {
+                type: "content",
+                content: { type: "text", text: "params/id must match pattern" },
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+    const summary = container.querySelector("details.tool > summary")!;
+    expect(summary.textContent).toContain("Appel d’outil refusé");
+    expect(summary.textContent).toContain("params/id must match pattern");
+  });
   it("texte entre deux actions : deux groupes distincts, pas de regroupement", () => {
     const events = [
       tool("a", "x()"),
