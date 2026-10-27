@@ -1424,6 +1424,9 @@ summary {
   button:active {
     transform: none;
   }
+  .spinner {
+    border-color: var(--accent);
+  }
 }
 @media (prefers-reduced-transparency: reduce) {
   .toolbar {
@@ -1607,12 +1610,6 @@ summary {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation: none;
-    border-color: var(--accent);
   }
 }
 /* career-ops offers */
