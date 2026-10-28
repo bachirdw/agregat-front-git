@@ -193,3 +193,32 @@ it("réserve la hauteur mesurée du dock et règle le scroll-padding en bas", ()
     /\.scroll-content\s*\{[^}]*scroll-padding-bottom:\s*calc\(var\(--dock-h/,
   );
 });
+
+it("ancre le composeur de l'accueil dans le flux, sous une zone défilante", () => {
+  const css = readFileSync("src/style.css", "utf8");
+  const homeLayout = css.match(/\.main:has\(\.home\)\s*\{([^}]*)\}/)?.[1];
+  const homeFeed = css.match(
+    /\.main:has\(\.home\) \.scroll-content\s*\{([^}]*)\}/,
+  )?.[1];
+  const homeDock = css.match(
+    /\.main:has\(\.home\) \.composer-dock\s*\{([^}]*)\}/,
+  )?.[1];
+  expect(homeLayout).toMatch(/flex-direction:\s*column/);
+  expect(homeLayout).not.toMatch(/justify-content:\s*center/);
+  expect(homeLayout).not.toMatch(/padding-bottom:\s*12vh/);
+  expect(homeFeed).toMatch(/flex:\s*1/);
+  expect(homeFeed).toMatch(/min-height:\s*0/);
+  expect(homeFeed).toMatch(/overflow:\s*auto/);
+  expect(homeDock).toMatch(/position:\s*relative/);
+  expect(homeDock).toMatch(/margin:\s*0 auto 16px/);
+});
+
+it("évite de réserver deux fois la hauteur du dock en mission", () => {
+  const css = readFileSync("src/style.css", "utf8");
+  const missionFeed = css.match(
+    /\.conversation-main \.scroll-content\s*\{([^}]*)\}/,
+  )?.[1];
+  expect(missionFeed).toMatch(/padding-bottom:\s*0/);
+  expect(missionFeed).toMatch(/scroll-padding-bottom:\s*24px/);
+  expect(missionFeed).toMatch(/min-height:\s*0/);
+});

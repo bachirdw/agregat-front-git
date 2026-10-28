@@ -369,6 +369,8 @@ nav {
   flex: 1;
   height: auto;
   min-height: 0;
+  padding-bottom: 0;
+  scroll-padding-bottom: 24px;
 }
 .conversation-main .composer-dock {
   position: relative;
@@ -421,36 +423,36 @@ nav {
 }
 .composer-dock {
   position: absolute;
-  bottom: 24px;
+  bottom: 16px;
   left: 24px;
   right: 24px;
   max-width: 760px;
   margin: auto;
   z-index: 21;
 }
-/* Home: the composer stays in flow under the cards, so they can never slide beneath it. */
+/* Home: the scroll area uses the space above the composer in the flex flow. */
 .main:has(.home) {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 52px 0 12vh;
+  padding-top: 52px;
 }
 .main:has(.home) .scroll-content {
   height: auto;
   min-height: 0;
-  flex: 0 1 auto;
+  flex: 1;
+  overflow: auto;
   padding-bottom: 0;
   scroll-padding-bottom: 0;
 }
 .main:has(.home) .home {
-  min-height: 0;
+  min-height: 100%;
 }
 .main:has(.home) .composer-dock {
   position: relative;
   inset: auto;
   flex: none;
   width: calc(100% - 48px);
-  margin: 0 auto;
+  margin: 0 auto 16px;
 }
 .composer {
   background: var(--card);
@@ -1326,8 +1328,7 @@ summary {
     grid-column: auto;
   }
   .main:has(.home) {
-    justify-content: flex-start;
-    padding-bottom: 16px;
+    padding-bottom: 0;
   }
   .main:has(.home) .composer-dock {
     width: calc(100% - 32px);
