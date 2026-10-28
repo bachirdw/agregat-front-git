@@ -111,6 +111,64 @@ function post(base, path, body) {
   });
 }
 test(
+  "CV FICTIF : dépôt sur la fenêtre et bouton d'ajout visible en mode compact",
+  { timeout: 60000 },
+  async (t) => {
+    const { page, errors } = await open(t);
+    await page.route("**/api/files", async (route) => {
+      const name = decodeURIComponent(route.request().headers()["x-file-name"]);
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: name === "cv-fictif.pdf" ? "f1" : "f2",
+          name,
+          size: 8,
+          type: "application/pdf",
+        }),
+      });
+    });
+    await page.evaluate(() => {
+      const transfer = new DataTransfer();
+      transfer.items.add(
+        new File(["FICTIF"], "cv-fictif.pdf", { type: "application/pdf" }),
+      );
+      window.dispatchEvent(
+        new DragEvent("dragover", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: transfer,
+        }),
+      );
+      window.dispatchEvent(
+        new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: transfer,
+        }),
+      );
+    });
+    await page.getByText("cv-fictif.pdf").waitFor();
+    await page
+      .locator(".composer")
+      .evaluate((element) => element.setAttribute("data-compact", "true"));
+    const add = page.getByLabel("Ajouter", { exact: true });
+    assert.equal(await add.isVisible(), true);
+    await add.click();
+    const picker = page.waitForEvent("filechooser");
+    await page.getByRole("menuitem", { name: "Ajouter un fichier" }).click();
+    await (
+      await picker
+    ).setFiles({
+      name: "autre-cv.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("FICTIF"),
+    });
+    await page.getByText("autre-cv.pdf").waitFor();
+    assert.deepEqual(errors, []);
+  },
+);
+test(
   "production réelle : accueil, filtres, plan → SSE → résultats, historique et galeries",
   { timeout: 120000 },
   async (t) => {

@@ -128,7 +128,7 @@ describe("rendu fiable", () => {
     });
     expect(onChange).toHaveBeenCalledWith({ ...input, prompt: "autre" });
   });
-  it("en réponse, masque les réglages et pièces jointes que la reprise ignore", () => {
+  it("en réponse, garde l'ajout du CV et masque seulement les réglages", () => {
     render(
       <Composer
         catalog={catalog}
@@ -147,9 +147,62 @@ describe("rendu fiable", () => {
     expect(
       screen.getByRole("button", { name: "Envoyer la réponse" }),
     ).toBeTruthy();
-    expect(screen.queryByText("cv-fictif.txt")).toBeNull();
-    expect(screen.queryByLabelText("Ajouter")).toBeNull();
+    expect(screen.getByText("cv-fictif.txt")).toBeTruthy();
+    expect(screen.getByLabelText("Ajouter")).toBeTruthy();
     expect(screen.queryByLabelText(/Agent /)).toBeNull();
+  });
+  it("le bouton d'ajout reste accessible en mode compact", () => {
+    render(
+      <Composer
+        catalog={catalog}
+        input={input}
+        onChange={vi.fn()}
+        onPlan={vi.fn()}
+        busy={false}
+        compact
+      />,
+    );
+    const add = screen.getByLabelText("Ajouter");
+    expect(add.closest('[aria-hidden="true"]')).toBeNull();
+    expect(add.closest(".filters")).toBeNull();
+  });
+  it("déposer un CV sur la fenêtre l'ajoute au composeur", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          '{"id":"u2","name":"cv.pdf","size":4,"type":"application/pdf"}',
+          { status: 201 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const onChange = vi.fn();
+    render(
+      <Composer
+        catalog={catalog}
+        input={input}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    const file = new File(["FICTIF"], "cv.pdf", { type: "application/pdf" });
+    const transfer = { files: [file], types: ["Files"] };
+    const over = new Event("dragover", { bubbles: true, cancelable: true });
+    Object.defineProperty(over, "dataTransfer", { value: transfer });
+    expect(window.dispatchEvent(over)).toBe(false);
+    const drop = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", { value: transfer });
+    expect(window.dispatchEvent(drop)).toBe(false);
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith({
+        ...input,
+        attachments: [
+          { id: "u2", name: "cv.pdf", size: 4, type: "application/pdf" },
+        ],
+      }),
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
   it("bouton + : joindre un fichier, pastille, retrait et erreur de type", async () => {
     const fetcher = vi

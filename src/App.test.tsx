@@ -368,6 +368,58 @@ it("conserve le brouillon de réponse si la reprise échoue", async () => {
   await screen.findByText("Reprise impossible");
   expect((composer as HTMLTextAreaElement).value).toBe("Réponse à conserver");
 });
+it("transmet un CV joint lors d'une réponse et vide la pièce après la reprise", async () => {
+  const run = {
+    id: "00000000-0000-4000-8000-000000000011",
+    prompt: "Mission privée FICTIVE",
+    state: "completed",
+    mode: "agent",
+    agent: "fixture",
+    pack: "career-ops",
+    resumable: true,
+    plan: { steps: [], workflow: null },
+    simulated: true,
+    createdAt: "2026-10-28T00:00:00.000Z",
+  } as unknown as Run;
+  vi.mocked(api).mockImplementation(
+    (path) =>
+      Promise.resolve(
+        path === "/catalog" ? catalog : path === "/runs" ? [run] : run,
+      ) as never,
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          '{"id":"cv-1","name":"cv.pdf","size":7,"type":"application/pdf"}',
+          { status: 201 },
+        ),
+      ),
+  );
+  render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: /Mission privée FICTIVE/ }),
+  );
+  fireEvent.change(screen.getByLabelText("Fichier à joindre"), {
+    target: {
+      files: [new File(["FICTIF"], "cv.pdf", { type: "application/pdf" })],
+    },
+  });
+  await screen.findByText("cv.pdf");
+  fireEvent.change(screen.getByLabelText("Objectif de la mission"), {
+    target: { value: "Analyse ce CV FICTIF" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Envoyer la réponse" }));
+  await waitFor(() =>
+    expect(api).toHaveBeenCalledWith(`/runs/${run.id}/resume`, {
+      prompt: "Analyse ce CV FICTIF",
+      attachments: ["cv-1"],
+    }),
+  );
+  await waitFor(() => expect(screen.queryByText("cv.pdf")).toBeNull());
+});
 it("vide l'objectif initial après le lancement pour ne pas le proposer comme réponse", async () => {
   const plan = {
     agent: "fixture",

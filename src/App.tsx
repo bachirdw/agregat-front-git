@@ -378,8 +378,15 @@ export default function App() {
     if (!run || !input.prompt.trim()) return;
     const prompt = input.prompt.trim();
     try {
-      await action(`/runs/${run.id}/resume`, { prompt }, true);
-      setInput((old) => ({ ...old, prompt: "" }));
+      await action(
+        `/runs/${run.id}/resume`,
+        {
+          prompt,
+          attachments: input.attachments?.map((file) => file.id) || [],
+        },
+        true,
+      );
+      setInput((old) => ({ ...old, prompt: "", attachments: [] }));
     } catch {
       // The action already displayed the error; keep the draft for retry.
     }

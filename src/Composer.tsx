@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { DragEvent, FormEvent, ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import type { Attachment, Catalog, MissionInput } from "./types";
 import { ATTACHMENT_MAX_COUNT, uploadFile } from "./api";
 import { money } from "./types";
@@ -174,7 +174,6 @@ export function Composer({
     [],
   );
   const addFiles = async (files: FileList | File[]) => {
-    if (reply) return;
     const requestedIn = uploadScope.current;
     setFileError("");
     const list = [...files];
@@ -197,12 +196,38 @@ export function Composer({
       }
     }
   };
-  const drop = (e: DragEvent) => {
-    if (disabled || reply || !e.dataTransfer.files.length) return;
-    e.preventDefault();
-    setDragging(false);
-    void addFiles(e.dataTransfer.files);
-  };
+  useEffect(() => {
+    const over = (event: globalThis.DragEvent) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = disabled ? "none" : "copy";
+      setDragging(!disabled);
+    };
+    const drop = (event: globalThis.DragEvent) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      event.preventDefault();
+      setDragging(false);
+      if (disabled) {
+        setFileError(
+          "Terminez la mission ou créez-en une nouvelle pour joindre ce fichier.",
+        );
+        return;
+      }
+      if (event.dataTransfer.files.length)
+        void addFiles(event.dataTransfer.files);
+    };
+    const leave = (event: globalThis.DragEvent) => {
+      if (!event.relatedTarget) setDragging(false);
+    };
+    window.addEventListener("dragover", over);
+    window.addEventListener("drop", drop);
+    window.addEventListener("dragleave", leave);
+    return () => {
+      window.removeEventListener("dragover", over);
+      window.removeEventListener("drop", drop);
+      window.removeEventListener("dragleave", leave);
+    };
+  });
   const [budget, setBudget] = useState(String(input.budgetCents / 100));
   useEffect(
     () => setBudget(String(input.budgetCents / 100)),
@@ -229,23 +254,12 @@ export function Composer({
           if (compact) onOpen?.();
         }}
         aria-label="Préparer une mission"
-        onDragOver={(e) => {
-          if (disabled || reply || !e.dataTransfer.types.includes("Files"))
-            return;
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node))
-            setDragging(false);
-        }}
-        onDrop={drop}
       >
         <input
           ref={fileRef}
           type="file"
           hidden
-          disabled={reply}
+          disabled={disabled}
           multiple
           accept=".pdf,.docx,.md,.markdown,.txt"
           aria-label="Fichier à joindre"
@@ -254,7 +268,7 @@ export function Composer({
             e.target.value = "";
           }}
         />
-        {!reply && (attachments.length > 0 || uploading > 0 || fileError) && (
+        {(attachments.length > 0 || uploading > 0 || fileError) && (
           <div className="attachments" aria-live="polite">
             {attachments.map((a) => (
               <span className="chip" key={a.id}>
@@ -325,12 +339,12 @@ export function Composer({
           </div>
         )}
         <div className="composer-bottom">
+          <AttachMenu
+            disabled={disabled || uploading > 0}
+            onPick={() => fileRef.current?.click()}
+          />
           {!reply && (
             <div className="filters" aria-hidden={compact}>
-              <AttachMenu
-                disabled={disabled || uploading > 0}
-                onPick={() => fileRef.current?.click()}
-              />
               <Filter name="Agent" value={agent?.name || "Auto"}>
                 <label>
                   Agent d’exécution
