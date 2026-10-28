@@ -7,7 +7,7 @@ import {
 } from "react";
 import type { Catalog, MissionInput, Plan, Run, RunEvent } from "./types";
 import { agentStatus, finalStates, labels } from "./types";
-import { api, toApiInput, watchRun } from "./api";
+import { api, ApiError, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
@@ -215,28 +215,62 @@ export default function App() {
     if (!run) return;
     const id = run.id;
     let active = true,
-      timer: ReturnType<typeof setTimeout> | undefined;
+      timer: ReturnType<typeof setTimeout> | undefined,
+      heartbeat: ReturnType<typeof setInterval> | undefined,
+      refreshing = false;
     const controller = new AbortController();
     setEvents([]);
     setConnection("Connexion au flux…");
     const refresh = async () => {
+      if (refreshing) return;
+      refreshing = true;
       try {
         const next = await api<Run>(
           "/runs/" + id,
           undefined,
           controller.signal,
         );
-        if (active && current.current === id) setRun(next);
+        if (active && current.current === id) {
+          setRun(next);
+          setConnection((old) =>
+            old.includes("perdue")
+              ? "API reconnectée · journal synchronisé"
+              : old,
+          );
+          if (finalStates.has(next.state) && heartbeat) {
+            clearInterval(heartbeat);
+            heartbeat = undefined;
+          }
+        }
       } catch (e) {
-        if (!controller.signal.aborted) report(e);
+        if (controller.signal.aborted) return;
+        if (
+          e instanceof ApiError &&
+          (e.status === 0 || [502, 503, 504].includes(e.status))
+        ) {
+          setConnection("Connexion perdue · reconnexion…");
+          if (!timer)
+            timer = setTimeout(() => {
+              timer = undefined;
+              void refresh();
+            }, 1000);
+        } else report(e);
+      } finally {
+        refreshing = false;
       }
     };
     const close = watchRun(id, {
       connection: (ok) => {
-        if (active)
+        if (active) {
           setConnection(
             ok ? "Flux en direct" : "Connexion perdue · reconnexion…",
           );
+          if (!ok && !timer)
+            timer = setTimeout(() => {
+              timer = undefined;
+              void refresh();
+            }, 1000);
+        }
       },
       update: (event) => {
         if (!active) return;
@@ -282,11 +316,14 @@ export default function App() {
         }
       },
     });
+    if (!finalStates.has(run.state))
+      heartbeat = setInterval(() => void refresh(), 2000);
     return () => {
       active = false;
       controller.abort();
       close();
       if (timer) clearTimeout(timer);
+      if (heartbeat) clearInterval(heartbeat);
     };
     // A refresh of the same run must not reopen its SSE stream.
   }, [run?.id, streamKey, history]);
@@ -317,7 +354,11 @@ export default function App() {
     setError("");
     try {
       const next = await api<Run>("/runs", toApiInput(planned));
-      if (version === viewVersion.current) await openRun(next.id);
+      if (version === viewVersion.current) {
+        await openRun(next.id);
+        if (viewVersion.current === version + 1 && current.current === next.id)
+          setInput((old) => ({ ...old, prompt: "", attachments: [] }));
+      }
       await history();
       setPlanned(null);
     } catch (e) {
@@ -649,6 +690,7 @@ export default function App() {
                   runs={runs}
                   events={events}
                   busy={busy}
+                  connection={connection}
                   stop={() => void action(`/runs/${run.id}/cancel`, {})}
                   resume={() => void action(`/runs/${run.id}/resume`, {})}
                 >

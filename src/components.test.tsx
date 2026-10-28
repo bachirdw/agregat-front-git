@@ -14,6 +14,7 @@ import {
   activity,
   AgentActivity,
   CareerResults,
+  CareerThread,
   sessionThread,
 } from "./Career";
 import { Skills } from "./Galleries";
@@ -443,6 +444,96 @@ describe("career-ops", () => {
     );
     expect(screen.getByText("Rapport A–G (H si applicable)")).toBeTruthy();
     expect(screen.queryByText("H · Réponses de candidature")).toBeNull();
+  });
+  it("la conversation career-ops expose le rapport A–G de l'offre enregistrée", async () => {
+    const run = {
+      id: "fictif",
+      prompt: "Mission privée FICTIVE",
+      state: "completed",
+      mode: "agent",
+      pack: "career-ops",
+      createdAt: "2026-10-28T00:00:00.000Z",
+    } as unknown as Run;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          url.includes("/career/offers")
+            ? {
+                opportunities: [
+                  {
+                    id: "33333333-3333-4333-a333-333333333333",
+                    title: "Poste FICTIF",
+                    company: "Entreprise FICTIVE",
+                    source: "Source FICTIVE",
+                    url: "https://jobs.example.test/fictif",
+                    score: 4,
+                    simulated: true,
+                    report: Object.fromEntries(
+                      "ABCDEFG"
+                        .split("")
+                        .map((key) => [key, `Bloc ${key} FICTIF`]),
+                    ),
+                  },
+                ],
+              }
+            : url.includes("/input")
+              ? { prompt: "Question FICTIVE" }
+              : { summary: "Réponse FICTIVE" },
+      })),
+    );
+    render(
+      <CareerThread run={run} runs={[run]} events={[]}>
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    expect(
+      await screen.findByText("Poste FICTIF", { exact: false }),
+    ).toBeTruthy();
+    expect(screen.getByText("Rapport A–G (H si applicable)")).toBeTruthy();
+    expect(screen.getByText("Bloc G FICTIF")).toBeTruthy();
+  });
+  it("la conversation signale la perte du flux et efface l'alerte après reconnexion", () => {
+    const run = {
+      id: "fictif",
+      prompt: "Mission FICTIVE",
+      state: "running",
+      mode: "agent",
+      pack: "career-ops",
+      createdAt: "2026-10-28T00:00:00.000Z",
+    } as unknown as Run;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ prompt: "Mission FICTIVE" }),
+      })),
+    );
+    const { rerender } = render(
+      <CareerThread
+        run={run}
+        runs={[run]}
+        events={[]}
+        connection="Connexion perdue · reconnexion…"
+      >
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    expect(screen.getByText("Connexion perdue · reconnexion…")).toBeTruthy();
+    rerender(
+      <CareerThread
+        run={run}
+        runs={[run]}
+        events={[]}
+        connection="Flux en direct"
+      >
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    expect(screen.queryByText("Connexion perdue · reconnexion…")).toBeNull();
   });
   it("ancien bloc H conserve un libellé neutre sans modifier le rapport", async () => {
     const offer = {

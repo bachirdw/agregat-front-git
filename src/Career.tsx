@@ -478,6 +478,7 @@ export function CareerThread({
   runs,
   events,
   busy = false,
+  connection,
   stop,
   resume,
   children,
@@ -486,6 +487,7 @@ export function CareerThread({
   runs: Run[];
   events: RunEvent[];
   busy?: boolean;
+  connection?: string;
   stop?: () => void;
   resume?: () => void;
   children: ReactNode;
@@ -511,6 +513,9 @@ export function CareerThread({
         >
           {labels[run.state] || run.state}
         </span>
+        {connection?.includes("perdue") && (
+          <small className="danger">{connection}</small>
+        )}
         {run.usage && (
           <small>{money(run.usage.platformCents, run.usage.currency)}</small>
         )}
@@ -557,12 +562,32 @@ function CareerOffers({ done }: { done: boolean }) {
       <summary>Toutes vos offres enregistrées · {offers.length}</summary>
       <ol className="offer-lines">
         {offers.map((o) => (
-          <li key={o.id}>
+          <li key={o.id} className="offer">
             <strong>{o.score ?? "–"}/5</strong> {o.title} — {o.company} ·{" "}
-            {o.source}{" "}
+            {o.source} {o.simulated ? "· FICTIF " : ""}
             <a href={o.url} target="_blank" rel="noopener noreferrer">
               ↗
             </a>
+            {o.report && (
+              <details>
+                <summary>Rapport A–G (H si applicable)</summary>
+                <dl>
+                  {Object.entries(o.report).map(([key, text]) => (
+                    <div key={key}>
+                      <dt>
+                        {key}
+                        {key === "H" && !o.contractVersion
+                          ? " · Bloc historique"
+                          : sections[key]
+                            ? ` · ${sections[key]}`
+                            : ""}
+                      </dt>
+                      <dd>{text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+            )}
           </li>
         ))}
       </ol>

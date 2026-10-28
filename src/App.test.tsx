@@ -8,7 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import App from "./App";
-import { api } from "./api";
+import { api, ApiError, watchRun } from "./api";
 import type { Catalog, Plan, Run } from "./types";
 vi.mock("./api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./api")>()),
@@ -253,6 +253,91 @@ it("une API indisponible affiche une action de reconnexion", async () => {
   );
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 });
+it("signale une perte du backend pendant une mission puis retente la lecture", async () => {
+  const run = {
+    id: "00000000-0000-4000-8000-000000000004",
+    prompt: "Mission FICTIVE en cours",
+    state: "running",
+    mode: "agent",
+    pack: "career-ops",
+    agent: "fixture",
+    createdAt: "2026-10-28T00:00:00.000Z",
+    plan: { workflow: null, steps: [] },
+    simulated: true,
+  } as unknown as Run;
+  let reads = 0;
+  let handlers!: Parameters<typeof watchRun>[1];
+  vi.mocked(watchRun).mockImplementation((_id, next) => {
+    handlers = next;
+    return () => {};
+  });
+  vi.mocked(api).mockImplementation((path) =>
+    path === "/catalog"
+      ? (Promise.resolve(catalog) as never)
+      : path === "/runs"
+        ? (Promise.resolve([run]) as never)
+        : path === `/runs/${run.id}`
+          ? ++reads === 1
+            ? Promise.resolve(run)
+            : Promise.reject(new ApiError("API locale inaccessible", 502))
+          : (Promise.resolve({ prompt: "Mission FICTIVE en cours" }) as never),
+  );
+  const { container } = render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: /Mission FICTIVE en cours/ }),
+  );
+  await screen.findByText("Mission FICTIVE en cours", {
+    selector: ".toolbar strong",
+  });
+  act(() =>
+    handlers.update({ seq: 1, type: "state", data: { state: "running" } }),
+  );
+  await waitFor(() => expect(reads).toBeGreaterThan(1));
+  expect(
+    container.querySelector(".conversation-status .danger")?.textContent,
+  ).toBe("Connexion perdue · reconnexion…");
+});
+it("détecte une perte du backend même si le flux ne signale aucune erreur", async () => {
+  const run = {
+    id: "00000000-0000-4000-8000-000000000005",
+    prompt: "Mission FICTIVE sans événement",
+    state: "running",
+    mode: "agent",
+    pack: "career-ops",
+    agent: "fixture",
+    createdAt: "2026-10-28T00:00:00.000Z",
+    plan: { workflow: null, steps: [] },
+    simulated: true,
+  } as unknown as Run;
+  let reads = 0;
+  vi.mocked(watchRun).mockImplementation(() => () => {});
+  vi.mocked(api).mockImplementation((path) =>
+    path === "/catalog"
+      ? (Promise.resolve(catalog) as never)
+      : path === "/runs"
+        ? (Promise.resolve([run]) as never)
+        : path === `/runs/${run.id}`
+          ? ++reads === 1
+            ? Promise.resolve(run)
+            : Promise.reject(new ApiError("API locale inaccessible", 502))
+          : (Promise.resolve({
+              prompt: "Mission FICTIVE sans événement",
+            }) as never),
+  );
+  const { container } = render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: /Mission FICTIVE sans événement/,
+    }),
+  );
+  await screen.findByText("Mission FICTIVE sans événement", {
+    selector: ".toolbar strong",
+  });
+  await waitFor(() => expect(reads).toBeGreaterThan(1), { timeout: 3500 });
+  expect(
+    container.querySelector(".conversation-status .danger")?.textContent,
+  ).toBe("Connexion perdue · reconnexion…");
+});
 it("conserve le brouillon de réponse si la reprise échoue", async () => {
   const run = {
     id: "00000000-0000-4000-8000-000000000001",
@@ -282,6 +367,69 @@ it("conserve le brouillon de réponse si la reprise échoue", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Envoyer la réponse" }));
   await screen.findByText("Reprise impossible");
   expect((composer as HTMLTextAreaElement).value).toBe("Réponse à conserver");
+});
+it("vide l'objectif initial après le lancement pour ne pas le proposer comme réponse", async () => {
+  const plan = {
+    agent: "fixture",
+    pack: "career-ops",
+    steps: [],
+    cost: {
+      platformCents: 0,
+      currency: "EUR",
+      budgetCents: 0,
+      withinBudget: true,
+      description: "FICTIF",
+      lines: [],
+    },
+    permissions: [],
+    simulated: true,
+    routing: { reasons: [], rejected: [] },
+    workflow: null,
+  } as Plan;
+  const run = {
+    id: "00000000-0000-4000-8000-000000000003",
+    prompt: "Mission privée FICTIVE",
+    state: "completed",
+    mode: "agent",
+    agent: "fixture",
+    model: "",
+    pack: "career-ops",
+    resumable: true,
+    plan,
+    simulated: true,
+    createdAt: "2026-10-28T00:00:00.000Z",
+  } as unknown as Run;
+  vi.mocked(api).mockImplementation(
+    (path, body) =>
+      Promise.resolve(
+        path === "/catalog"
+          ? catalog
+          : path === "/plan"
+            ? plan
+            : path === "/runs"
+              ? body
+                ? run
+                : [run]
+              : path.startsWith("/runs/")
+                ? run
+                : { opportunities: [], summary: "FICTIF" },
+      ) as never,
+  );
+  render(<App />);
+  const composer = await screen.findByLabelText("Objectif de la mission");
+  fireEvent.change(composer, { target: { value: "Profil FICTIF initial" } });
+  fireEvent.click(screen.getByRole("button", { name: "Préparer le plan" }));
+  await screen.findByRole("region", { name: "Plan proposé" });
+  fireEvent.click(screen.getByRole("button", { name: "Lancer" }));
+  await screen.findByRole("button", { name: "Envoyer la réponse" });
+  expect((composer as HTMLTextAreaElement).value).toBe("");
+  expect(
+    (
+      screen.getByRole("button", {
+        name: "Envoyer la réponse",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
 });
 it("en conversation, le défilement vers le haut compacte le composeur, le focus et le retour en bas le rouvrent", async () => {
   const run = {

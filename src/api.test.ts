@@ -40,6 +40,17 @@ describe("client HTTP", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>")));
     await expect(api("/catalog")).rejects.toBeInstanceOf(ApiError);
   });
+  it("reconnaît un 502 HTML du proxy comme une perte du backend", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response("<html>Bad Gateway</html>", { status: 502 }),
+        ),
+    );
+    await expect(api("/runs/id")).rejects.toThrow("API locale inaccessible");
+  });
   it("respecte une requête annulée", async () => {
     const controller = new AbortController();
     controller.abort();

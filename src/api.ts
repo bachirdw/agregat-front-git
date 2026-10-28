@@ -34,6 +34,11 @@ export async function api<T>(
       0,
     );
   }
+  if ([502, 503, 504].includes(response.status))
+    throw new ApiError(
+      "API locale inaccessible. Vérifiez que le backend est démarré.",
+      response.status,
+    );
   let data;
   try {
     data = await response.json();
