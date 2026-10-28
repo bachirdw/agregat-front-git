@@ -262,7 +262,7 @@ describe("conversation (d) : défilement et Stop", () => {
     runId?: string;
   }) {
     const ref = useRef<HTMLDivElement>(null);
-    const onScroll = useFollow(ref, active, items, runId);
+    const { onScroll } = useFollow(ref, active, items, runId);
     return <div data-testid="feed" ref={ref} onScroll={onScroll} />;
   }
   // jsdom has no layout: give the container a fixed geometry and record scrollTo.
@@ -289,22 +289,20 @@ describe("conversation (d) : défilement et Stop", () => {
     fireEvent.scroll(feed);
     rerender(<Feed items={3} />);
     expect(calls).toHaveLength(1);
-    feed.scrollTop = 790; // back near the bottom
+    feed.scrollTop = 799; // back at the bottom (within 2 px)
     fireEvent.scroll(feed);
     rerender(<Feed items={4} />);
     expect(calls).toHaveLength(2);
   });
-  it("cesse de suivre à 40 px du bas, comme l'export", () => {
+  it("à 10 px du bas, l'utilisateur est considéré comme remonté : aucun recollage", () => {
     const { rerender } = render(<Feed items={1} />);
     const feed = screen.getByTestId("feed");
-    const calls = geometry(feed, 750); // 50 px from bottom
+    const calls = geometry(feed, 800);
+    fireEvent.scroll(feed);
+    feed.scrollTop = 790; // 10 px up
     fireEvent.scroll(feed);
     rerender(<Feed items={2} />);
     expect(calls).toHaveLength(0);
-    feed.scrollTop = 770; // 30 px from bottom
-    fireEvent.scroll(feed);
-    rerender(<Feed items={3} />);
-    expect(calls).toHaveLength(1);
   });
   it("hors mission : aucun défilement forcé", () => {
     const { rerender } = render(<Feed items={1} active={false} />);
@@ -382,5 +380,53 @@ describe("conversation (d) : défilement et Stop", () => {
     expect(screen.getByRole("status").textContent).toContain("0,25");
     fireEvent.click(screen.getByRole("button", { name: "Reprendre" }));
     expect(resume).toHaveBeenCalledOnce();
+  });
+});
+
+describe("suivi du bas : intention de l'utilisateur", () => {
+  function Feed({ items }: { items: number }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const f = useFollow(ref, true, items, "run");
+    return (
+      <div>
+        <div data-testid="feed" ref={ref} onScroll={f.onScroll} />
+        {f.away && <button onClick={f.toBottom}>Revenir en bas</button>}
+      </div>
+    );
+  }
+  function geometry(el: HTMLElement, scrollTop: number) {
+    Object.defineProperties(el, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 200 },
+      scrollTop: { configurable: true, writable: true, value: scrollTop },
+    });
+    const calls: unknown[] = [];
+    el.scrollTo = ((options: unknown) =>
+      calls.push(options)) as typeof el.scrollTo;
+    return calls;
+  }
+  it("remonter de 30 px arrête le suivi malgré de nouveaux événements, et le bouton revient en bas", () => {
+    const { rerender } = render(<Feed items={1} />);
+    const feed = screen.getByTestId("feed");
+    const calls = geometry(feed, 800);
+    fireEvent.scroll(feed);
+    feed.scrollTop = 770; // 30 px up: far below the old 40 px threshold
+    fireEvent.scroll(feed);
+    for (let n = 2; n < 8; n++) rerender(<Feed items={n} />);
+    expect(calls).toHaveLength(0);
+    fireEvent.click(screen.getByText("Revenir en bas"));
+    expect(calls).toEqual([{ top: 1000, behavior: "smooth" }]);
+    expect(screen.queryByText("Revenir en bas")).toBeNull();
+    rerender(<Feed items={9} />);
+    expect(calls).toHaveLength(2);
+  });
+  it("la molette vers le haut coupe le suivi avant tout défilement mesuré", () => {
+    const { rerender } = render(<Feed items={1} />);
+    const feed = screen.getByTestId("feed");
+    const calls = geometry(feed, 800);
+    fireEvent.wheel(feed, { deltaY: -40 });
+    rerender(<Feed items={2} />);
+    expect(calls).toHaveLength(0);
+    expect(screen.getByText("Revenir en bas")).toBeTruthy();
   });
 });

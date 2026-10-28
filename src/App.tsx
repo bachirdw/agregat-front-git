@@ -70,7 +70,12 @@ export default function App() {
   const lastScrollTop = useRef(0);
   const [composerCompact, setComposerCompact] = useState(false);
   const navRef = useRef<HTMLElement>(null);
-  const follow = useFollow(scroll, page === "mission", events, run?.id);
+  const {
+    onScroll: follow,
+    stuck,
+    away,
+    toBottom,
+  } = useFollow(scroll, page === "mission", events, run?.id);
   const report = (e: unknown) =>
     setError(e instanceof Error ? e.message : String(e));
   const history = useCallback(
@@ -134,8 +139,9 @@ export default function App() {
       // In conversation the dock is in the flex flow: growth already shrank the
       // feed before ResizeObserver fires, so include that growth in the threshold.
       const atBottom =
+        stuck.current &&
         feed.scrollHeight - feed.scrollTop - feed.clientHeight <
-        40 + Math.max(0, height - previous);
+          40 + Math.max(0, height - previous);
       main.style.setProperty("--dock-h", `${height}px`);
       if (atBottom) {
         requestAnimationFrame(() => {
@@ -763,6 +769,15 @@ export default function App() {
             </div>
           )}
         </div>
+        {page === "mission" && away && (
+          <button
+            className="jump-bottom"
+            aria-label="Revenir en bas"
+            onClick={toBottom}
+          >
+            <span aria-hidden="true">↓</span> Revenir en bas
+          </button>
+        )}
         {(page === "home" || page === "mission") && (
           <Composer
             scope={viewVersion.current}

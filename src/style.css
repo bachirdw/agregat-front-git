@@ -357,9 +357,41 @@ nav {
 .scroll-content {
   height: 100%;
   overflow: auto;
+  overflow-x: hidden;
   scroll-padding-top: 70px;
   padding-bottom: calc(var(--dock-h, 0px) + 24px);
   scroll-padding-bottom: calc(var(--dock-h, 0px) + 24px);
+}
+.jump-bottom {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--dock-h, 0px) + 28px);
+  z-index: 5;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 14px;
+  border: 1px solid var(--sep);
+  border-radius: 999px;
+  background: var(--card);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  transform: translateX(-50%);
+  animation: jump-in 160ms ease-out;
+}
+@keyframes jump-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jump-bottom {
+    animation: none;
+  }
 }
 .conversation-main {
   display: flex;
