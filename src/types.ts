@@ -145,6 +145,18 @@ export interface Run {
     workflow?: { title: string; steps: StepDefinition[] };
   };
   steps?: Step[];
+  skillProgress?: {
+    orderDeviation: boolean;
+    steps: {
+      pack: string;
+      intent: string;
+      id: string;
+      title: string;
+      state: "pending" | "done" | "skipped" | "failed";
+      toolCallId?: string | null;
+      cause?: string | null;
+    }[];
+  } | null;
   permissions?: Permission[];
   result?: {
     simulated: boolean;

@@ -427,6 +427,41 @@ describe("rendu fiable", () => {
   });
 });
 describe("career-ops", () => {
+  it("affiche une seule section des étapes dans le fil carrière FICTIF", () => {
+    const run = {
+      id: "00000000-0000-4000-8000-000000000011",
+      prompt: "Surveille cette offre FICTIVE",
+      state: "completed",
+      mode: "agent",
+      pack: "career-ops",
+      createdAt: "2026-10-28T00:00:00.000Z",
+      plan: { steps: [] },
+      skillProgress: {
+        orderDeviation: false,
+        steps: [
+          {
+            pack: "career-ops",
+            intent: "search",
+            id: "scan",
+            title: "Scanner les portails FICTIFS",
+            state: "pending",
+          },
+        ],
+      },
+    } as unknown as Run;
+    render(
+      <CareerThread run={run} runs={[run]} events={[]}>
+        <RunView
+          run={run}
+          events={[]}
+          connection=""
+          busy={false}
+          act={vi.fn()}
+        />
+      </CareerThread>,
+    );
+    expect(screen.getAllByText("Étapes du Skill")).toHaveLength(1);
+  });
   it("affiche immédiatement le message privé pendant une mission en cours", () => {
     vi.stubGlobal(
       "fetch",

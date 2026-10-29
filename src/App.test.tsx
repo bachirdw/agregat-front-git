@@ -289,6 +289,7 @@ it("signale une perte du backend pendant une mission puis retente la lecture", a
   await screen.findByText("Mission FICTIVE en cours", {
     selector: ".toolbar strong",
   });
+  await waitFor(() => expect(handlers).toBeDefined());
   act(() =>
     handlers.update({ seq: 1, type: "state", data: { state: "running" } }),
   );

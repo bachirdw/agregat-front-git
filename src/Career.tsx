@@ -5,6 +5,7 @@ import { Markdown } from "./Markdown";
 import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
+import { SkillSteps } from "./SkillSteps";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
 type Tool = {
@@ -566,6 +567,7 @@ export function CareerThread({
           )}
       </div>
       <CareerOffers done={run.state === "completed"} />
+      <SkillSteps progress={run.skillProgress} />
       <details className="tech-details">
         <summary>Détails techniques (coût, journal brut)</summary>
         {children}

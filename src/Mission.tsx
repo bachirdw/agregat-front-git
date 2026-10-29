@@ -1,4 +1,5 @@
 import { AgentActivity } from "./Career";
+import { SkillSteps } from "./SkillSteps";
 import { useEffect, useState } from "react";
 import type { Catalog, Cost, Plan, Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
@@ -312,6 +313,7 @@ export function RunView({
           </>
         )}
       </section>
+      {run.pack !== "career-ops" && <SkillSteps progress={run.skillProgress} />}
       {run.error && (
         <section className="card error-card" role="alert">
           <small>Mission interrompue</small>
