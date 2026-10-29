@@ -690,6 +690,7 @@ textarea:focus-visible {
 .thread {
   max-width: 780px;
   width: 100%;
+  min-width: 0;
   padding: 84px 24px 32px;
   margin: auto;
   display: flex;
@@ -1186,9 +1187,14 @@ progress::-webkit-progress-value {
 .markdown {
   line-height: 1.65;
   overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
 }
 .markdown p + p {
   margin-top: 12px;
+}
+.markdown code {
+  overflow-wrap: anywhere;
 }
 .markdown h1,
 .markdown h2,
@@ -1196,7 +1202,9 @@ progress::-webkit-progress-value {
   margin: 16px 0 8px;
 }
 .markdown table {
-  min-width: 400px;
+  width: 100%;
+  table-layout: fixed;
+  overflow-wrap: anywhere;
 }
 .markdown:has(table) {
   overflow: auto;
@@ -1207,10 +1215,17 @@ progress::-webkit-progress-value {
   border-radius: 12px;
   overflow: auto;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
   font-family: ui-monospace, monospace;
 }
 .diagram {
   margin: 0;
+}
+.diagram pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .diagram img {
   max-width: 100%;
@@ -1509,13 +1524,18 @@ summary {
   margin: 0;
   padding: 4px 16px 12px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   font-size: 13px;
+}
+.activity > li {
+  min-width: 0;
 }
 .activity-text p,
 .activity-thought p {
   margin: 0;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .activity-thought {
   color: var(--muted);
@@ -1560,7 +1580,11 @@ summary {
   display: none;
 }
 .fold.tool > summary code {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--label);
 }
 .fold.tool.failed > summary code {
@@ -1582,6 +1606,8 @@ summary {
 }
 .tool-details {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 4px;
   margin: 6px 0 0 18px;
 }
@@ -1711,6 +1737,7 @@ summary {
 }
 .career-thread {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 .conversation-status {
@@ -1738,6 +1765,7 @@ summary {
 }
 .agent-turn {
   line-height: 1.55;
+  min-width: 0;
 }
 .agent-turn .activity {
   padding: 0 0 8px;

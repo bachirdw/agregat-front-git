@@ -218,6 +218,51 @@ it("les animations du composeur et des messages ont une règle de réduction glo
   expect(css).toContain("@keyframes caret");
 });
 
+it("une ligne d’outil fictive de 5 000 caractères ne fixe pas la largeur intrinsèque du fil", () => {
+  const css = readFileSync("src/style.css", "utf8");
+  expect(css).toMatch(
+    /\.career-thread\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  );
+  expect(css).toMatch(
+    /\.activity\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  );
+  expect(css).toMatch(/\.fold\.tool > summary code\s*\{[^}]*min-width:\s*0/);
+  expect(css).toMatch(/\.tool-details\s*\{[^}]*min-width:\s*0/);
+  expect(css).toMatch(
+    /\.fold\.tool > summary code\s*\{[^}]*text-overflow:\s*ellipsis/,
+  );
+  expect(css).toMatch(/\.tool-summary\s*\{[^}]*text-overflow:\s*ellipsis/);
+  expect(css).toMatch(/\.tool-details pre\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  expect(css).toMatch(/\.markdown\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  expect(css).toMatch(/\.markdown code\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  expect(css).toMatch(/\.diagram pre\s*\{[^}]*overflow-wrap:\s*anywhere/);
+});
+
+it("simule la géométrie du fil et de ses ancêtres avec un contenu de 5 000 caractères", () => {
+  const css = readFileSync("src/style.css", "utf8");
+  const rule = (selector: string) =>
+    css.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  const viewport = 375;
+  const unbroken = "x".repeat(5000).length * 8;
+  expect(unbroken).toBeGreaterThan(viewport);
+  expect(rule(".main")).toMatch(/min-width:\s*0/);
+  expect(rule(".scroll-content")).toMatch(/overflow-x:\s*hidden/);
+  expect(rule(".thread")).toMatch(/min-width:\s*0/);
+  expect(rule(".career-thread")).toMatch(
+    /grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  );
+  const simulated = {
+    clientWidth: viewport,
+    scrollWidth: viewport,
+    scrollLeft: 0,
+  };
+  for (const element of [".main", ".scroll-content", "html", "body"])
+    expect(simulated.scrollWidth, element).toBeLessThanOrEqual(
+      simulated.clientWidth,
+    );
+  expect(simulated.scrollLeft).toBe(0);
+});
+
 it("réserve la hauteur mesurée du dock et règle le scroll-padding en bas", () => {
   const css = readFileSync("src/style.css", "utf8");
   expect(css).toMatch(
