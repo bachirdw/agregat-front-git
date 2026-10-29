@@ -459,6 +459,46 @@ describe("career-ops", () => {
     expect(screen.getByText("Postule à l’offre FICTIVE")).toBeTruthy();
     expect(screen.getByText(/Agent silencieux depuis 1 min/)).toBeTruthy();
   });
+  it("affiche une seule fois le repli Chrome isolé dans le fil de la mission", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
+    const run = {
+      id: "00000000-0000-4000-8000-000000000010",
+      prompt: "Mission FICTIVE",
+      state: "completed",
+      mode: "agent",
+      pack: "career-ops",
+      createdAt: "2026-10-28T00:00:00.000Z",
+    } as unknown as Run;
+    const fallback = {
+      type: "browser_fallback",
+      data: { connected: false, reason: "Extension Playwriter indisponible" },
+    };
+    const { rerender } = render(
+      <CareerThread run={run} runs={[run]} events={[]}>
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    expect(screen.queryByText(/Chrome isolé, non connecté/)).toBeNull();
+    rerender(
+      <CareerThread
+        run={run}
+        runs={[run]}
+        events={[
+          { seq: 1, ...fallback },
+          { seq: 2, ...fallback },
+        ]}
+      >
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    const warnings = screen.getAllByText(/Chrome isolé, non connecté/);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].closest(".career-thread")).toBeTruthy();
+    expect(warnings[0].classList.contains("career-warning")).toBe(true);
+  });
   it("choisir le pack career-ops sélectionne Gemini", () => {
     const onChange = vi.fn();
     const localCatalog = {

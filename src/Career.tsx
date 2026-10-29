@@ -506,6 +506,9 @@ export function CareerThread({
   const silent = [...events]
     .reverse()
     .find((event) => event.type === "agent_silent" && !event.data?.stopped);
+  const browserFallback = events.some(
+    (event) => event.type === "browser_fallback",
+  );
   return (
     <div className="career-thread">
       {turns.map((t) => (
@@ -524,6 +527,12 @@ export function CareerThread({
             Math.ceil(Number(silent.data?.elapsedMs || 60000) / 60000),
           )}{" "}
           min. Vous pouvez arrêter la mission.
+        </p>
+      )}
+      {browserFallback && (
+        <p className="career-warning" role="status">
+          Navigateur : Chrome isolé, non connecté à vos comptes (extension
+          Playwriter indisponible).
         </p>
       )}
       {stop && !finalStates.has(run.state) && (
