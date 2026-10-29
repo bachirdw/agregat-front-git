@@ -369,13 +369,15 @@ export function CareerResults({ run }: { run: Run }) {
       <div className="card-pad">
         <small>career-ops · espace privé</small>
         <h2>Réponse de l’agent</h2>
-        {result?.summary ? (
-          <div className="career-summary">
-            <Markdown text={result.summary} />
-          </div>
-        ) : (
-          !error && <p>Chargement…</p>
-        )}
+        {result &&
+          (result.summary ? (
+            <div className="career-summary">
+              <Markdown text={result.summary} />
+            </div>
+          ) : (
+            <p>Aucun résumé disponible.</p>
+          ))}
+        {!result && !error && <p>Chargement…</p>}
         {error && <p className="danger">{error}</p>}
       </div>
       {offers && (
@@ -453,12 +455,14 @@ function Turn({
 }) {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
+  const [answerError, setAnswerError] = useState("");
   const done = run.state === "completed";
   const running = !finalStates.has(run.state);
   useEffect(() => {
     const abort = new AbortController();
     setPrompt(null);
     setAnswer(null);
+    setAnswerError("");
     api<{ prompt: string }>(
       `/career/runs/${run.id}/input`,
       undefined,
@@ -477,7 +481,9 @@ function Turn({
         .then((r) => {
           if (!abort.signal.aborted) setAnswer(r.summary || "");
         })
-        .catch(() => !abort.signal.aborted && setAnswer(null));
+        .catch((e) => {
+          if (!abort.signal.aborted) setAnswerError((e as Error).message);
+        });
     return () => abort.abort();
   }, [run.id, done, run.prompt]);
   return (
@@ -487,6 +493,11 @@ function Turn({
         {live && !done && <AgentActivity events={live} running={running} />}
         {live && done && <AgentActivity events={live} final />}
         {done && answer !== null && <Markdown text={answer} />}
+        {done && answerError && (
+          <p className="danger" role="alert">
+            {answerError}
+          </p>
+        )}
         {!live && running && <Waiting label="Réflexion…" />}
         {["failed", "cancelled", "interrupted"].includes(run.state) && (
           <p className="danger">{run.error || "Tour interrompu."}</p>
@@ -590,9 +601,12 @@ export function CareerThread({
 }
 function CareerOffers({ done }: { done: boolean }) {
   const [offers, setOffers] = useState<CareerOffer[] | null>(null);
+  const [error, setError] = useState("");
   useEffect(() => {
     if (!done) return;
     const abort = new AbortController();
+    setOffers(null);
+    setError("");
     api<{ opportunities: CareerOffer[] }>(
       "/career/offers",
       undefined,
@@ -606,9 +620,18 @@ function CareerOffers({ done }: { done: boolean }) {
             ),
           );
       })
-      .catch(() => {});
+      .catch((e) => {
+        if (!abort.signal.aborted) setError((e as Error).message);
+      });
     return () => abort.abort();
   }, [done]);
+  if (!done) return null;
+  if (error)
+    return (
+      <p className="danger" role="alert">
+        {error}
+      </p>
+    );
   if (!offers?.length) return null;
   return (
     <details className="career-offers card">

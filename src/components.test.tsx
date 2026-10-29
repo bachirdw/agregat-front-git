@@ -96,6 +96,24 @@ describe("rendu fiable", () => {
     expect(await screen.findByText(/API locale inaccessible/)).toBeTruthy();
     expect(screen.queryByText("Chargement…")).toBeNull();
   });
+  it("termine le chargement lorsque le résultat ne contient aucun résumé", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async (url: string) =>
+          new Response(
+            JSON.stringify(
+              url.includes("/career/offers")
+                ? { opportunities: [] }
+                : { summary: "" },
+            ),
+          ),
+      ),
+    );
+    render(<CareerResults run={{ id: "fictif", state: "completed" } as Run} />);
+    expect(await screen.findByText("Aucun résumé disponible.")).toBeTruthy();
+    expect(screen.queryByText("Chargement…")).toBeNull();
+  });
   it("ignore le résultat d'une autre mission arrivé après le changement de mission", async () => {
     let oldResult!: (value: Response) => void;
     vi.stubGlobal(
@@ -701,6 +719,70 @@ describe("career-ops", () => {
     ).toBeTruthy();
     expect(screen.getByText("Rapport A–G (H si applicable)")).toBeTruthy();
     expect(screen.getByText("Bloc G FICTIF")).toBeTruthy();
+  });
+  it("affiche l'échec de lecture de la réponse d'un tour terminé", async () => {
+    const run = {
+      id: "fictif",
+      prompt: "Question FICTIVE",
+      state: "completed",
+      mode: "agent",
+      pack: "career-ops",
+      createdAt: "2026-10-28T00:00:00.000Z",
+    } as Run;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.includes("/result")
+          ? new Response(JSON.stringify({ error: "Réponse absente" }), {
+              status: 404,
+            })
+          : new Response(
+              JSON.stringify(
+                url.includes("/offers")
+                  ? { opportunities: [] }
+                  : { prompt: "Question FICTIVE" },
+              ),
+            ),
+      ),
+    );
+    render(
+      <CareerThread run={run} runs={[run]} events={[]}>
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    expect(await screen.findByText("Réponse absente")).toBeTruthy();
+  });
+  it("signale une lecture impossible des offres dans le fil carrière", async () => {
+    const run = {
+      id: "fictif",
+      prompt: "Question FICTIVE",
+      state: "completed",
+      mode: "agent",
+      pack: "career-ops",
+      createdAt: "2026-10-28T00:00:00.000Z",
+    } as Run;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.includes("/offers")
+          ? new Response(JSON.stringify({ error: "Offres indisponibles" }), {
+              status: 500,
+            })
+          : new Response(
+              JSON.stringify(
+                url.includes("/input")
+                  ? { prompt: "Question FICTIVE" }
+                  : { summary: "Réponse FICTIVE" },
+              ),
+            ),
+      ),
+    );
+    render(
+      <CareerThread run={run} runs={[run]} events={[]}>
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    expect(await screen.findByText("Offres indisponibles")).toBeTruthy();
   });
   it("la conversation signale la perte du flux et efface l'alerte après reconnexion", () => {
     const run = {
