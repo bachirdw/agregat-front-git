@@ -238,6 +238,31 @@ it("une ligne d’outil fictive de 5 000 caractères ne fixe pas la largeur intr
   expect(css).toMatch(/\.diagram pre\s*\{[^}]*overflow-wrap:\s*anywhere/);
 });
 
+it("contraint le li, le détail et le résumé d’un groupe d’outils déplié", () => {
+  const css = readFileSync("src/style.css", "utf8");
+  const rule = (selector: string) =>
+    css.match(new RegExp(`${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  expect(rule("\\.tool-group > ol,\\s*\\.tool-failures")).toMatch(
+    /grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  );
+  expect(rule("\\.activity-tools")).toMatch(/min-width:\s*0/);
+  expect(rule("\\.tool-group > ol > li,\\s*\\.tool-failures > li")).toMatch(
+    /min-width:\s*0/,
+  );
+  expect(rule("\\.fold")).toMatch(/min-width:\s*0/);
+  const summary = rule("\\.fold > summary");
+  expect(summary).toMatch(/max-width:\s*100%/);
+  expect(summary).toMatch(/overflow:\s*hidden/);
+  for (const selector of ["\\.fold\\.tool > summary code", "\\.tool-summary"]) {
+    const child = rule(selector);
+    expect(child).toMatch(/max-width:\s*100%/);
+    expect(child).toMatch(/text-overflow:\s*ellipsis/);
+    expect(child).toMatch(/white-space:\s*nowrap/);
+    expect(child).toMatch(/overflow:\s*hidden/);
+  }
+  expect(rule("\\.tool-details pre")).toMatch(/overflow-wrap:\s*anywhere/);
+});
+
 it("simule la géométrie du fil et de ses ancêtres avec un contenu de 5 000 caractères", () => {
   const css = readFileSync("src/style.css", "utf8");
   const rule = (selector: string) =>

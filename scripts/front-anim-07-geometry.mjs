@@ -107,7 +107,7 @@ try {
           "html",
           "body",
         ];
-        return Object.fromEntries(
+        const boxes = Object.fromEntries(
           selectors.map((selector) => {
             const el = document.querySelector(selector);
             return [
@@ -123,11 +123,40 @@ try {
             ];
           }),
         );
+        const overflowing = Array.from(document.querySelectorAll(".thread *"))
+          .filter(
+            (el) =>
+              getComputedStyle(el).overflowX === "visible" &&
+              el.scrollWidth > el.clientWidth + 1,
+          )
+          .map((el) => ({
+            tag: el.tagName,
+            className: el.className,
+            clientWidth: el.clientWidth,
+            scrollWidth: el.scrollWidth,
+          }));
+        const summary = document.querySelector(
+          ".activity-tools > .fold.tool-group > ol > li > .fold.tool > summary .tool-summary",
+        );
+        const details = document.querySelector(
+          ".activity-tools > .fold.tool-group > ol > li > .fold.tool .tool-details pre",
+        );
+        return {
+          boxes,
+          overflowing,
+          ellipsis: summary && {
+            clientWidth: summary.clientWidth,
+            scrollWidth: summary.scrollWidth,
+            textOverflow: getComputedStyle(summary).textOverflow,
+            whiteSpace: getComputedStyle(summary).whiteSpace,
+            overflowX: getComputedStyle(summary).overflowX,
+          },
+          detailsWrap: details && getComputedStyle(details).overflowWrap,
+          documentLeft: document.scrollingElement.scrollLeft,
+        };
       });
     const collapsed = await inspect();
-    console.log(
-      JSON.stringify({ viewport, state: "collapsed", boxes: collapsed }),
-    );
+    console.log(JSON.stringify({ viewport, state: "collapsed", ...collapsed }));
     for (const selector of [
       ".thread",
       ".career-thread",
@@ -140,14 +169,19 @@ try {
       ".activity-tools > .fold.tool-group > ol > li > .fold.tool",
       ".activity-tools > .fold.tool-group > ol > li > .fold.tool > summary",
     ]) {
-      const box = collapsed[selector];
+      const box = collapsed.boxes[selector];
       assert.ok(box, `missing ${selector}`);
       assert.ok(
         box.scrollWidth <= box.clientWidth + 1,
         `${selector}: ${JSON.stringify(box)}`,
       );
     }
-    assert.equal(collapsed.html.scrollLeft, 0);
+    assert.deepEqual(collapsed.overflowing, []);
+    assert.equal(collapsed.documentLeft, 0);
+    assert.equal(collapsed.ellipsis.textOverflow, "ellipsis");
+    assert.equal(collapsed.ellipsis.whiteSpace, "nowrap");
+    assert.equal(collapsed.ellipsis.overflowX, "hidden");
+    assert.ok(collapsed.ellipsis.scrollWidth > collapsed.ellipsis.clientWidth);
     await page
       .locator(
         ".activity-tools > .fold.tool-group > ol > li > .fold.tool > summary",
@@ -155,9 +189,7 @@ try {
       .first()
       .click();
     const expanded = await inspect();
-    console.log(
-      JSON.stringify({ viewport, state: "expanded", boxes: expanded }),
-    );
+    console.log(JSON.stringify({ viewport, state: "expanded", ...expanded }));
     for (const selector of [
       ".thread",
       ".career-thread",
@@ -170,12 +202,15 @@ try {
       ".activity-tools > .fold.tool-group > ol > li > .fold.tool",
       ".activity-tools > .fold.tool-group > ol > li > .fold.tool > summary",
     ]) {
-      const box = expanded[selector];
+      const box = expanded.boxes[selector];
       assert.ok(
         box.scrollWidth <= box.clientWidth + 1,
         `${selector}: ${JSON.stringify(box)}`,
       );
     }
+    assert.deepEqual(expanded.overflowing, []);
+    assert.equal(expanded.detailsWrap, "anywhere");
+    assert.equal(expanded.documentLeft, 0);
     await page.close();
   }
 } finally {

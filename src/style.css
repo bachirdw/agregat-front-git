@@ -1531,6 +1531,9 @@ summary {
 .activity > li {
   min-width: 0;
 }
+.activity-tools {
+  min-width: 0;
+}
 .activity-text p,
 .activity-thought p {
   margin: 0;
@@ -1540,6 +1543,10 @@ summary {
 .activity-thought {
   color: var(--muted);
 }
+.fold {
+  min-width: 0;
+  max-width: 100%;
+}
 .fold > summary {
   list-style: none;
   display: flex;
@@ -1548,6 +1555,8 @@ summary {
   cursor: pointer;
   color: var(--muted);
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .fold > summary::-webkit-details-marker {
   display: none;
@@ -1582,6 +1591,7 @@ summary {
 .fold.tool > summary code {
   flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1595,6 +1605,7 @@ summary {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  max-width: 100%;
 }
 .tool-group > ol,
 .tool-failures {
@@ -1602,7 +1613,12 @@ summary {
   margin: 4px 0 0 14px;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
+}
+.tool-group > ol > li,
+.tool-failures > li {
+  min-width: 0;
 }
 .tool-details {
   display: grid;
