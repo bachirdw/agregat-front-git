@@ -7,7 +7,7 @@ import { chromium } from "playwright-core";
 process.env.AGENT_PLATFORM_NETWORK = "0";
 process.env.AGENT_PLATFORM_BROWSER = "fixture";
 const backend =
-  process.env.AGENT_PLATFORM_BACKEND_DIR || resolve("../agregateur-agent");
+  process.env.AGENT_PLATFORM_BACKEND_DIR || resolve("../agregat-back");
 const { createApp } = await import(resolve(backend, "apps/api/server.js"));
 const screens = resolve(".manager/reports/front-01-screens");
 mkdirSync(screens, { recursive: true });
@@ -52,8 +52,8 @@ async function open(t, { mobile = false, dev = false } = {}) {
   browser = await chromium.launch({ executablePath: CHROME, headless: true });
   const page = await browser.newPage({
     viewport: mobile
-      ? { width: 390, height: 844 }
-      : { width: 1440, height: 960 },
+      ? { width: 375, height: 844 }
+      : { width: 1550, height: 960 },
     reducedMotion: "reduce",
     colorScheme: "light",
   });
@@ -344,7 +344,9 @@ test(
     await page.reload();
     await page.locator(".app[data-ready=true]").waitFor();
     assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
-    await page.setViewportSize({ width: 1440, height: 960 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.setViewportSize({ width: 1550, height: 960 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page
       .getByRole("button", { name: "Afficher la barre latérale" })
       .click();

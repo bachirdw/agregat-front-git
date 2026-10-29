@@ -67,7 +67,10 @@ export function attachmentType(file: File): string | null {
   return ATTACHMENT_TYPES[ext] ?? null;
 }
 // POST /api/files takes raw bytes (not multipart), see agregat-back/docs/api-attachments.md.
-export async function uploadFile(file: File): Promise<Attachment> {
+export async function uploadFile(
+  file: File,
+  signal?: AbortSignal,
+): Promise<Attachment> {
   const type = attachmentType(file);
   if (!type)
     throw new ApiError(
@@ -80,6 +83,7 @@ export async function uploadFile(file: File): Promise<Attachment> {
   let response: Response;
   try {
     response = await fetch("/api/files", {
+      signal,
       method: "POST",
       headers: {
         "x-platform-request": "1",
@@ -88,7 +92,8 @@ export async function uploadFile(file: File): Promise<Attachment> {
       },
       body: file,
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     throw new ApiError(
       "API locale inaccessible. Vérifiez que le backend est démarré.",
       0,
@@ -130,11 +135,14 @@ export function watchRun(
   const source = create(
     `/api/runs/${encodeURIComponent(id)}/events?after=${after}`,
   );
-  source.onopen = () => handlers.connection(true);
+  source.onopen = () => {
+    if (!closed) handlers.connection(true);
+  };
   source.onerror = () => {
     if (!closed) handlers.connection(false);
   };
   source.addEventListener("update", (raw) => {
+    if (closed) return;
     try {
       const event = JSON.parse((raw as MessageEvent).data) as RunEvent;
       if (
@@ -152,6 +160,7 @@ export function watchRun(
     }
   });
   source.addEventListener("end", () => {
+    if (closed) return;
     closed = true;
     source.close();
     handlers.end();

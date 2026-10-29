@@ -169,6 +169,14 @@ export function Composer({
   latest.current = input;
   const uploadScope = useRef(scope);
   uploadScope.current = scope;
+  const uploadController = useRef(new AbortController());
+  useEffect(() => {
+    const controller = new AbortController();
+    uploadController.current = controller;
+    setUploading(0);
+    setFileError("");
+    return () => controller.abort();
+  }, [scope]);
   useEffect(
     () => () => {
       uploadScope.current = Number.NaN;
@@ -177,6 +185,7 @@ export function Composer({
   );
   const addFiles = async (files: FileList | File[]) => {
     const requestedIn = uploadScope.current;
+    const signal = uploadController.current.signal;
     setFileError("");
     const list = [...files];
     if (attachments.length + list.length > ATTACHMENT_MAX_COUNT) {
@@ -187,14 +196,16 @@ export function Composer({
       if (uploadScope.current !== requestedIn) break;
       setUploading((n) => n + 1);
       try {
-        const added: Attachment = await uploadFile(file);
+        const added: Attachment = await uploadFile(file, signal);
         if (uploadScope.current !== requestedIn) break;
         const now = latest.current;
         onChange({ ...now, attachments: [...(now.attachments || []), added] });
       } catch (e) {
-        setFileError(`${file.name} : ${(e as Error).message}`);
+        if (uploadScope.current === requestedIn && !signal.aborted)
+          setFileError(`${file.name} : ${(e as Error).message}`);
       } finally {
-        setUploading((n) => n - 1);
+        if (uploadScope.current === requestedIn && !signal.aborted)
+          setUploading((n) => n - 1);
       }
     }
   };

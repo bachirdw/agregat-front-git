@@ -74,6 +74,28 @@ class FakeSource extends EventTarget {
   }
 }
 describe("SSE", () => {
+  it("ignore les événements tardifs après la fermeture du flux", () => {
+    const source = new FakeSource();
+    const handlers = { update: vi.fn(), end: vi.fn(), connection: vi.fn() };
+    const close = watchRun(
+      "id",
+      handlers,
+      0,
+      () => source as unknown as EventSource,
+    );
+    close();
+    source.onopen?.();
+    source.onerror?.();
+    source.send("update", {
+      seq: 1,
+      type: "state",
+      data: { state: "running" },
+    });
+    source.send("end", {});
+    expect(handlers.connection).not.toHaveBeenCalled();
+    expect(handlers.update).not.toHaveBeenCalled();
+    expect(handlers.end).not.toHaveBeenCalled();
+  });
   it("reprend au curseur, déduplique et ferme le flux à end", () => {
     const source = new FakeSource();
     const create = vi.fn(() => source as unknown as EventSource);

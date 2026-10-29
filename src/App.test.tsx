@@ -607,3 +607,23 @@ it("ignore un fichier dont l’envoi finit après le début d’une nouvelle mis
   );
   expect(screen.queryByText("cv-fictif.txt")).toBeNull();
 });
+it("annule l'envoi d'un fichier en quittant la mission et ignore son erreur tardive", async () => {
+  vi.mocked(api).mockImplementation(
+    (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,
+  );
+  let fail!: (error: Error) => void;
+  const fetcher = vi.fn(
+    (_url: string, _init?: RequestInit) =>
+      new Promise<Response>((_, reject) => (fail = reject)),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  render(<App />);
+  await screen.findByRole("button", { name: "Préparer le plan" });
+  fireEvent.change(screen.getByLabelText("Fichier à joindre"), {
+    target: { files: [new File(["FICTIF"], "cv-fictif.txt")] },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Nouvelle mission/ }));
+  expect(fetcher.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  await act(async () => fail(new Error("Ancienne mission indisponible")));
+  expect(screen.queryByText(/Ancienne mission indisponible/)).toBeNull();
+});

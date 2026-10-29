@@ -333,6 +333,9 @@ export function CareerResults({ run }: { run: Run }) {
   useEffect(() => {
     if (!done) return;
     const abort = new AbortController();
+    setOffers(null);
+    setResult(null);
+    setError("");
     Promise.all([
       api<{ opportunities: CareerOffer[] }>(
         "/career/offers",
@@ -343,9 +346,13 @@ export function CareerResults({ run }: { run: Run }) {
         `/career/runs/${run.id}/result`,
         undefined,
         abort.signal,
-      ).catch(() => null),
+      ).catch((e) => {
+        if (!abort.signal.aborted) setError((e as Error).message);
+        return null;
+      }),
     ])
       .then(([o, r]) => {
+        if (abort.signal.aborted) return;
         setOffers(
           [...o.opportunities].sort(
             (a, b) => (b.score ?? -1) - (a.score ?? -1),
@@ -450,12 +457,16 @@ function Turn({
   const running = !finalStates.has(run.state);
   useEffect(() => {
     const abort = new AbortController();
+    setPrompt(null);
+    setAnswer(null);
     api<{ prompt: string }>(
       `/career/runs/${run.id}/input`,
       undefined,
       abort.signal,
     )
-      .then((r) => setPrompt(r.prompt))
+      .then((r) => {
+        if (!abort.signal.aborted) setPrompt(r.prompt);
+      })
       .catch(() => !abort.signal.aborted && setPrompt(run.prompt));
     if (done)
       api<CareerResult>(
@@ -463,7 +474,9 @@ function Turn({
         undefined,
         abort.signal,
       )
-        .then((r) => setAnswer(r.summary || ""))
+        .then((r) => {
+          if (!abort.signal.aborted) setAnswer(r.summary || "");
+        })
         .catch(() => !abort.signal.aborted && setAnswer(null));
     return () => abort.abort();
   }, [run.id, done, run.prompt]);
@@ -585,13 +598,14 @@ function CareerOffers({ done }: { done: boolean }) {
       undefined,
       abort.signal,
     )
-      .then((o) =>
-        setOffers(
-          [...o.opportunities].sort(
-            (a, b) => (b.score ?? -1) - (a.score ?? -1),
-          ),
-        ),
-      )
+      .then((o) => {
+        if (!abort.signal.aborted)
+          setOffers(
+            [...o.opportunities].sort(
+              (a, b) => (b.score ?? -1) - (a.score ?? -1),
+            ),
+          );
+      })
       .catch(() => {});
     return () => abort.abort();
   }, [done]);

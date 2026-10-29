@@ -81,6 +81,53 @@ const plan: Plan = {
   workflow: null,
 };
 describe("rendu fiable", () => {
+  it("signale l'échec du résultat carrière sans laisser un chargement infini", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.includes("/career/offers")
+          ? new Response(JSON.stringify({ opportunities: [] }))
+          : new Response(JSON.stringify({ error: "Résultat indisponible" }), {
+              status: 503,
+            }),
+      ),
+    );
+    render(<CareerResults run={{ id: "fictif", state: "completed" } as Run} />);
+    expect(await screen.findByText(/API locale inaccessible/)).toBeTruthy();
+    expect(screen.queryByText("Chargement…")).toBeNull();
+  });
+  it("ignore le résultat d'une autre mission arrivé après le changement de mission", async () => {
+    let oldResult!: (value: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/career/offers"))
+          return Promise.resolve(
+            new Response(JSON.stringify({ opportunities: [] })),
+          );
+        if (url.includes("/ancien/"))
+          return new Promise<Response>((resolve) => {
+            oldResult = resolve;
+          });
+        return Promise.resolve(
+          new Response(JSON.stringify({ summary: "Résumé récent FICTIF" })),
+        );
+      }),
+    );
+    const { rerender } = render(
+      <CareerResults run={{ id: "ancien", state: "completed" } as Run} />,
+    );
+    rerender(
+      <CareerResults run={{ id: "récent", state: "completed" } as Run} />,
+    );
+    expect(await screen.findByText("Résumé récent FICTIF")).toBeTruthy();
+    await act(async () =>
+      oldResult(
+        new Response(JSON.stringify({ summary: "Résumé ancien FICTIF" })),
+      ),
+    );
+    expect(screen.queryByText("Résumé ancien FICTIF")).toBeNull();
+  });
   it("Markdown : pas de HTML, de liens javascript ni d’images distantes ; tableaux et code lisibles", () => {
     const { container } = render(
       <Markdown
