@@ -119,6 +119,23 @@ it("le composeur compact d'une mission non reprenable offre une action d'ouvertu
   );
   expect(open).toHaveBeenCalled();
 });
+it("Entrée envoie le prompt, Maj+Entrée conserve une nouvelle ligne", () => {
+  const onPlan = vi.fn();
+  render(
+    <Composer
+      catalog={catalog}
+      input={{ ...input, prompt: "Mission FICTIVE" }}
+      onChange={vi.fn()}
+      onPlan={onPlan}
+      busy={false}
+    />,
+  );
+  const area = screen.getByLabelText("Objectif de la mission");
+  fireEvent.keyDown(area, { key: "Enter", shiftKey: true });
+  expect(onPlan).not.toHaveBeenCalled();
+  fireEvent.keyDown(area, { key: "Enter" });
+  expect(onPlan).toHaveBeenCalledTimes(1);
+});
 
 it("le composeur compact masque les réglages, garde l'envoi et se rouvre au clic, au focus ou à la frappe", () => {
   const open = vi.fn();
