@@ -427,6 +427,38 @@ describe("rendu fiable", () => {
   });
 });
 describe("career-ops", () => {
+  it("affiche immédiatement le message privé pendant une mission en cours", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
+    const run = {
+      id: "00000000-0000-4000-8000-000000000009",
+      prompt: "Mission privée",
+      state: "running",
+      mode: "agent",
+      pack: "career-ops",
+      createdAt: "2026-10-28T00:00:00.000Z",
+    } as unknown as Run;
+    render(
+      <CareerThread
+        run={run}
+        runs={[run]}
+        events={[
+          {
+            seq: 1,
+            type: "agent_silent",
+            data: { elapsedMs: 60000, stopped: false },
+          },
+        ]}
+        immediatePrompt="Postule à l’offre FICTIVE"
+      >
+        <span>Détails FICTIFS</span>
+      </CareerThread>,
+    );
+    expect(screen.getByText("Postule à l’offre FICTIVE")).toBeTruthy();
+    expect(screen.getByText(/Agent silencieux depuis 1 min/)).toBeTruthy();
+  });
   it("choisir le pack career-ops sélectionne Gemini", () => {
     const onChange = vi.fn();
     const localCatalog = {

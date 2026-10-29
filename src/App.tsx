@@ -63,6 +63,10 @@ export default function App() {
       }
     });
   const [usageRun, setUsageRun] = useState<Run | null>(null);
+  const [immediatePrompt, setImmediatePrompt] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
   const current = useRef("");
   const viewVersion = useRef(0);
   const scroll = useRef<HTMLDivElement>(null);
@@ -165,6 +169,7 @@ export default function App() {
     viewVersion.current++;
     setPage("home");
     setRun(null);
+    setImmediatePrompt(null);
     current.current = "";
     setPlan(null);
     setPlanned(null);
@@ -203,6 +208,7 @@ export default function App() {
   const openRun = async (id: string) => {
     const version = ++viewVersion.current;
     current.current = id;
+    setImmediatePrompt((old) => (old?.id === id ? old : null));
     setError("");
     try {
       const next = await api<Run>("/runs/" + id);
@@ -361,6 +367,8 @@ export default function App() {
     try {
       const next = await api<Run>("/runs", toApiInput(planned));
       if (version === viewVersion.current) {
+        if (next.pack === "career-ops")
+          setImmediatePrompt({ id: next.id, text: planned.prompt });
         await openRun(next.id);
         if (viewVersion.current === version + 1 && current.current === next.id)
           setInput((old) => ({ ...old, prompt: "", attachments: [] }));
@@ -415,6 +423,10 @@ export default function App() {
         setPlan(null);
         setPlanned(null);
       } else if (path.endsWith("/resume")) {
+        const resumed = response as Run;
+        const prompt = (body as { prompt?: unknown })?.prompt;
+        if (resumed.pack === "career-ops" && typeof prompt === "string")
+          setImmediatePrompt({ id: resumed.id, text: prompt });
         await openRun((response as Run).id);
         await history();
       } else if (run) {
@@ -702,6 +714,11 @@ export default function App() {
                   run={run}
                   runs={runs}
                   events={events}
+                  immediatePrompt={
+                    immediatePrompt?.id === run.id
+                      ? immediatePrompt.text
+                      : undefined
+                  }
                   busy={busy}
                   connection={connection}
                   stop={() => void action(`/runs/${run.id}/cancel`, {})}
@@ -787,6 +804,11 @@ export default function App() {
             onPlan={() => void (canReply ? reply() : prepare())}
             busy={busy}
             disabled={page === "mission" && !canReply}
+            working={
+              page === "mission" &&
+              run?.pack === "career-ops" &&
+              !finalStates.has(run.state)
+            }
             reply={canReply}
             compact={
               (page === "home" && !!plan) ||

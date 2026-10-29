@@ -136,6 +136,23 @@ it("Entrée envoie le prompt, Maj+Entrée conserve une nouvelle ligne", () => {
   fireEvent.keyDown(area, { key: "Enter" });
   expect(onPlan).toHaveBeenCalledTimes(1);
 });
+it("pendant une mission career-ops, la saisie décrit l’exécution en cours", () => {
+  render(
+    <Composer
+      catalog={catalog}
+      input={input}
+      onChange={vi.fn()}
+      onPlan={vi.fn()}
+      busy={false}
+      disabled
+      working
+    />,
+  );
+  const area = screen.getByLabelText(
+    "Objectif de la mission",
+  ) as HTMLTextAreaElement;
+  expect(area.placeholder).toMatch(/L’agent travaille/);
+});
 
 it("le composeur compact masque les réglages, garde l'envoi et se rouvre au clic, au focus ou à la frappe", () => {
   const open = vi.fn();

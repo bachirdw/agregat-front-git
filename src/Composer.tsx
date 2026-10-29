@@ -110,6 +110,7 @@ export function Composer({
   onPlan,
   busy,
   disabled = false,
+  working = false,
   reply = false,
   scope = 0,
   compact = false,
@@ -122,6 +123,7 @@ export function Composer({
   onPlan: () => void;
   busy: boolean;
   disabled?: boolean;
+  working?: boolean;
   reply?: boolean;
   scope?: number;
   compact?: boolean;
@@ -305,7 +307,9 @@ export function Composer({
             reply
               ? "Répondre à l’agent…"
               : disabled
-                ? "Créez une nouvelle mission pour poursuivre"
+                ? working
+                  ? "L’agent travaille…"
+                  : "Créez une nouvelle mission pour poursuivre"
                 : "Décrivez votre objectif…"
           }
           value={disabled ? "" : input.prompt}

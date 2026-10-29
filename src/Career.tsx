@@ -434,7 +434,15 @@ export function sessionThread(run: Run, runs: Run[]): Run[] {
   const all = same.some((r) => r.id === run.id) ? same : [...same, run];
   return [...all].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
-function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
+function Turn({
+  run,
+  live,
+  immediatePrompt,
+}: {
+  run: Run;
+  live?: RunEvent[];
+  immediatePrompt?: string;
+}) {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
   const done = run.state === "completed";
@@ -460,7 +468,7 @@ function Turn({ run, live }: { run: Run; live?: RunEvent[] }) {
   }, [run.id, done, run.prompt]);
   return (
     <>
-      <PromptBubble text={prompt ?? "…"} />
+      <PromptBubble text={prompt ?? immediatePrompt ?? "…"} />
       <div className="agent-turn">
         {live && !done && <AgentActivity events={live} running={running} />}
         {live && done && <AgentActivity events={live} final />}
@@ -477,6 +485,7 @@ export function CareerThread({
   run,
   runs,
   events,
+  immediatePrompt,
   busy = false,
   connection,
   stop,
@@ -486,6 +495,7 @@ export function CareerThread({
   run: Run;
   runs: Run[];
   events: RunEvent[];
+  immediatePrompt?: string;
   busy?: boolean;
   connection?: string;
   stop?: () => void;
@@ -493,11 +503,29 @@ export function CareerThread({
   children: ReactNode;
 }) {
   const turns = sessionThread(run, runs);
+  const silent = [...events]
+    .reverse()
+    .find((event) => event.type === "agent_silent" && !event.data?.stopped);
   return (
     <div className="career-thread">
       {turns.map((t) => (
-        <Turn key={t.id} run={t} live={t.id === run.id ? events : undefined} />
+        <Turn
+          key={t.id}
+          run={t}
+          live={t.id === run.id ? events : undefined}
+          immediatePrompt={t.id === run.id ? immediatePrompt : undefined}
+        />
       ))}
+      {silent && !finalStates.has(run.state) && (
+        <p className="career-warning" role="status">
+          Agent silencieux depuis{" "}
+          {Math.max(
+            1,
+            Math.ceil(Number(silent.data?.elapsedMs || 60000) / 60000),
+          )}{" "}
+          min. Vous pouvez arrêter la mission.
+        </p>
+      )}
       {stop && !finalStates.has(run.state) && (
         <button className="stop-button" disabled={busy} onClick={stop}>
           <span aria-hidden="true">■</span> Stop
