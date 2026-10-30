@@ -201,6 +201,15 @@ describe("pièces jointes", () => {
     expect(
       toApiInput({
         ...base,
+        browserDomains: " Example.com, autre.example.org ",
+      }),
+    ).toEqual({
+      ...base,
+      browserDomains: ["example.com", "autre.example.org"],
+    });
+    expect(
+      toApiInput({
+        ...base,
         attachments: [
           { id: "u1", name: "cv.pdf", size: 3, type: "application/pdf" },
         ],

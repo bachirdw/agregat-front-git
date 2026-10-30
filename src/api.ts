@@ -114,10 +114,16 @@ export async function uploadFile(
 }
 // The API takes attachment ids only; names and sizes stay in the interface.
 export function toApiInput(input: MissionInput) {
-  const { attachments, ...rest } = input;
+  const { attachments, browserDomains, ...rest } = input;
+  const domains = (browserDomains || "")
+    .split(",")
+    .map((domain) => domain.trim().toLowerCase())
+    .filter(Boolean);
+  const payload =
+    browserDomains === undefined ? rest : { ...rest, browserDomains: domains };
   return attachments?.length
-    ? { ...rest, attachments: attachments.map((a) => a.id) }
-    : rest;
+    ? { ...payload, attachments: attachments.map((a) => a.id) }
+    : payload;
 }
 // EventSource carries Last-Event-ID on native reconnect. The explicit cursor also permits reopening.
 export function watchRun(

@@ -30,6 +30,9 @@ const initial: MissionInput = {
   pack: "auto",
   skills: [],
   model: "",
+  agentMode: "",
+  browser: "auto",
+  browserDomains: "",
   budgetCents: 0,
   mode: "workflow",
   workflow: "auto",
@@ -570,7 +573,9 @@ export default function App() {
                 <i
                   className={
                     "dot " +
-                    (a.simulated || a.probe?.session ? "completed" : "")
+                    (a.simulated || a.probe?.inference === true
+                      ? "completed"
+                      : "")
                   }
                 />
                 <span>{a.name}</span>
@@ -764,9 +769,6 @@ export default function App() {
                     choose({
                       pack,
                       workflow: "auto",
-                      ...(pack === "career-ops"
-                        ? { agent: "gemini", model: "" }
-                        : {}),
                     })
                   }
                 />

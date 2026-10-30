@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import type { Catalog, Cost, Plan, Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
 import { Markdown, safeLink } from "./Markdown";
+const dataModeLabel = {
+  fixture: "Sources fictives · démonstration",
+  live: "Sources réelles · provenance à vérifier",
+  user: "Données fournies par l’utilisateur · non vérifiées",
+  unverified: "Provenance des données non vérifiée",
+};
 export function CostDetails({
   cost,
   catalog,
@@ -60,11 +66,26 @@ export function PlanCard({
           <h2>{plan.workflow?.title || "Votre mission"}</h2>
           <div className="tags">
             <span className="badge">{plan.pack}</span>
+            {plan.browser && (
+              <span className="badge">Navigateur : {plan.browser}</span>
+            )}
+            {plan.agentMode && (
+              <span className="badge">Mode ACP : {plan.agentMode}</span>
+            )}
             <span className={"badge " + (plan.simulated ? "warning" : "")}>
               {plan.simulated
-                ? "Démonstration · données fictives"
+                ? "Agent fictif · aucun modèle appelé"
                 : "Agent réel · compte BYOA"}
             </span>
+            {plan.dataMode && (
+              <span
+                className={
+                  "badge " + (plan.dataMode === "fixture" ? "warning" : "")
+                }
+              >
+                {dataModeLabel[plan.dataMode]}
+              </span>
+            )}
           </div>
         </div>
         <div className="split lined">
@@ -122,7 +143,11 @@ export function PlanCard({
           <button onClick={edit} disabled={busy}>
             Modifier
           </button>
-          <small>Aucun e-mail ni aucune candidature ne sera envoyé.</small>
+          <small>
+            {plan.simulated
+              ? "Démonstration : aucune action réelle ne sera exécutée."
+              : "Les actions sensibles demandent une décision explicite."}
+          </small>
         </footer>
       </section>
     </>
@@ -153,7 +178,8 @@ export function UsageCard({ run }: { run: Run }) {
       <div className="card-pad">
         <small>Votre agent</small>
         <strong>{run.agent}</strong>
-        <small>{run.model || "Modèle par défaut"}</small>
+        <small>Modèle demandé : {run.model || "défaut du fournisseur"}</small>
+        <small>Modèle effectivement servi : non confirmé par ACP.</small>
         <p>
           {run.simulated
             ? "Démonstrateur · aucun modèle appelé"
@@ -208,6 +234,17 @@ export function RunView({
   }, [hasExpiringPermission]);
   const definitions = run.plan.workflow?.steps || [];
   const done = run.steps?.filter((s) => s.state === "succeeded").length || 0;
+  const verification = [...events]
+    .reverse()
+    .find((event) => event.type === "verification");
+  const session = [...events]
+    .reverse()
+    .find((event) => event.type === "session");
+  const selectedModel = (
+    session?.data.models as { current?: string } | undefined
+  )?.current;
+  const selectedMode = (session?.data.modes as { current?: string } | undefined)
+    ?.current;
   const resumable =
     (run.mode === "workflow" &&
       ["failed", "cancelled", "interrupted"].includes(run.state)) ||
@@ -222,6 +259,25 @@ export function RunView({
         <span className="badge" role="status">
           {labels[run.state] || run.state}
         </span>
+        <span className="badge">
+          {run.simulated ? "Agent fictif" : "Agent réel"} · {run.agent} · modèle
+          demandé : {run.model || "défaut du fournisseur"} · navigateur{" "}
+          {run.browser || "non renseigné"}
+          {run.agentMode ? ` · mode ACP ${run.agentMode}` : ""}
+        </span>
+        {run.dataMode && (
+          <span
+            className={"badge " + (run.dataMode === "fixture" ? "warning" : "")}
+          >
+            {dataModeLabel[run.dataMode]}
+          </span>
+        )}
+        {session && (
+          <span className="badge">
+            Session ACP : modèle sélectionné {selectedModel || "non annoncé"} ·
+            mode {selectedMode || "non annoncé"}
+          </span>
+        )}
       </div>
       <section className="card timeline" aria-label="Exécution">
         <button
@@ -288,7 +344,9 @@ export function RunView({
               <div className="card-pad">
                 <p>
                   {finalStates.has(run.state)
-                    ? "Exécution terminée."
+                    ? run.state === "completed"
+                      ? "Exécution terminée."
+                      : "Exécution arrêtée ; voir la cause ci-dessous."
                     : "L’agent travaille avec les outils du pack."}
                 </p>
               </div>
@@ -486,6 +544,12 @@ export function RunView({
             {run.result.provenance?.analysis && (
               <span className="badge">
                 Analyse : {run.result.provenance.analysis}
+              </span>
+            )}
+            {verification && (
+              <span className="badge" role="status">
+                Vérification :{" "}
+                {String(verification.data.scope || "portée non précisée")}
               </span>
             )}
           </div>

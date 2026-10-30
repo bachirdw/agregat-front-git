@@ -196,7 +196,7 @@ test(
     await prepare(page);
     assert.match(
       await page.locator(".plan").innerText(),
-      /Données fictives|données fictives/,
+      /[Dd]onnées fictives|Sources fictives/,
     );
     await shot(page, "08-plan");
     await page.getByRole("button", { name: "Lancer", exact: true }).click();
@@ -344,9 +344,17 @@ test(
     await page.reload();
     await page.locator(".app[data-ready=true]").waitFor();
     assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
     await page.setViewportSize({ width: 1550, height: 960 });
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
     await page
       .getByRole("button", { name: "Afficher la barre latérale" })
       .click();
@@ -371,6 +379,7 @@ test(
     const denied = await post(base, "/plan", {
       prompt: "emploi",
       agent: "fixture",
+      pack: "najah",
     });
     assert.equal(denied.status, 200); // proxy rewrites Host
     const direct = `http://127.0.0.1:${app.server.address().port}`;

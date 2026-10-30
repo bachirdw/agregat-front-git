@@ -19,6 +19,7 @@ import {
 } from "./Career";
 import { Skills } from "./Galleries";
 import type { Catalog, MissionInput, Plan, Run } from "./types";
+import { agentStatus } from "./types";
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -77,10 +78,100 @@ const plan: Plan = {
   },
   permissions: ["Aucun envoi"],
   simulated: true,
+  dataMode: "fixture",
   routing: { reasons: ["Choix manuel"], rejected: [] },
   workflow: null,
 };
 describe("rendu fiable", () => {
+  it("distingue CLI détecté, session ouverte et prompt réellement validé", () => {
+    const base = {
+      id: "codex",
+      name: "Codex",
+      installed: true,
+      compatible: true,
+    };
+    expect(agentStatus(base)).toBe("Détecté · non testé");
+    expect(
+      agentStatus({ ...base, probe: { session: true, models: [] } }),
+    ).toContain("prompt non testé");
+    expect(
+      agentStatus({
+        ...base,
+        probe: { session: false, error: "Login required", models: [] },
+      }),
+    ).toContain("Login required");
+    expect(
+      agentStatus({
+        ...base,
+        probe: {
+          session: true,
+          inference: false,
+          inferenceError: "Login required",
+          models: [],
+        },
+      }),
+    ).toContain("Prompt refusé · Login required");
+    expect(
+      agentStatus({
+        ...base,
+        probe: { session: true, inference: true, models: [] },
+      }),
+    ).toContain("date inconnue");
+  });
+  it("permet de choisir le navigateur avant le plan", () => {
+    const onChange = vi.fn();
+    render(
+      <Composer
+        catalog={catalog}
+        input={input}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Navigateur"), {
+      target: { value: "isolated" },
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ browser: "isolated" }),
+    );
+  });
+  it("propose les modes ACP annoncés sans mode qui contourne les décisions", () => {
+    const onChange = vi.fn();
+    render(
+      <Composer
+        catalog={{
+          ...catalog,
+          live: true,
+          agents: [
+            {
+              id: "codex",
+              name: "Codex",
+              installed: true,
+              compatible: true,
+              probe: {
+                session: true,
+                models: [],
+                modes: ["read-only", "workspace-write", "bypassPermissions"],
+              },
+            },
+          ],
+        }}
+        input={{ ...input, agent: "codex" }}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    const select = screen.getByLabelText("Mode ACP") as HTMLSelectElement;
+    expect(select.disabled).toBe(false);
+    expect(select.textContent).toContain("workspace-write");
+    expect(select.textContent).not.toContain("bypassPermissions");
+    fireEvent.change(select, { target: { value: "workspace-write" } });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ agentMode: "workspace-write" }),
+    );
+  });
   it("signale l'échec du résultat carrière sans laisser un chargement infini", async () => {
     vi.stubGlobal(
       "fetch",
@@ -343,9 +434,74 @@ describe("rendu fiable", () => {
     expect(screen.getByRole("alert").textContent).toContain(
       "supérieure au budget",
     );
-    expect(screen.getByText("Démonstration · données fictives")).toBeTruthy();
+    expect(screen.getByText("Agent fictif · aucun modèle appelé")).toBeTruthy();
+    expect(screen.getByText("Sources fictives · démonstration")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Lancer" }));
     expect(launch).toHaveBeenCalledOnce();
+  });
+  it("agent réel et sources fictives restent deux états distincts", () => {
+    render(
+      <PlanCard
+        plan={{ ...plan, simulated: false, agent: "Codex" }}
+        catalog={catalog}
+        busy={false}
+        launch={vi.fn()}
+        edit={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Agent réel · compte BYOA")).toBeTruthy();
+    expect(screen.getByText("Sources fictives · démonstration")).toBeTruthy();
+  });
+  it("résultat : la portée de vérification est distincte du succès de l’outil", () => {
+    const run = {
+      id: "r",
+      state: "completed",
+      mode: "agent",
+      agent: "codex",
+      model: "",
+      browser: "isolated",
+      pack: "core",
+      simulated: false,
+      usage: { platformCents: 0, currency: "EUR", byDimension: [] },
+      plan: { steps: [] },
+      result: { simulated: false, summary: "Réponse FICTIVE", evidence: [] },
+    } as unknown as Run;
+    render(
+      <RunView
+        run={run}
+        events={[
+          {
+            seq: 0,
+            type: "session",
+            data: {
+              models: { current: "modèle-test" },
+              modes: { current: "workspace-write" },
+            },
+          },
+          {
+            seq: 1,
+            type: "verification",
+            data: { scope: "Structure seulement ; faits non vérifiés" },
+          },
+        ]}
+        connection=""
+        busy={false}
+        act={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText(
+        /Vérification : Structure seulement ; faits non vérifiés/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Session ACP : modèle sélectionné modèle-test · mode workspace-write/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Modèle effectivement servi : non confirmé par ACP/),
+    ).toBeTruthy();
   });
   it("accord DAG utilise le bon run et affiche la sortie à relire", () => {
     const act = vi.fn();
@@ -599,7 +755,7 @@ describe("career-ops", () => {
     expect(warnings[0].closest(".career-thread")).toBeTruthy();
     expect(warnings[0].classList.contains("career-warning")).toBe(true);
   });
-  it("choisir le pack career-ops sélectionne Gemini", () => {
+  it("choisir le pack career-ops conserve l’agent choisi", () => {
     const onChange = vi.fn();
     const localCatalog = {
       ...catalog,
@@ -632,7 +788,7 @@ describe("career-ops", () => {
       target: { value: "career-ops" },
     });
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ pack: "career-ops", agent: "gemini" }),
+      expect.objectContaining({ pack: "career-ops", agent: "codex" }),
     );
   });
   it("rapport évalué A–G : G indique la légitimité, H reste facultatif", async () => {

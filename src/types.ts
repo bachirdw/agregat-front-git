@@ -8,11 +8,16 @@ export interface Agent {
   readiness?: string;
   reason?: string;
   probe?: {
+    at?: string;
+    sessionAt?: string | null;
+    inferenceAt?: string | null;
     session: boolean;
-    inference?: boolean;
+    inference?: boolean | null;
+    inferenceError?: string | null;
     models: { id: string; name: string }[];
     currentModel?: string;
     mode?: string;
+    modes?: string[];
     error?: string;
   };
 }
@@ -70,6 +75,9 @@ export interface MissionInput {
   pack: string;
   skills: string[];
   model: string;
+  agentMode?: string;
+  browser?: "auto" | "fixture" | "isolated" | "playwriter";
+  browserDomains?: string;
   budgetCents: number;
   mode: "agent" | "workflow";
   workflow: string;
@@ -97,6 +105,9 @@ export interface Plan {
   cost: Cost;
   permissions: string[];
   simulated: boolean;
+  dataMode?: "fixture" | "live" | "user" | "unverified";
+  browser?: string;
+  agentMode?: string;
   routing: { reasons: string[]; rejected: { id: string; reason: string }[] };
   workflow: { id: string; title: string; reason: string } | null;
 }
@@ -135,7 +146,11 @@ export interface Run {
   agent: string;
   pack: string;
   model: string;
+  browser?: string;
+  agentMode?: string;
   simulated: boolean;
+  dataMode?: "fixture" | "live" | "user" | "unverified";
+  browserDomains?: string[];
   createdAt: string;
   error?: string;
   resumable?: boolean;
@@ -215,11 +230,17 @@ export function agentStatus(a: Agent) {
       ? "Non installé"
       : !a.compatible
         ? "Incompatible"
-        : a.probe?.session
-          ? "Session validée"
-          : a.probe
-            ? "Authentification requise"
-            : "Détecté · non testé";
+        : a.probe && !a.probe.session
+          ? `Session refusée${a.probe.error ? ` · ${a.probe.error}` : ""}`
+          : a.probe?.inference === false
+            ? `Prompt refusé${a.probe.inferenceError ? ` · ${a.probe.inferenceError}` : ""}`
+            : a.probe?.session
+              ? a.probe.inference === true
+                ? a.probe.inferenceAt
+                  ? `Prompt validé le ${a.probe.inferenceAt}`
+                  : "Prompt validé historiquement · date inconnue"
+                : "Session validée · prompt non testé"
+              : "Détecté · non testé";
 }
 // career-ops (agregat-back docs/api-career-ops.md). Texts are untrusted data: render as text only.
 export interface CareerOffer {

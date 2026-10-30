@@ -371,7 +371,9 @@ export function Composer({
                     aria-label="Agent"
                     value={input.agent}
                     disabled={disabled || !catalog}
-                    onChange={(e) => set({ agent: e.target.value, model: "" })}
+                    onChange={(e) =>
+                      set({ agent: e.target.value, model: "", agentMode: "" })
+                    }
                   >
                     <option value="auto">Auto · selon les capacités</option>
                     {catalog?.agents.map((a) => (
@@ -419,6 +421,71 @@ export function Composer({
                     : "Aucun modèle connu pour cet agent. Choisissez un agent réel testé."}
                 </small>
               </Filter>
+              <Filter name="Mode ACP" value={input.agentMode || "Défaut"}>
+                <label>
+                  Permissions de l’agent
+                  <select
+                    aria-label="Mode ACP"
+                    value={input.agentMode || ""}
+                    disabled={
+                      disabled || !catalog?.live || !agent?.probe?.modes?.length
+                    }
+                    onChange={(e) => set({ agentMode: e.target.value })}
+                  >
+                    <option value="">Défaut de la plateforme</option>
+                    {agent?.probe?.modes
+                      ?.filter((mode) => !/bypass|yolo/i.test(mode))
+                      .map((mode) => (
+                        <option key={mode} value={mode}>
+                          {mode}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <small>Modes annoncés par la dernière session ACP.</small>
+              </Filter>
+              <Filter name="Navigateur" value={input.browser || "auto"}>
+                <label>
+                  Navigateur de la mission
+                  <select
+                    aria-label="Navigateur"
+                    value={input.browser || "auto"}
+                    disabled={disabled}
+                    onChange={(e) =>
+                      set({
+                        browser: e.target.value as MissionInput["browser"],
+                      })
+                    }
+                  >
+                    <option value="auto">Auto · selon le mode</option>
+                    <option value="playwriter">
+                      Chrome autorisé · Playwriter
+                    </option>
+                    <option value="isolated">Chrome isolé</option>
+                    <option value="fixture">
+                      Navigateur fictif · démonstration
+                    </option>
+                  </select>
+                </label>
+                <small>
+                  Playwriter requiert son relais et son extension ; le repli
+                  vers Chrome isolé est signalé.
+                </small>
+                <label>
+                  Domaines autorisés (séparés par des virgules)
+                  <input
+                    aria-label="Domaines navigateur"
+                    value={input.browserDomains || ""}
+                    disabled={disabled}
+                    placeholder="example.com, autre.example.org"
+                    onChange={(e) => set({ browserDomains: e.target.value })}
+                  />
+                </label>
+                <small>
+                  Vide en mode propriétaire : tous les domaines publics. Le plan
+                  affiche le périmètre retenu.
+                </small>
+              </Filter>
               <Filter name="Skills" value={String(input.skills.length)}>
                 {catalog?.skills.map((s) => (
                   <label className="check" key={s.id}>
@@ -459,9 +526,6 @@ export function Composer({
                       set({
                         pack: e.target.value,
                         workflow: "auto",
-                        ...(e.target.value === "career-ops"
-                          ? { agent: "gemini", model: "" }
-                          : {}),
                       })
                     }
                   >
