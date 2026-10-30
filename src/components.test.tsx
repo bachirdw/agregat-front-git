@@ -135,6 +135,9 @@ describe("rendu fiable", () => {
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ browser: "isolated" }),
     );
+    expect(
+      screen.queryByRole("button", { name: /Choisir un navigateur/ }),
+    ).toBeNull();
   });
   it("propose les modes ACP annoncés sans mode qui contourne les décisions", () => {
     const onChange = vi.fn();

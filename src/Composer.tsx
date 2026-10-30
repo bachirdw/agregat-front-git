@@ -591,15 +591,6 @@ export function Composer({
                   </label>
                 </Filter>
               )}
-              <Filter name="Navigateur" value="Selon serveur">
-                <small>
-                  Le backend définit le navigateur. Le plan indique s’il est
-                  simulé ou réel.
-                </small>
-                <button type="button" disabled>
-                  Choisir un navigateur · bientôt
-                </button>
-              </Filter>
               <Filter
                 name="Budget"
                 value={money(input.budgetCents, catalog?.pricing.currency)}

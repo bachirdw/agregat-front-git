@@ -17,3 +17,9 @@
 - Backend : run réel achevé, preuve détaillée dans `agregat-back/.manager/reports/fix-open-01.md`.
 - Risque : le libellé dépend de la provenance et des preuves fournies par le backend ; la validation de ces preuves reste côté backend.
 - Test E2E initial : un timeout mobile sous charge, non reproduit seul ni dans la suite relancée ; surveiller sa stabilité.
+
+## Reprise navigateur — 31/10, branche `codex/browser-audit-31-10`
+
+- 06:37 Sydney — L'interface réelle affichait deux sections « Navigateur » : le sélecteur Playwriter/isolé/fictif fonctionne, mais une ancienne section « Selon serveur » annonçait « Choisir un navigateur · bientôt » avec un bouton désactivé. Cause : bloc JSX résiduel dans `src/Composer.tsx`. Régression ajoutée dans `src/components.test.tsx` : test ciblé rouge 0/1 (bouton trouvé), puis suppression du bloc, vert 1/1. L'API et le sélecteur actif ne sont pas modifiés. Branche séparée pour rendre la correction jetable, captures préexistantes non incluses.
+- 06:38 Sydney — `npm test` 99/99, `npm run build` code 0 (avertissement de taille de chunks déjà connu). `npm run test:e2e` en cours ; résultat à consigner avant commit. Aucune mission modèle, aucun frais.
+- 06:41 Sydney — `npm run test:e2e` code 0, 10/10, en Chrome isolé et données FICTIVES ; suite, build et E2E verts. Relecture du diff : seules la section morte de `Composer.tsx` et une assertion changent. `npx prettier --check` a trouvé le test mal formaté (code 1) ; `prettier --write` l'a corrigé, nouvelle vérification verte et `npm test` relancé 99/99. `git diff --check` vert. Aucune capture préexistante ne sera commitée ; aucune observation visuelle du frontend corrigé dans le Chrome utilisateur, car le Mac est verrouillé. Coût 0 $.
