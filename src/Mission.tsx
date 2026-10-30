@@ -249,6 +249,11 @@ export function RunView({
     (run.mode === "workflow" &&
       ["failed", "cancelled", "interrupted"].includes(run.state)) ||
     (run.resumable && finalStates.has(run.state));
+  const browserEvidenceConfirmed =
+    run.state === "completed" &&
+    run.result?.simulated === false &&
+    run.result.provenance?.data === "navigateur réel" &&
+    !!run.result.evidence?.length;
   return (
     <>
       <div className="spread">
@@ -269,7 +274,9 @@ export function RunView({
           <span
             className={"badge " + (run.dataMode === "fixture" ? "warning" : "")}
           >
-            {dataModeLabel[run.dataMode]}
+            {browserEvidenceConfirmed
+              ? "Page observée · preuves navigateur"
+              : dataModeLabel[run.dataMode]}
           </span>
         )}
         {session && (

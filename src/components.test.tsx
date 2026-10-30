@@ -503,6 +503,53 @@ describe("rendu fiable", () => {
       screen.getByText(/Modèle effectivement servi : non confirmé par ACP/),
     ).toBeTruthy();
   });
+  it("résultat navigateur réel : remplace le badge non vérifié, jamais pour une simulation", () => {
+    const run = {
+      id: "r-browser",
+      state: "completed",
+      mode: "agent",
+      agent: "codex",
+      model: "",
+      browser: "playwriter",
+      pack: "core",
+      simulated: false,
+      dataMode: "unverified",
+      plan: { steps: [] },
+      result: {
+        simulated: false,
+        summary: "Example Domain",
+        evidence: [
+          { capability: "browser.snapshot", url: "https://example.com/" },
+        ],
+        provenance: { data: "navigateur réel", analysis: "codex" },
+      },
+    } as unknown as Run;
+    const { rerender } = render(
+      <RunView
+        run={run}
+        events={[]}
+        connection=""
+        busy={false}
+        act={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Page observée · preuves navigateur")).toBeTruthy();
+    expect(
+      screen.queryByText("Provenance des données non vérifiée"),
+    ).toBeNull();
+    rerender(
+      <RunView
+        run={{ ...run, result: { ...run.result!, simulated: true } }}
+        events={[]}
+        connection=""
+        busy={false}
+        act={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText("Provenance des données non vérifiée"),
+    ).toBeTruthy();
+  });
   it("accord DAG utilise le bon run et affiche la sortie à relire", () => {
     const act = vi.fn();
     const run = {
