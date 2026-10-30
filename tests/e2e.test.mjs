@@ -380,6 +380,8 @@ test(
       prompt: "emploi",
       agent: "fixture",
       pack: "najah",
+      browser: "fixture",
+      browserDomains: ["example.com"],
     });
     assert.equal(denied.status, 200); // proxy rewrites Host
     const direct = `http://127.0.0.1:${app.server.address().port}`;
