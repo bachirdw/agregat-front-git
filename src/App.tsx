@@ -6,12 +6,13 @@ import {
   useState,
 } from "react";
 import type { Catalog, MissionInput, Plan, Run, RunEvent } from "./types";
-import { agentStatus, finalStates, labels } from "./types";
+import { finalStates, labels } from "./types";
 import { api, ApiError, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
 import { CareerThread } from "./Career";
+import { ConnectionsPanel } from "./ConnectionsPanel";
 import { useFollow } from "./follow";
 import { PlanCard, RunView } from "./Mission";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
@@ -52,7 +53,8 @@ export default function App() {
     [events, setEvents] = useState<RunEvent[]>([]),
     [connection, setConnection] = useState("Connexion…"),
     [streamKey, setStreamKey] = useState(0);
-  const [side, setSide] = useState(() => window.innerWidth > 760),
+  const [panel, setPanel] = useState(() => window.innerWidth > 1100),
+    [side, setSide] = useState(() => window.innerWidth > 760),
     [theme, setTheme] = useState(() => {
       try {
         return (
@@ -554,7 +556,7 @@ export default function App() {
                 }
                 onClick={() => void openRun(r.id)}
               >
-                <span>{r.prompt}</span>
+                <span title={r.prompt}>{r.title || r.prompt}</span>
                 <small>
                   <i className={"dot " + r.state} />
                   {labels[r.state] || r.state}
@@ -568,38 +570,15 @@ export default function App() {
               </small>
             )}
           </div>
-          <section className="connections">
-            <strong>Connexions locales</strong>
-            {catalog?.agents.map((a) => (
-              <div className="connection" key={a.id}>
-                <i
-                  className={
-                    "dot " +
-                    (a.simulated || a.probe?.inference === true
-                      ? "completed"
-                      : "")
-                  }
-                />
-                <span>{a.name}</span>
-                <small title={a.reason || a.probe?.error}>
-                  {agentStatus(a)}
-                </small>
-              </div>
-            ))}
-            <small>
-              {catalog
-                ? catalog.live
-                  ? "BYOA réel activé"
-                  : "Démonstration locale"
-                : "Chargement du catalogue…"}
-            </small>
-          </section>
         </aside>
       )}
       <main
         id="main-content"
         ref={mainRef}
-        className={page === "mission" ? "main conversation-main" : "main"}
+        className={
+          (page === "mission" ? "main conversation-main" : "main") +
+          (panel ? " with-panel" : "")
+        }
       >
         <header className="toolbar">
           {!side && (
@@ -616,10 +595,24 @@ export default function App() {
               <Icon name="side" />
             </button>
           )}
-          <strong>{page === "mission" ? run?.prompt : titles[page]}</strong>
+          <strong>
+            {page === "mission" ? run?.title || run?.prompt : titles[page]}
+          </strong>
           {run && page === "mission" && (
             <span className="badge">{labels[run.state] || run.state}</span>
           )}
+          <button
+            className="icon-button panel-toggle"
+            aria-label={
+              panel
+                ? "Masquer les connexions locales"
+                : "Afficher les connexions locales"
+            }
+            aria-pressed={panel}
+            onClick={() => setPanel(!panel)}
+          >
+            <Icon name="side" />
+          </button>
           <button
             className="icon-button theme-toggle"
             aria-label="Changer de thème"
@@ -628,6 +621,13 @@ export default function App() {
             <Icon name="theme" />
           </button>
         </header>
+        {panel && (
+          <ConnectionsPanel
+            catalog={catalog}
+            events={page === "mission" ? events : []}
+            run={page === "mission" ? run : null}
+          />
+        )}
         <div
           className="scroll-content"
           ref={scroll}

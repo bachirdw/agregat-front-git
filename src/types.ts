@@ -140,6 +140,8 @@ export interface Opportunity {
 export interface Run {
   id: string;
   prompt: string;
+  title?: string;
+  finishedAt?: string;
   sessionId?: string | null;
   state: string;
   mode: string;

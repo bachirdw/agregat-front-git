@@ -300,30 +300,77 @@ nav {
 .dot.interrupted {
   background: var(--red);
 }
-.connections {
-  margin: 0 10px 12px;
-  padding: 12px;
-  background: var(--fill2);
-  border-radius: 12px;
+.connections-panel {
+  position: absolute;
+  top: 64px;
+  right: 16px;
+  width: 380px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 96px);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   font-size: 12px;
-  display: grid;
-  gap: 8px;
+  background: var(--card);
+  border: 0.5px solid var(--sep);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  z-index: 22;
 }
-.connections > strong {
+.connections-panel > small {
   color: var(--muted);
 }
-.connection {
+.connection-agents {
   display: flex;
-  gap: 7px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.connection-agents span {
+  display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
-.connection > span {
-  max-width: 105px;
+.activity-scroll {
+  min-height: 0;
+  overflow: auto;
 }
-.connection small {
-  margin-left: auto;
-  text-align: right;
-  font-size: 10px;
+.activity {
+  width: 100%;
+  border-collapse: collapse;
+}
+.activity th {
+  position: sticky;
+  top: 0;
+  padding: 4px 6px 4px 0;
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--card);
+}
+.activity td {
+  padding: 5px 6px 5px 0;
+  vertical-align: top;
+  border-top: 0.5px solid var(--sep);
+  overflow-wrap: anywhere;
+}
+.activity td:first-child {
+  white-space: nowrap;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.activity td:last-child {
+  white-space: nowrap;
+  padding-right: 0;
+}
+.activity-completed {
+  color: var(--green);
+}
+.activity-running {
+  color: var(--orange);
+}
+.activity-failed {
+  color: var(--red);
 }
 .main {
   position: relative;
@@ -1829,4 +1876,31 @@ summary {
   display: grid;
   gap: 6px;
   font-size: 13px;
+}
+@media (min-width: 1101px) {
+  .main.with-panel .scroll-content {
+    padding-right: 412px;
+  }
+  .main.with-panel .composer-dock {
+    right: 412px;
+  }
+}
+@media (min-width: 1101px) {
+  .main.with-panel:has(.home) .composer-dock,
+  .main.with-panel.conversation-main .composer-dock {
+    right: auto;
+    width: min(760px, calc(100% - 460px));
+    margin-left: calc((100% - 412px - min(760px, calc(100% - 460px))) / 2);
+    margin-right: 0;
+  }
+}
+.toolbar .panel-toggle {
+  margin-left: auto;
+}
+.toolbar .panel-toggle + .theme-toggle {
+  margin-left: 0;
+}
+.filter.attach-menu:nth-last-child(n) .popover {
+  left: 0;
+  right: auto;
 }
