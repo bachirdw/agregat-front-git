@@ -75,6 +75,7 @@ export default function App() {
   const scroll = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const lastScrollTop = useRef(0);
+  const lastScrollSize = useRef("");
   const [composerCompact, setComposerCompact] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const {
@@ -127,6 +128,7 @@ export default function App() {
       top: page === "home" && plan ? scroll.current.scrollHeight : 0,
     });
     lastScrollTop.current = 0;
+    lastScrollSize.current = "";
     setComposerCompact(false);
     document.title = `agre agent · ${titles[page]}`;
   }, [page, run?.id, plan]);
@@ -630,15 +632,37 @@ export default function App() {
           className="scroll-content"
           ref={scroll}
           onScroll={(e) => {
+            const el = e.currentTarget;
+            const size = `${el.clientHeight}`;
+            const resized =
+              lastScrollSize.current && lastScrollSize.current !== size;
+            lastScrollSize.current = size;
+            // Dock resize can clamp scrollTop to the new bottom. It is layout,
+            // not a request to reopen the composer or resume following output.
+            if (resized) {
+              lastScrollTop.current = el.scrollTop;
+              return;
+            }
             follow(e);
             if (page !== "mission") return;
-            const el = e.currentTarget;
             const nearBottom =
               el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-            if (nearBottom) setComposerCompact(false);
+            if (nearBottom && el.scrollTop > lastScrollTop.current + 2)
+              setComposerCompact(false);
             else if (el.scrollTop < lastScrollTop.current - 2)
               setComposerCompact(true);
             lastScrollTop.current = el.scrollTop;
+          }}
+          onWheel={(e) => {
+            const el = e.currentTarget;
+            // Once a compact dock has made the feed reach its bottom, another
+            // downward gesture has no scroll event; honor that explicit intent.
+            if (
+              page === "mission" &&
+              e.deltaY > 0 &&
+              el.scrollHeight - el.scrollTop - el.clientHeight < 40
+            )
+              setComposerCompact(false);
           }}
         >
           {error && (
@@ -792,7 +816,10 @@ export default function App() {
           <button
             className="jump-bottom"
             aria-label="Revenir en bas"
-            onClick={toBottom}
+            onClick={() => {
+              setComposerCompact(false);
+              toBottom();
+            }}
           >
             <span aria-hidden="true">↓</span> Revenir en bas
           </button>

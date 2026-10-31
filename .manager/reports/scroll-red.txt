@@ -1,0 +1,34 @@
+
+> agre-agent-frontend@0.1.0 test
+> vitest run --run src/App.test.tsx -t en conversation, le défilement
+
+
+ RUN  v5.0.5 /Users/diaw/Downloads/agregat-front
+
+ ❯ src/App.test.tsx (15 tests | 1 failed | 14 skipped) 318ms
+   × en conversation, le défilement vers le haut compacte le composeur, le focus et le retour en bas le rouvrent 317ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/App.test.tsx > en conversation, le défilement vers le haut compacte le composeur, le focus et le retour en bas le rouvrent
+AssertionError: expected 'false' to be 'true' // Object.is equality
+
+Expected: "true"
+Received: "false"
+
+ ❯ src/App.test.tsx:546:5
+    544|   expect(
+    545|     container.querySelector(".composer")?.getAttribute("data-compact"),
+    546|   ).toBe("true");
+       |     ^
+    547|   Object.defineProperty(feed, "clientHeight", { configurable: true, va…
+    548|   fireEvent.focus(screen.getByLabelText("Objectif de la mission"));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 skipped (15)
+   Start at  11:01:21
+   Duration  1.45s (environment 44%, tests 26%, import 22%, transform 8%)
+

@@ -438,6 +438,90 @@ test(
 );
 
 test(
+  "défilement FICTIF : le composeur ne boucle pas après une petite remontée",
+  { timeout: 60000 },
+  async (t) => {
+    const { page, app, errors } = await open(t);
+    app.store.create({
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      prompt: "Conversation FICTIVE pour le défilement",
+      state: "completed",
+      mode: "agent",
+      agent: "fixture",
+      pack: "core",
+      model: "",
+      simulated: true,
+      resumable: true,
+      sessionId: "fixture-scroll",
+      budgetCents: 0,
+      plan: {
+        steps: [],
+        cost: {
+          platformCents: 0,
+          currency: "EUR",
+          budgetCents: 0,
+          withinBudget: true,
+          description: "Fictif",
+          lines: [],
+        },
+      },
+      result: {
+        simulated: true,
+        summary: Array.from(
+          { length: 45 },
+          (_, i) => `Paragraphe FICTIF ${i + 1}.`,
+        ).join("\n\n"),
+        evidence: [],
+      },
+    });
+    await page.getByRole("button", { name: "Actualiser les missions" }).click();
+    await page.locator(".mission-link").first().click();
+    await page.locator(".session-settings").waitFor();
+    await page
+      .getByRole("button", { name: "Masquer la barre latérale" })
+      .click();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    for (const viewport of [
+      { width: 1550, height: 960 },
+      { width: 375, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.getByLabel("Objectif de la mission").focus();
+      const feed = page.locator(".scroll-content");
+      await feed.evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+      });
+      await page.locator('.composer[data-compact="false"]').waitFor();
+      const box = await feed.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.wheel(0, -65);
+      await page.locator('.composer[data-compact="true"]').waitFor();
+      const states = await page.evaluate(async () => {
+        const samples = [];
+        for (let i = 0; i < 20; i++) {
+          await new Promise((r) => setTimeout(r, 50));
+          samples.push(document.querySelector(".composer").dataset.compact);
+        }
+        return samples;
+      });
+      assert.ok(
+        states.every((s) => s === "true"),
+        `Oscillation ${viewport.width}px : ${states}`,
+      );
+      await page.mouse.wheel(0, 150);
+      await page.locator('.composer[data-compact="false"]').waitFor();
+      await page.getByLabel("Objectif de la mission").focus();
+      assert.equal(
+        await page.locator(".composer").getAttribute("data-compact"),
+        "false",
+      );
+    }
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
   "Markdown non fiable et Mermaid sous CSP de production, sans chargement externe",
   { timeout: 90000 },
   async (t) => {

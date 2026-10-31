@@ -1,0 +1,24 @@
+(node:58415) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ défilement FICTIF : le composeur ne boucle pas après une petite remontée (47615.1145ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48606.859625
+
+✖ failing tests:
+
+test at tests/e2e.test.mjs:440:1
+✖ défilement FICTIF : le composeur ne boucle pas après une petite remontée (47615.1145ms)
+  locator.waitFor: Timeout 30000ms exceeded.
+  Call log:
+  [2m  - waiting for locator('.composer[data-compact="true"]') to be visible[22m
+  
+      at TestContext.<anonymous> (/Users/diaw/Downloads/agregat-front/tests/e2e.test.mjs:496:60) {
+    name: 'TimeoutError',
+    log: [ `  - waiting for locator('.composer[data-compact="true"]') to be visible` ]
+  }

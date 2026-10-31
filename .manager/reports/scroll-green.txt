@@ -1,0 +1,13 @@
+
+> agre-agent-frontend@0.1.0 test
+> vitest run --run src/App.test.tsx -t en conversation, le défilement
+
+
+ RUN  v5.0.5 /Users/diaw/Downloads/agregat-front
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 14 skipped (15)
+   Start at  11:01:33
+   Duration  2.97s (environment 42%, tests 25%, import 24%, transform 8%)
+

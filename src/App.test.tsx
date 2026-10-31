@@ -536,6 +536,22 @@ it("en conversation, le défilement vers le haut compacte le composeur, le focus
     container.querySelector(".composer")?.getAttribute("data-compact"),
   ).toBe("true");
   expect(container.querySelector(".session-settings")).toBeNull();
+  // Shrinking the dock expands the feed and Chrome clamps scrollTop to its new bottom.
+  // That layout scroll must not reopen the dock and start a resize/scroll loop.
+  Object.defineProperty(feed, "clientHeight", {
+    configurable: true,
+    value: 550,
+  });
+  feed.scrollTop = 450;
+  fireEvent.scroll(feed);
+  expect(
+    container.querySelector(".composer")?.getAttribute("data-compact"),
+  ).toBe("true");
+  Object.defineProperty(feed, "clientHeight", {
+    configurable: true,
+    value: 200,
+  });
+  fireEvent.scroll(feed);
   fireEvent.focus(screen.getByLabelText("Objectif de la mission"));
   expect(
     container.querySelector(".composer")?.getAttribute("data-compact"),
