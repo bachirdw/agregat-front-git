@@ -110,6 +110,11 @@ describe("session perdue", () => {
     const rows = activityRows([event(1, "session_reset", {})]);
     expect(rows[0].label).toMatch(/Session précédente introuvable/);
   });
+  it("un rechargement échoué pour une autre cause n'est pas dit introuvable", () => {
+    const rows = activityRows([event(1, "session_reset", { lost: false })]);
+    expect(rows[0].label).toMatch(/Session précédente non rechargée/);
+    expect(rows[0].label).not.toMatch(/introuvable/);
+  });
 });
 
 describe("mission longue", () => {
