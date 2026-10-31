@@ -10,6 +10,8 @@ export function Icon({ name }: { name: string }) {
     plus: "M5 12h14 M12 5v14",
     arrow: "M12 19V5 M5 12l7-7 7 7",
     close: "m6 6 12 12 M6 18 18 6",
+    settings:
+      "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19 12l2-1-2-4-2 1-2-1-1-3h-4l-1 3-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 3h4l1-3 2-1 2 1 2-4-2-1z",
   };
   return (
     <svg

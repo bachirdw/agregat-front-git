@@ -516,6 +516,7 @@ export function RunView({
       <div className="actions">
         {!finalStates.has(run.state) && (
           <button
+            className="stop-mission"
             disabled={busy}
             onClick={() => void act(`/runs/${run.id}/cancel`, {})}
           >

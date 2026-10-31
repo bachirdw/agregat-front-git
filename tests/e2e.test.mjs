@@ -361,9 +361,7 @@ test(
     await shot(page, "12-theme-sombre");
     await page.getByRole("button", { name: "Agents", exact: true }).click();
     await page.keyboard.press("Meta+k");
-    await page
-      .getByRole("heading", { name: "Que voulez-vous accomplir ?" })
-      .waitFor();
+    await page.getByRole("heading", { name: "Que dois-je faire ?" }).waitFor();
     assert.deepEqual(errors, []);
   },
 );
@@ -672,6 +670,117 @@ test(
     await card.waitFor({ state: "detached" });
     await page.getByRole("button", { name: "Approuver", exact: true }).click();
     await finished(page);
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
+  "visuel v2 : barre flottante, panneau, pastille à la place de la saisie, retour en fin de mission",
+  { timeout: 120000 },
+  async (t) => {
+    const { page, errors } = await open(t);
+    const box = await page.locator(".sidebar").boundingBox();
+    assert.equal(box.width, 216);
+    assert.equal(box.x, 10);
+    await page.getByRole("heading", { name: "Que dois-je faire ?" }).waitFor();
+    const panel = await page.locator(".connections-panel").boundingBox();
+    assert.equal(panel.width, 276);
+    const dock = await page.locator(".composer-dock").boundingBox();
+    assert.ok(dock.x + dock.width <= panel.x, "saisie sous le panneau");
+    await prepare(page, "application-draft");
+    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Approuver", exact: true })
+      .waitFor();
+    // Mission active : la saisie s'efface, la pastille d'arrêt la remplace.
+    await page.getByRole("button", { name: "Arrêter", exact: true }).waitFor();
+    assert.equal(await page.locator(".composer-dock").isVisible(), false);
+    assert.equal(
+      await page
+        .locator(".glow i")
+        .first()
+        .evaluate((el) => getComputedStyle(el).animationPlayState),
+      "running",
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Arrêter la mission" })
+        .isVisible(),
+      false,
+    );
+    assert.match(await page.locator(".panel-cost").innerText(), /Coût/);
+    await shot(page, "v2-mission-active");
+    await page.getByRole("button", { name: "Arrêter", exact: true }).click();
+    await page
+      .locator(".toolbar .badge")
+      .filter({ hasText: /Annulée|Arrêtée/ })
+      .waitFor();
+    await page.locator(".composer-dock").waitFor({ state: "visible" });
+    assert.equal(await page.locator(".mission-pill").count(), 0);
+    await page.getByRole("button", { name: "Changer de thème" }).click();
+    await shot(page, "v2-mission-sombre");
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
+  "visuel v2 mobile : barre masquée, pas de débordement horizontal",
+  { timeout: 120000 },
+  async (t) => {
+    const { page, errors } = await open(t, { mobile: true });
+    assert.equal(await page.locator(".sidebar").count(), 0);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - innerWidth,
+    );
+    assert.ok(overflow <= 0, `débordement ${overflow}px`);
+    await shot(page, "v2-mobile");
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
+  "maquette v3 : suivi de mission, résumé sous le résultat et paramètres réels",
+  { timeout: 120000 },
+  async (t) => {
+    const { page, errors } = await open(t);
+    await prepare(page);
+    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    const tracker = page.getByRole("region", { name: "Suivi de la mission" });
+    await tracker.waitFor();
+    await finished(page);
+    await tracker.getByText(/Mission terminée/).waitFor();
+    assert.match(await tracker.innerText(), /\d+\/\d+/);
+    await page.locator(".meta-line").click();
+    assert.match(
+      await tracker.locator("dl").innerText(),
+      /Agent[\s\S]*Registre/,
+    );
+    const card = await tracker.boundingBox();
+    const value = await tracker.locator("dd").first().boundingBox();
+    assert.ok(
+      value.x + value.width <= card.x + card.width,
+      "valeur dans la carte",
+    );
+    const feed = await page.locator(".thread").boundingBox();
+    assert.ok(feed.x + feed.width <= card.x + 1, "suivi hors du fil");
+    await shot(page, "v3-suivi-details");
+    await page.getByRole("button", { name: "Paramètres" }).click();
+    await page.getByRole("tab", { name: "Utilisation" }).click();
+    await page
+      .getByRole("button", { name: "Voir la consommation" })
+      .first()
+      .waitFor();
+    await page.getByRole("tab", { name: "Disponible" }).click();
+    await page.getByText("Réglage bientôt").first().waitFor();
+    await page.getByRole("tab", { name: "Profil" }).click();
+    await page.getByLabel("Nom").fill("Test Fictif");
+    assert.match(
+      await page.locator(".sidebar-account").innerText(),
+      /Test Fictif/,
+    );
+    await shot(page, "v3-parametres");
+    await page.getByRole("button", { name: "‹ Retour" }).click();
+    await tracker.waitFor();
     assert.deepEqual(errors, []);
   },
 );

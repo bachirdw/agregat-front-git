@@ -1,5 +1,6 @@
+import { useState } from "react";
 import type { Catalog, Run, RunEvent } from "./types";
-import { labels } from "./types";
+import { labels, money } from "./types";
 
 export type ActivityRow = {
   key: string;
@@ -165,58 +166,104 @@ export function ConnectionsPanel({
   events: RunEvent[];
   run: Run | null;
 }) {
+  const [open, setOpen] = useState(true);
   const rows = run ? activityRows(events, run) : [];
+  const agents = catalog?.agents.filter((agent) => !agent.simulated) ?? [];
+  const isReady = (agent: (typeof agents)[number]) =>
+    agent.installed && agent.compatible && !agent.probe?.error;
+  const readyCount = agents.filter(isReady).length;
   return (
     <section className="connections-panel" aria-label="Connexions locales">
-      <strong>Connexions locales</strong>
-      <div className="connection-agents">
-        {catalog?.agents
-          .filter((agent) => !agent.simulated)
-          .map((agent) => {
-            const ready =
-              agent.installed && agent.compatible && !agent.probe?.error;
-            return (
-              <span
-                key={agent.id}
-                title={
-                  ready
-                    ? "Prêt"
-                    : agent.reason || agent.probe?.error || "Non prêt"
-                }
-              >
-                <i className={"dot " + (ready ? "completed" : "")} />
-                {agent.name}
-              </span>
-            );
-          })}
+      <div className="panel-card">
+        <button
+          type="button"
+          className="panel-heading"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          <strong>Connexions locales</strong>
+          <small>
+            {readyCount} {readyCount > 1 ? "prêts" : "prêt"}
+          </small>
+          <span className="panel-chevron" aria-hidden="true">
+            ›
+          </span>
+        </button>
+        {open && (
+          <>
+            <div className="connection-agents">
+              {agents.map((agent) => {
+                const ready = isReady(agent);
+                return (
+                  <span
+                    key={agent.id}
+                    title={
+                      ready
+                        ? "Prêt"
+                        : agent.reason || agent.probe?.error || "Non prêt"
+                    }
+                  >
+                    <i className={"dot " + (ready ? "completed" : "")} />
+                    {agent.name}
+                  </span>
+                );
+              })}
+            </div>
+            {rows.length ? (
+              <div className="activity-scroll">
+                <table className="activity">
+                  <thead>
+                    <tr>
+                      <th>Heure</th>
+                      <th>Événement</th>
+                      <th>État</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.key}>
+                        <td>{clock(row.at)}</td>
+                        <td>{row.label}</td>
+                        <td className={"activity-" + row.tone}>{row.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <small>
+                {run
+                  ? "L’agent n’a encore rien fait."
+                  : "Ouvre ou lance une mission pour voir ce que fait l’agent."}
+              </small>
+            )}
+          </>
+        )}
       </div>
-      {rows.length ? (
-        <div className="activity-scroll">
-          <table className="activity">
-            <thead>
-              <tr>
-                <th>Heure</th>
-                <th>Événement</th>
-                <th>État</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.key}>
-                  <td>{clock(row.at)}</td>
-                  <td>{row.label}</td>
-                  <td className={"activity-" + row.tone}>{row.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <small>
-          {run
-            ? "L’agent n’a encore rien fait."
-            : "Ouvre ou lance une mission pour voir ce que fait l’agent."}
-        </small>
+      {run && (
+        <dl className="panel-card panel-cost" aria-label="Coût">
+          <strong>Coût</strong>
+          <dt>Plateforme</dt>
+          <dd>
+            {run.usage
+              ? money(run.usage.platformCents, run.usage.currency)
+              : "Non mesuré"}
+          </dd>
+          <dt>Agent</dt>
+          <dd title={run.agent}>
+            {run.agent} · {run.simulated ? "fictif" : "BYOA"}
+          </dd>
+          <dt>Registre</dt>
+          <dd
+            className={run.ledger ? (run.ledger.ok ? "success" : "danger") : ""}
+          >
+            {run.ledger
+              ? run.ledger.ok
+                ? "✓ Intègre"
+                : "Registre altéré"
+              : "Non disponible"}
+          </dd>
+        </dl>
       )}
     </section>
   );

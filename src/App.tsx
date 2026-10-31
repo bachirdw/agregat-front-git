@@ -13,10 +13,20 @@ import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
 import { CareerThread } from "./Career";
 import { ConnectionsPanel } from "./ConnectionsPanel";
+import { MissionPill } from "./MissionPill";
+import { metaLine, Tracker } from "./Tracker";
+import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
 import { PlanCard, RunView } from "./Mission";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
-type Page = "home" | "agents" | "skills" | "packs" | "usage" | "mission";
+type Page =
+  | "home"
+  | "agents"
+  | "skills"
+  | "packs"
+  | "usage"
+  | "mission"
+  | "settings";
 const titles: Record<Page, string> = {
   home: "Nouvelle mission",
   agents: "Agents",
@@ -24,6 +34,7 @@ const titles: Record<Page, string> = {
   packs: "Domain Packs",
   usage: "Consommation",
   mission: "Mission",
+  settings: "Paramètres",
 };
 const initial: MissionInput = {
   prompt: "",
@@ -80,6 +91,13 @@ export default function App() {
   const lastScrollSize = useRef("");
   const [composerCompact, setComposerCompact] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  // Instructions typed during a run, sent as a follow-up once it has completed.
+  const [queued, setQueued] = useState<{ runId: string; text: string }[]>([]);
+  const draining = useRef(false);
+  const [trackerOpen, setTrackerOpen] = useState(false),
+    [trackerDetails, setTrackerDetails] = useState(false),
+    [profileName, setProfileName] = useState(storedName);
+  const settingsReturn = useRef<Page>("home");
   const {
     onScroll: follow,
     stuck,
@@ -447,6 +465,62 @@ export default function App() {
       setBusy(false);
     }
   };
+  const runActive = page === "mission" && !!run && !finalStates.has(run.state);
+  const usageView = catalog && (
+    <Consumption
+      catalog={catalog}
+      runs={runs}
+      selected={usageRun}
+      onSelect={(id) => {
+        void api<Run>("/runs/" + id)
+          .then(setUsageRun)
+          .catch(report);
+      }}
+    />
+  );
+  const summaryLine = page === "mission" && run ? metaLine(run, events) : "";
+  const runId = run?.id;
+  const runState = run?.state;
+  useEffect(() => {
+    if (!runId || !runState || !finalStates.has(runState) || busy) return;
+    const next = queued.find((item) => item.runId === runId);
+    if (!next || draining.current) return;
+    draining.current = true;
+    const others = (id: string) =>
+      setQueued((old) =>
+        old
+          .filter((item) => item !== next)
+          .map((item) =>
+            item.runId === runId ? { ...item, runId: id } : item,
+          ),
+      );
+    // The stream's final state arrives before `resumable`: decide on a fresh copy of the run.
+    void api<Run>("/runs/" + runId)
+      .then(async (fresh) => {
+        if (fresh.state === "completed" && fresh.resumable) {
+          await action(
+            `/runs/${runId}/resume`,
+            { prompt: next.text, attachments: [] },
+            true,
+          );
+          others(current.current);
+        } else {
+          others(runId);
+          setInput((old) => ({ ...old, prompt: next.text }));
+          setError(
+            `Instruction non envoyée : la mission est « ${labels[fresh.state] || fresh.state} » et ne peut pas la recevoir. Elle est remise dans ta zone de saisie.`,
+          );
+        }
+      })
+      .catch((e) => {
+        others(runId);
+        setInput((old) => ({ ...old, prompt: next.text }));
+        report(e);
+      })
+      .finally(() => {
+        draining.current = false;
+      });
+  }, [runId, runState, busy, queued]);
   const change = (next: MissionInput) => {
     if (busy) return;
     setInput(next);
@@ -556,12 +630,12 @@ export default function App() {
                 }
                 onClick={() => void openRun(r.id)}
               >
+                <i className={"dot " + r.state} />
                 <span title={r.prompt}>{r.title || r.prompt}</span>
-                <small>
-                  <i className={"dot " + r.state} />
+                <small className={finalStates.has(r.state) ? "sr-only" : ""}>
                   {labels[r.state] || r.state}
-                  {r.simulated ? " · fictif" : ""}
                 </small>
+                {r.simulated && <small>fictif</small>}
               </button>
             ))}
             {!runs.length && (
@@ -570,6 +644,26 @@ export default function App() {
               </small>
             )}
           </div>
+          <div className="sidebar-account">
+            <i aria-hidden="true">
+              {(profileName.trim()[0] || "T").toUpperCase()}
+            </i>
+            <span>
+              {profileName.trim() || "Ton compte"}
+              <small>Local · BYOA</small>
+            </span>
+            <button
+              className={"icon-button " + (page === "settings" ? "active" : "")}
+              aria-label="Paramètres"
+              aria-current={page === "settings" ? "page" : undefined}
+              onClick={() => {
+                if (page !== "settings") settingsReturn.current = page;
+                go(page === "settings" ? settingsReturn.current : "settings");
+              }}
+            >
+              <Icon name="settings" />
+            </button>
+          </div>
         </aside>
       )}
       <main
@@ -577,9 +671,15 @@ export default function App() {
         ref={mainRef}
         className={
           (page === "mission" ? "main conversation-main" : "main") +
-          (panel ? " with-panel" : "")
+          (panel ? " with-panel" : "") +
+          (runActive ? " run-active" : "")
         }
       >
+        <div className="glow" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
         <header className="toolbar">
           {!side && (
             <button
@@ -685,10 +785,10 @@ export default function App() {
           {page === "home" && !plan && (
             <section className="home">
               <div className="home-inner">
-                <h1>Que voulez-vous accomplir ?</h1>
+                <h1>Que dois-je faire ?</h1>
                 <p>
-                  Décrivez un objectif. agre agent prépare un plan et attend
-                  votre accord avant d’exécuter quoi que ce soit.
+                  Décris une mission. L’agent prépare un plan et attend ton
+                  accord avant d’exécuter quoi que ce soit.
                 </p>
                 <div className="suggestions">
                   {suggestions.map((s) => (
@@ -710,10 +810,6 @@ export default function App() {
                       <small>{s.note}</small>
                     </button>
                   ))}
-                  <button disabled>
-                    <strong>Comparer deux agents sur la même tâche</strong>
-                    <small>Bientôt</small>
-                  </button>
                 </div>
               </div>
             </section>
@@ -773,7 +869,27 @@ export default function App() {
                   />
                 </>
               )}
+              {summaryLine && (
+                <button
+                  className="meta-line"
+                  title="Voir le détail dans le suivi"
+                  onClick={() => {
+                    setTrackerOpen(true);
+                    setTrackerDetails(true);
+                  }}
+                >
+                  {summaryLine}
+                </button>
+              )}
             </div>
+          )}
+          {page === "settings" && (
+            <Settings
+              catalog={catalog}
+              usage={usageView}
+              back={() => go(settingsReturn.current)}
+              onName={setProfileName}
+            />
           )}
           {catalog && ["agents", "skills", "packs", "usage"].includes(page) && (
             <div className="page">
@@ -797,18 +913,7 @@ export default function App() {
                   }
                 />
               )}{" "}
-              {page === "usage" && (
-                <Consumption
-                  catalog={catalog}
-                  runs={runs}
-                  selected={usageRun}
-                  onSelect={(id) => {
-                    void api<Run>("/runs/" + id)
-                      .then(setUsageRun)
-                      .catch(report);
-                  }}
-                />
-              )}
+              {page === "usage" && usageView}
             </div>
           )}
         </div>
@@ -823,6 +928,28 @@ export default function App() {
           >
             <span aria-hidden="true">↓</span> Revenir en bas
           </button>
+        )}
+        {page === "mission" && run && (
+          <Tracker
+            run={run}
+            events={events}
+            open={trackerOpen}
+            details={trackerDetails}
+            setOpen={setTrackerOpen}
+            setDetails={setTrackerDetails}
+          />
+        )}
+        {runActive && run && (
+          <MissionPill
+            key={run.id}
+            busy={busy}
+            canQueue={run.mode !== "workflow"}
+            queued={queued.filter((item) => item.runId === run.id).length}
+            stop={() => void action(`/runs/${run.id}/cancel`, {})}
+            queue={(text) =>
+              setQueued((old) => [...old, { runId: run.id, text }])
+            }
+          />
         )}
         {(page === "home" || page === "mission") && (
           <Composer

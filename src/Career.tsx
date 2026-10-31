@@ -173,8 +173,37 @@ export function describeTool(tool: Tool) {
     params: undefined,
   };
 }
+// Seconds between a tool's first and last update; nothing is shown when the times are unknown.
+export function toolDuration(tool: Tool) {
+  const start = Date.parse(tool.at || "");
+  const end = Date.parse(tool.endAt || "");
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start)
+    return null;
+  const seconds = Math.max(1, Math.round((end - start) / 1000));
+  return seconds < 60
+    ? `${seconds}s`
+    : `${Math.floor(seconds / 60)}min ${seconds % 60}s`;
+}
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="tool-copy"
+      onClick={() => {
+        void navigator.clipboard?.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1200);
+        });
+      }}
+    >
+      {copied ? "Copié" : "Copier"}
+    </button>
+  );
+}
 function ToolLine({ tool }: { tool: Tool }) {
   const { name, summary, params } = describeTool(tool);
+  const duration = toolDuration(tool);
   const visibleSummary =
     tool.title === "Appel d’outil refusé" ? tool.output : summary;
   const input =
@@ -187,12 +216,16 @@ function ToolLine({ tool }: { tool: Tool }) {
         {visibleSummary && (
           <span className="tool-summary">{visibleSummary}</span>
         )}
+        {duration && <small className="tool-duration">{duration}</small>}
       </summary>
       <div className="tool-details">
         {input && (
           <>
             <small>Paramètres</small>
-            <pre>{input}</pre>
+            <div className="tool-input">
+              <pre>{input}</pre>
+              <CopyButton text={input} />
+            </div>
           </>
         )}
         <small>Résultat</small>

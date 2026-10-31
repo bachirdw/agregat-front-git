@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   cleanup,
@@ -642,4 +642,72 @@ it("annule l'envoi d'un fichier en quittant la mission et ignore son erreur tard
   expect(fetcher.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
   await act(async () => fail(new Error("Ancienne mission indisponible")));
   expect(screen.queryByText(/Ancienne mission indisponible/)).toBeNull();
+});
+
+describe("instruction mise en file pendant une mission", () => {
+  const running = {
+    id: "r1",
+    prompt: "Mission fictive",
+    state: "running",
+    mode: "agent",
+    agent: "fixture",
+    pack: "core",
+    plan: {},
+  } as unknown as Run;
+  const start = async (ended: Partial<Run>) => {
+    let current: Run = running;
+    vi.mocked(api).mockImplementation((path) => {
+      if (path === "/catalog") return Promise.resolve(catalog) as never;
+      if (path === "/runs") return Promise.resolve([current]) as never;
+      if (String(path).endsWith("/resume"))
+        return Promise.resolve({ ...running, id: "r2" }) as never;
+      if (path === "/runs/r2")
+        return Promise.resolve({ ...running, id: "r2" }) as never;
+      return Promise.resolve(current) as never;
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByText("Mission fictive"));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Ajouter une instruction" }),
+    );
+    const field = screen.getByLabelText(/Ajouter une instruction pour/);
+    fireEvent.change(field, { target: { value: "Aussi en remote" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.some(([path]) => String(path).endsWith("/resume")),
+    ).toBe(false);
+    current = { ...running, ...ended };
+    const events = vi.mocked(watchRun).mock.lastCall![1];
+    act(() => events.end?.());
+  };
+  it("part une seule fois après une mission terminée et reprenable", async () => {
+    await start({ state: "completed", resumable: true });
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("/runs/r1/resume", {
+        prompt: "Aussi en remote",
+        attachments: [],
+      }),
+    );
+    await screen.findByRole("button", { name: "Arrêter" });
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => String(path).endsWith("/resume")),
+    ).toHaveLength(1);
+  });
+  it("une mission annulée n'envoie rien et rend le texte à l'utilisateur", async () => {
+    await start({ state: "cancelled", resumable: true });
+    await screen.findByText(/Instruction non envoyée/);
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.some(([path]) => String(path).endsWith("/resume")),
+    ).toBe(false);
+    expect(
+      (screen.getByLabelText("Objectif de la mission") as HTMLTextAreaElement)
+        .value,
+    ).toBe("Aussi en remote");
+  });
 });
