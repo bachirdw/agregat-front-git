@@ -176,3 +176,21 @@ export function watchRun(
     source.close();
   };
 }
+
+const isTextChunk = (event: RunEvent) =>
+  event.type === "agent" &&
+  ["agent_message_chunk", "agent_thought_chunk"].includes(
+    String(event.data?.sessionUpdate),
+  );
+
+// Long missions stream thousands of text chunks: only those are trimmed, so tools and states stay.
+export function appendEvent(
+  old: RunEvent[],
+  event: RunEvent,
+  { maxText = 500, maxEvents = 5000 } = {},
+) {
+  const next = [...old, event];
+  if (next.filter(isTextChunk).length > maxText)
+    next.splice(next.findIndex(isTextChunk), 1);
+  return next.length > maxEvents ? next.slice(-maxEvents) : next;
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { appendEvent } from "./api";
 import { activityRows, ConnectionsPanel } from "./ConnectionsPanel";
 import type { Catalog, Run, RunEvent } from "./types";
 
@@ -101,5 +102,32 @@ describe("panneau Connexions locales", () => {
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.getByText("Outil : browser_navigate")).toBeTruthy();
     expect(screen.getByText("En cours")).toBeTruthy();
+  });
+});
+
+describe("mission longue", () => {
+  it("les messages de l'agent ne chassent ni les outils ni les états", () => {
+    let events: RunEvent[] = [
+      event(1, "state", { state: "running" }),
+      tool("pending"),
+    ];
+    for (let seq = 2; seq < 1500; seq++)
+      events = appendEvent(
+        events,
+        event(seq, "agent", { sessionUpdate: "agent_message_chunk" }),
+      );
+    expect(events.filter((e) => e.type === "state")).toHaveLength(1);
+    expect(activityRows(events).map((row) => row.label)).toContain(
+      "Outil : browser_navigate",
+    );
+    expect(events.length).toBeLessThanOrEqual(502);
+    expect(events.at(-1)?.seq).toBe(1499);
+  });
+  it("le total reste borné", () => {
+    let events: RunEvent[] = [];
+    for (let seq = 0; seq < 30; seq++)
+      events = appendEvent(events, event(seq, "state", {}), { maxEvents: 10 });
+    expect(events).toHaveLength(10);
+    expect(events[0].seq).toBe(20);
   });
 });

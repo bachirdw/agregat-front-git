@@ -7,7 +7,7 @@ import {
 } from "react";
 import type { Catalog, MissionInput, Plan, Run, RunEvent } from "./types";
 import { finalStates, labels } from "./types";
-import { api, ApiError, toApiInput, watchRun } from "./api";
+import { api, ApiError, appendEvent, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
@@ -311,7 +311,7 @@ export default function App() {
       },
       update: (event) => {
         if (!active) return;
-        setEvents((old) => [...old, event].slice(-500));
+        setEvents((old) => appendEvent(old, event));
         setRun((old) => {
           if (!old || old.id !== id) return old;
           if (event.type === "state")
