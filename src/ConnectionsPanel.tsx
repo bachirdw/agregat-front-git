@@ -62,6 +62,8 @@ export function activityRows(events: RunEvent[], run?: Run | null) {
         if (row && tone) [row.status, row.tone] = tone;
       }
     } else if (event.type === "session") info("Session de l’agent ouverte");
+    else if (event.type === "session_reset")
+      info("Session précédente introuvable : nouvelle session", "Signalé");
     else if (event.type === "state") {
       const state = String(data.state);
       add(

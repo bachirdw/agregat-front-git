@@ -105,6 +105,13 @@ describe("panneau Connexions locales", () => {
   });
 });
 
+describe("session perdue", () => {
+  it("la reprise impossible apparaît dans le tableau", () => {
+    const rows = activityRows([event(1, "session_reset", {})]);
+    expect(rows[0].label).toMatch(/Session précédente introuvable/);
+  });
+});
+
 describe("mission longue", () => {
   it("les messages de l'agent ne chassent ni les outils ni les états", () => {
     let events: RunEvent[] = [
