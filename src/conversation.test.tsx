@@ -157,7 +157,7 @@ describe("conversation (c) : actions repliables et groupées", () => {
     expect(JSON.parse(pres[0]!)).toMatchObject({ arguments: { limit: 3 } });
     expect(JSON.parse(pres[1]!)).toEqual({ count: 2 });
   });
-  it("actions consécutives regroupées « N commandes », repliées ; un échec reste visible en rouge", async () => {
+  it("actions consécutives regroupées « N actions », repliées ; un échec reste visible en rouge", async () => {
     const events = [
       tool("a", "browser_snapshot()"),
       update("a", "completed"),
@@ -178,7 +178,7 @@ describe("conversation (c) : actions repliables et groupées", () => {
       container.querySelector<HTMLDetailsElement>("details.tool-group")!;
     expect(group.open).toBe(false);
     expect(group.querySelector("summary")!.textContent).toContain(
-      "A exécuté 3 commandes · 1 erreur",
+      "A exécuté 3 actions · 1 erreur",
     );
     const failures = container.querySelector(".tool-failures")!;
     expect(failures.querySelectorAll("details.tool.failed")).toHaveLength(1);

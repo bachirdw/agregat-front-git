@@ -144,6 +144,8 @@ export interface Run {
   finishedAt?: string;
   sessionId?: string | null;
   resumedFrom?: string | null;
+  skills?: string[];
+  skillsSnapshot?: { id: string }[];
   state: string;
   mode: string;
   agent: string;

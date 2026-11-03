@@ -13,6 +13,10 @@ type Tool = {
   id: string;
   title: string;
   status: string;
+  // ACP kind: "execute" is a terminal command, the rest are tool actions.
+  callKind?: string;
+  // Failed before any start event: the agent refused the call itself.
+  refused?: boolean;
   input?: unknown;
   output?: string;
   at?: string;
@@ -58,6 +62,8 @@ export function activity(events: RunEvent[]): Item[] {
                 : (u.kind ?? "Outil")),
           ),
           status: "pending",
+          callKind: u.kind ? String(u.kind) : undefined,
+          refused: update === "tool_call_update" && u.status === "failed",
           at: e.at,
         };
         tools.set(id, tool);
@@ -145,7 +151,49 @@ function StatusIcon({ status }: { status: string }) {
   );
 }
 // "browser_click(selector: …)" (Gemini) or "mcp.platform.browser_extract" + rawInput (Codex).
+// Gemini names a call after its tool: mcp_<server>_<tool>__call_<n> or <tool>__call_<n>.
+export function toolNameFromId(id: string): string | null {
+  const name = id.match(/^(.+?)__call_/)?.[1];
+  return name ? name.replace(/^mcp_[^_]+_/, "") : null;
+}
+// Readable cause of a failed call; Gemini wraps the MCP error text in its function response.
+export function failureCause(output?: string): string | undefined {
+  if (!output) return undefined;
+  const wrapped = output.match(/with response: (\[[\s\S]*\])\s*$/);
+  if (wrapped)
+    try {
+      const responses = JSON.parse(wrapped[1]) as {
+        functionResponse?: {
+          response?: {
+            content?: { text?: string }[];
+            error?: unknown;
+            output?: unknown;
+          };
+        };
+      }[];
+      const text = responses
+        .flatMap((r) => {
+          const response = r.functionResponse?.response;
+          return [
+            ...(response?.content ?? []).map((c) => c.text ?? ""),
+            response?.error ? String(response.error) : "",
+          ];
+        })
+        .filter(Boolean)
+        .join("\n");
+      if (text) return text;
+    } catch {
+      /* Not the wrapped shape: show the output as sent. */
+    }
+  return output;
+}
 export function describeTool(tool: Tool) {
+  if (tool.refused)
+    return {
+      name: toolNameFromId(tool.id) ?? "outil inconnu",
+      summary: "",
+      params: undefined,
+    };
   const call = tool.title.match(/^([\w.-]+)\(([\s\S]*)\)$/);
   if (call)
     return {
@@ -153,6 +201,9 @@ export function describeTool(tool: Tool) {
       summary: call[2],
       params: tool.input === undefined ? call[2] : undefined,
     };
+  const fromId = toolNameFromId(tool.id);
+  if (fromId && fromId !== tool.title)
+    return { name: fromId, summary: tool.title, params: undefined };
   const colon = tool.title.indexOf(": ");
   const named = colon > 0 && colon < 40;
   const args =
@@ -173,16 +224,23 @@ export function describeTool(tool: Tool) {
     params: undefined,
   };
 }
-// Seconds between a tool's first and last update; nothing is shown when the times are unknown.
-export function toolDuration(tool: Tool) {
-  const start = Date.parse(tool.at || "");
-  const end = Date.parse(tool.endAt || "");
+// One format for a call and for its group, so that both stay comparable.
+function formatDuration(ms: number) {
+  if (ms < 100) return "< 0,1 s";
+  if (ms < 60000) return `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
+  const seconds = Math.round(ms / 1000);
+  return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+}
+// Time between the first and last update; nothing is shown when the times are unknown.
+function span(starts: (string | undefined)[], ends: (string | undefined)[]) {
+  const start = Math.min(...starts.map((t) => Date.parse(t || "")));
+  const end = Math.max(...ends.map((t) => Date.parse(t || "")));
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start)
     return null;
-  const seconds = Math.max(1, Math.round((end - start) / 1000));
-  return seconds < 60
-    ? `${seconds}s`
-    : `${Math.floor(seconds / 60)}min ${seconds % 60}s`;
+  return formatDuration(end - start);
+}
+export function toolDuration(tool: Tool) {
+  return span([tool.at], [tool.endAt]);
 }
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -204,8 +262,8 @@ function CopyButton({ text }: { text: string }) {
 function ToolLine({ tool }: { tool: Tool }) {
   const { name, summary, params } = describeTool(tool);
   const duration = toolDuration(tool);
-  const visibleSummary =
-    tool.title === "Appel d’outil refusé" ? tool.output : summary;
+  const cause =
+    tool.status === "failed" ? failureCause(tool.output) : undefined;
   const input =
     tool.input === undefined ? params : JSON.stringify(tool.input, null, 2);
   return (
@@ -213,10 +271,14 @@ function ToolLine({ tool }: { tool: Tool }) {
       <summary>
         <StatusIcon status={tool.status} />
         <code>{name}</code>
-        {visibleSummary && (
-          <span className="tool-summary">{visibleSummary}</span>
-        )}
+        {summary && <span className="tool-summary">{summary}</span>}
         {duration && <small className="tool-duration">{duration}</small>}
+        {cause && (
+          <span className="tool-cause">
+            {tool.refused ? "Appel d’outil refusé : " : "Échec : "}
+            {cause}
+          </span>
+        )}
       </summary>
       <div className="tool-details">
         {input && (
@@ -246,15 +308,16 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
     : failed.length
       ? "failed"
       : "completed";
-  const first = Date.parse(tools[0]?.at || "");
-  const last = Date.parse(tools.at(-1)?.endAt || "");
   const duration =
-    status !== "in_progress" &&
-    Number.isFinite(first) &&
-    Number.isFinite(last) &&
-    last >= first
-      ? `${((last - first) / 1000).toFixed(1).replace(".", ",")} s`
+    status !== "in_progress"
+      ? span(
+          tools.map((t) => t.at),
+          tools.map((t) => t.endAt),
+        )
       : null;
+  const noun = tools.every((t) => t.callKind === "execute")
+    ? "commandes"
+    : "actions";
   return (
     <>
       <details
@@ -265,7 +328,7 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
         <summary>
           <StatusIcon status={status} />
           {status === "in_progress" ? "Exécute" : "A exécuté"} {tools.length}{" "}
-          commandes
+          {noun}
           {failed.length > 0 &&
             ` · ${failed.length} ${failed.length > 1 ? "erreurs" : "erreur"}`}
           {duration && ` · ${duration}`}
@@ -290,6 +353,21 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
     </>
   );
 }
+// The agent's final message is often the JSON result the platform parses; its summary is shown apart.
+export function isResultEnvelope(text: string) {
+  const body = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```$/, "")
+    .trim();
+  if (!body.startsWith("{")) return false;
+  try {
+    const value = JSON.parse(body) as { summary?: unknown };
+    return typeof value?.summary === "string";
+  } catch {
+    return false;
+  }
+}
 type Block = Exclude<Item, Tool> | { kind: "tools"; id: string; tools: Tool[] };
 function blocks(items: Item[]): Block[] {
   const out: Block[] = [];
@@ -313,7 +391,13 @@ export function AgentActivity({
   final?: boolean;
   answer?: string | null;
 }) {
-  const items = useMemo(() => activity(events), [events]);
+  const items = useMemo(
+    () =>
+      activity(events).filter(
+        (i) => i.kind !== "text" || !isResultEnvelope(i.text),
+      ),
+    [events],
+  );
   const shown = useMemo(
     () =>
       blocks(

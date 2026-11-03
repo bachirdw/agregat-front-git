@@ -106,7 +106,12 @@ it("le composeur compact d'une mission non reprenable offre une action d'ouvertu
       disabled
       compact
       onOpen={open}
-      sessionSettings={{ agent: "fixture", model: "", pack: "core" }}
+      sessionSettings={{
+        agent: "fixture",
+        model: "",
+        pack: "core",
+        skills: [],
+      }}
     />,
   );
   const area = screen.getByLabelText(

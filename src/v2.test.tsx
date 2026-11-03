@@ -140,7 +140,7 @@ const tool = (seq: number, data: object, at?: string) =>
 describe("commandes de l'agent", () => {
   it("durée lisible, absente si une heure manque", () => {
     const line = { at: "2026-10-31T10:00:00Z", endAt: "2026-10-31T10:01:05Z" };
-    expect(toolDuration(line as never)).toBe("1min 5s");
+    expect(toolDuration(line as never)).toBe("1 min 5 s");
     expect(toolDuration({ at: line.at } as never)).toBeNull();
     expect(
       toolDuration({ at: line.endAt, endAt: line.at } as never),

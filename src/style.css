@@ -1654,6 +1654,23 @@ summary {
   min-width: 0;
   max-width: 100%;
 }
+.fold.tool > summary {
+  flex-wrap: wrap;
+}
+/* The cause of a failed call stays readable while the line is folded. */
+.tool-cause {
+  flex-basis: 100%;
+  min-width: 0;
+  padding-left: 16px;
+  color: var(--red);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.agent-warning {
+  margin: 0 0 8px;
+  color: var(--red);
+  font-size: 13px;
+}
 .tool-group > ol,
 .tool-failures {
   list-style: none;

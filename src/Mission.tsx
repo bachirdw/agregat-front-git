@@ -48,12 +48,16 @@ export function PlanCard({
   busy,
   launch,
   edit,
+  cancel,
+  warning,
 }: {
   plan: Plan;
   catalog: Catalog | null;
   busy: boolean;
   launch: () => void;
   edit: () => void;
+  cancel?: () => void;
+  warning?: string | null;
 }) {
   return (
     <>
@@ -136,13 +140,22 @@ export function PlanCard({
             ))}
           </div>
         </div>
+        {warning && (
+          <p className="agent-warning card-pad" role="alert">
+            {warning}
+          </p>
+        )}
         <footer>
           <button className="primary" onClick={launch} disabled={busy}>
             {busy ? "Lancement…" : "Lancer"}
           </button>
-          <button onClick={edit} disabled={busy}>
-            Modifier
-          </button>
+          {busy && cancel ? (
+            <button onClick={cancel}>Annuler le lancement</button>
+          ) : (
+            <button onClick={edit} disabled={busy}>
+              Modifier
+            </button>
+          )}
           <small>
             {plan.simulated
               ? "Démonstration : aucune action réelle ne sera exécutée."
@@ -249,6 +262,13 @@ export function RunView({
     (run.mode === "workflow" &&
       ["failed", "cancelled", "interrupted"].includes(run.state)) ||
     (run.resumable && finalStates.has(run.state));
+  // The back finishes a run with unmet required steps as "Mission incomplète : <steps>".
+  const incomplete = run.error?.match(
+    /^Mission incomplète\s*:\s*([\s\S]+)/,
+  )?.[1];
+  const verificationScope = verification?.data.scope
+    ? String(verification.data.scope)
+    : "";
   const browserEvidenceConfirmed =
     run.state === "completed" &&
     run.result?.simulated === false &&
@@ -276,7 +296,10 @@ export function RunView({
           >
             {browserEvidenceConfirmed
               ? "Page observée · preuves navigateur"
-              : dataModeLabel[run.dataMode]}
+              : run.dataMode === "unverified" && verificationScope
+                ? // Same words as the back's verification, never a broader claim.
+                  verificationScope
+                : dataModeLabel[run.dataMode]}
           </span>
         )}
         {session && (
@@ -381,9 +404,18 @@ export function RunView({
       {run.pack !== "career-ops" && <SkillSteps progress={run.skillProgress} />}
       {run.error && (
         <section className="card error-card" role="alert">
-          <small>Mission interrompue</small>
-          <h2>{labels[run.state]}</h2>
-          <p>{run.error}</p>
+          {incomplete ? (
+            <>
+              <small>Mission incomplète</small>
+              <h2>{incomplete}</h2>
+            </>
+          ) : (
+            <>
+              <small>Mission interrompue</small>
+              <h2>{labels[run.state]}</h2>
+              <p>{run.error}</p>
+            </>
+          )}
         </section>
       )}
       {run.steps
