@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { api } from "./api";
+import { api, appendEvent, watchRun } from "./api";
 import { Markdown } from "./Markdown";
 import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money } from "./types";
@@ -13,6 +13,10 @@ type Tool = {
   id: string;
   title: string;
   status: string;
+  // ACP kind: "execute" is a terminal command, the rest are tool actions.
+  callKind?: string;
+  // Failed before any start event: the agent refused the call itself.
+  refused?: boolean;
   input?: unknown;
   output?: string;
   at?: string;
@@ -58,6 +62,8 @@ export function activity(events: RunEvent[]): Item[] {
                 : (u.kind ?? "Outil")),
           ),
           status: "pending",
+          callKind: u.kind ? String(u.kind) : undefined,
+          refused: update === "tool_call_update" && u.status === "failed",
           at: e.at,
         };
         tools.set(id, tool);
@@ -145,7 +151,49 @@ function StatusIcon({ status }: { status: string }) {
   );
 }
 // "browser_click(selector: …)" (Gemini) or "mcp.platform.browser_extract" + rawInput (Codex).
+// Gemini names a call after its tool: mcp_<server>_<tool>__call_<n> or <tool>__call_<n>.
+export function toolNameFromId(id: string): string | null {
+  const name = id.match(/^(.+?)__call_/)?.[1];
+  return name ? name.replace(/^mcp_[^_]+_/, "") : null;
+}
+// Readable cause of a failed call; Gemini wraps the MCP error text in its function response.
+export function failureCause(output?: string): string | undefined {
+  if (!output) return undefined;
+  const wrapped = output.match(/with response: (\[[\s\S]*\])\s*$/);
+  if (wrapped)
+    try {
+      const responses = JSON.parse(wrapped[1]) as {
+        functionResponse?: {
+          response?: {
+            content?: { text?: string }[];
+            error?: unknown;
+            output?: unknown;
+          };
+        };
+      }[];
+      const text = responses
+        .flatMap((r) => {
+          const response = r.functionResponse?.response;
+          return [
+            ...(response?.content ?? []).map((c) => c.text ?? ""),
+            response?.error ? String(response.error) : "",
+          ];
+        })
+        .filter(Boolean)
+        .join("\n");
+      if (text) return text;
+    } catch {
+      /* Not the wrapped shape: show the output as sent. */
+    }
+  return output;
+}
 export function describeTool(tool: Tool) {
+  if (tool.refused)
+    return {
+      name: toolNameFromId(tool.id) ?? "outil inconnu",
+      summary: "",
+      params: undefined,
+    };
   const call = tool.title.match(/^([\w.-]+)\(([\s\S]*)\)$/);
   if (call)
     return {
@@ -153,6 +201,9 @@ export function describeTool(tool: Tool) {
       summary: call[2],
       params: tool.input === undefined ? call[2] : undefined,
     };
+  const fromId = toolNameFromId(tool.id);
+  if (fromId && fromId !== tool.title)
+    return { name: fromId, summary: tool.title, params: undefined };
   const colon = tool.title.indexOf(": ");
   const named = colon > 0 && colon < 40;
   const args =
@@ -173,16 +224,23 @@ export function describeTool(tool: Tool) {
     params: undefined,
   };
 }
-// Seconds between a tool's first and last update; nothing is shown when the times are unknown.
-export function toolDuration(tool: Tool) {
-  const start = Date.parse(tool.at || "");
-  const end = Date.parse(tool.endAt || "");
+// One format for a call and for its group, so that both stay comparable.
+function formatDuration(ms: number) {
+  if (ms < 100) return "< 0,1 s";
+  if (ms < 60000) return `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
+  const seconds = Math.round(ms / 1000);
+  return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+}
+// Time between the first and last update; nothing is shown when the times are unknown.
+function span(starts: (string | undefined)[], ends: (string | undefined)[]) {
+  const start = Math.min(...starts.map((t) => Date.parse(t || "")));
+  const end = Math.max(...ends.map((t) => Date.parse(t || "")));
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start)
     return null;
-  const seconds = Math.max(1, Math.round((end - start) / 1000));
-  return seconds < 60
-    ? `${seconds}s`
-    : `${Math.floor(seconds / 60)}min ${seconds % 60}s`;
+  return formatDuration(end - start);
+}
+export function toolDuration(tool: Tool) {
+  return span([tool.at], [tool.endAt]);
 }
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -204,8 +262,8 @@ function CopyButton({ text }: { text: string }) {
 function ToolLine({ tool }: { tool: Tool }) {
   const { name, summary, params } = describeTool(tool);
   const duration = toolDuration(tool);
-  const visibleSummary =
-    tool.title === "Appel d’outil refusé" ? tool.output : summary;
+  const cause =
+    tool.status === "failed" ? failureCause(tool.output) : undefined;
   const input =
     tool.input === undefined ? params : JSON.stringify(tool.input, null, 2);
   return (
@@ -213,10 +271,14 @@ function ToolLine({ tool }: { tool: Tool }) {
       <summary>
         <StatusIcon status={tool.status} />
         <code>{name}</code>
-        {visibleSummary && (
-          <span className="tool-summary">{visibleSummary}</span>
-        )}
+        {summary && <span className="tool-summary">{summary}</span>}
         {duration && <small className="tool-duration">{duration}</small>}
+        {cause && (
+          <span className="tool-cause">
+            {tool.refused ? "Appel d’outil refusé : " : "Échec : "}
+            {cause}
+          </span>
+        )}
       </summary>
       <div className="tool-details">
         {input && (
@@ -246,15 +308,16 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
     : failed.length
       ? "failed"
       : "completed";
-  const first = Date.parse(tools[0]?.at || "");
-  const last = Date.parse(tools.at(-1)?.endAt || "");
   const duration =
-    status !== "in_progress" &&
-    Number.isFinite(first) &&
-    Number.isFinite(last) &&
-    last >= first
-      ? `${((last - first) / 1000).toFixed(1).replace(".", ",")} s`
+    status !== "in_progress"
+      ? span(
+          tools.map((t) => t.at),
+          tools.map((t) => t.endAt),
+        )
       : null;
+  const noun = tools.every((t) => t.callKind === "execute")
+    ? "commandes"
+    : "actions";
   return (
     <>
       <details
@@ -265,7 +328,7 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
         <summary>
           <StatusIcon status={status} />
           {status === "in_progress" ? "Exécute" : "A exécuté"} {tools.length}{" "}
-          commandes
+          {noun}
           {failed.length > 0 &&
             ` · ${failed.length} ${failed.length > 1 ? "erreurs" : "erreur"}`}
           {duration && ` · ${duration}`}
@@ -290,6 +353,21 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
     </>
   );
 }
+// The agent's final message is often the JSON result the platform parses; its summary is shown apart.
+export function isResultEnvelope(text: string) {
+  const body = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```$/, "")
+    .trim();
+  if (!body.startsWith("{")) return false;
+  try {
+    const value = JSON.parse(body) as { summary?: unknown };
+    return typeof value?.summary === "string";
+  } catch {
+    return false;
+  }
+}
 type Block = Exclude<Item, Tool> | { kind: "tools"; id: string; tools: Tool[] };
 function blocks(items: Item[]): Block[] {
   const out: Block[] = [];
@@ -301,20 +379,37 @@ function blocks(items: Item[]): Block[] {
   }
   return out;
 }
-// `final`: the run is over and its answer is shown apart, so only the folded steps remain.
+// `final`: the run is over and its answer is shown apart: only the text absent from `answer` remains.
 export function AgentActivity({
   events,
   running = false,
   final = false,
+  answer,
 }: {
   events: RunEvent[];
   running?: boolean;
   final?: boolean;
+  answer?: string | null;
 }) {
-  const items = useMemo(() => activity(events), [events]);
+  const items = useMemo(
+    () =>
+      activity(events).filter(
+        (i) => i.kind !== "text" || !isResultEnvelope(i.text),
+      ),
+    [events],
+  );
   const shown = useMemo(
-    () => blocks(final ? items.filter((i) => i.kind !== "text") : items),
-    [items, final],
+    () =>
+      blocks(
+        final
+          ? items.filter(
+              (i) =>
+                i.kind !== "text" ||
+                (answer != null && !answer.includes(i.text.trim())),
+            )
+          : items,
+      ),
+    [items, final, answer],
   );
   const label = running ? waitingLabel(items) : null;
   if (!shown.length) return label ? <Waiting label={label} /> : null;
@@ -469,22 +564,78 @@ export function CareerResults({ run }: { run: Run }) {
 
 // One career-ops conversation = the runs sharing an agent session, oldest first (Claude-Code-like).
 export function sessionThread(run: Run, runs: Run[]): Run[] {
-  const same = run.sessionId
-    ? runs.filter(
-        (r) => r.sessionId === run.sessionId && r.createdAt <= run.createdAt,
-      )
-    : [];
-  const all = same.some((r) => r.id === run.id) ? same : [...same, run];
-  return [...all].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  // `resumedFrom` still links the turns when the agent had to open a new session.
+  const chain = new Map([[run.id, run]]);
+  let parent = run.resumedFrom;
+  while (parent && !chain.has(parent)) {
+    const previous = runs.find((r) => r.id === parent);
+    if (!previous) break;
+    chain.set(previous.id, previous);
+    parent = previous.resumedFrom;
+  }
+  const sessions = new Set(
+    [...chain.values()].map((r) => r.sessionId).filter(Boolean),
+  );
+  for (const r of runs)
+    if (sessions.has(r.sessionId) && r.createdAt <= run.createdAt)
+      chain.set(r.id, chain.get(r.id) ?? r);
+  return [...chain.values()].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
+}
+// Steps of a past turn, read from its journal the first time they are opened.
+function PastSteps({ run, answer }: { run: Run; answer: string | null }) {
+  const [opened, setOpened] = useState(false);
+  const [events, setEvents] = useState<RunEvent[]>([]);
+  const [status, setStatus] = useState<"loading" | "done" | "failed">(
+    "loading",
+  );
+  useEffect(() => {
+    if (!opened) return;
+    setEvents([]);
+    setStatus("loading");
+    const close = watchRun(run.id, {
+      connection: (ok) => {
+        if (ok) return;
+        close();
+        setStatus("failed");
+      },
+      update: (event) => setEvents((old) => appendEvent(old, event)),
+      end: () => setStatus("done"),
+    });
+    return close;
+  }, [opened, run.id]);
+  return (
+    <details
+      className="fold past-steps"
+      onToggle={(e) => {
+        if (e.currentTarget.open) setOpened(true);
+      }}
+    >
+      <summary>Détail de ce tour</summary>
+      {status === "loading" && <Waiting label="Chargement…" />}
+      {status === "failed" && (
+        <p className="danger" role="alert">
+          Impossible de charger le détail de ce tour.
+        </p>
+      )}
+      {status === "done" && !events.length && (
+        <p className="muted">Aucune étape enregistrée.</p>
+      )}
+      <AgentActivity events={events} final answer={answer ?? ""} />
+    </details>
+  );
 }
 function Turn({
   run,
   live,
   immediatePrompt,
+  source = "career",
 }: {
   run: Run;
   live?: RunEvent[];
   immediatePrompt?: string;
+  source?: "career" | "run";
 }) {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
@@ -496,6 +647,18 @@ function Turn({
     setPrompt(null);
     setAnswer(null);
     setAnswerError("");
+    if (source === "run") {
+      setPrompt(run.prompt);
+      if (done)
+        api<Run>(`/runs/${run.id}`, undefined, abort.signal)
+          .then((r) => {
+            if (!abort.signal.aborted) setAnswer(r.result?.summary || "");
+          })
+          .catch((e) => {
+            if (!abort.signal.aborted) setAnswerError((e as Error).message);
+          });
+      return () => abort.abort();
+    }
     api<{ prompt: string }>(
       `/career/runs/${run.id}/input`,
       undefined,
@@ -518,13 +681,19 @@ function Turn({
           if (!abort.signal.aborted) setAnswerError((e as Error).message);
         });
     return () => abort.abort();
-  }, [run.id, done, run.prompt]);
+  }, [run.id, done, run.prompt, source]);
   return (
     <>
       <PromptBubble text={prompt ?? immediatePrompt ?? "…"} />
       <div className="agent-turn">
         {live && !done && <AgentActivity events={live} running={running} />}
-        {live && done && <AgentActivity events={live} final />}
+        {live && done && (
+          <AgentActivity
+            events={live}
+            final
+            answer={answerError ? "" : answer}
+          />
+        )}
         {done && answer !== null && <Markdown text={answer} />}
         {done && answerError && (
           <p className="danger" role="alert">
@@ -535,8 +704,21 @@ function Turn({
         {["failed", "cancelled", "interrupted"].includes(run.state) && (
           <p className="danger">{run.error || "Tour interrompu."}</p>
         )}
+        {!live && !running && <PastSteps run={run} answer={answer} />}
       </div>
     </>
+  );
+}
+// Earlier turns of a resumable conversation, above the current run's own view.
+export function SessionHistory({ run, runs }: { run: Run; runs: Run[] }) {
+  const turns = sessionThread(run, runs).filter((t) => t.id !== run.id);
+  if (!turns.length) return null;
+  return (
+    <div className="career-thread">
+      {turns.map((t) => (
+        <Turn key={t.id} run={t} source="run" />
+      ))}
+    </div>
   );
 }
 export function CareerThread({

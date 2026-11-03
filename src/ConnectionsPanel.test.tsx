@@ -135,6 +135,35 @@ describe("mission longue", () => {
     expect(events.length).toBeLessThanOrEqual(502);
     expect(events.at(-1)?.seq).toBe(1499);
   });
+  it("un long message reste entier du premier au dernier morceau", () => {
+    const chunk = (seq: number, sessionUpdate = "agent_message_chunk") =>
+      event(seq, "agent", {
+        sessionUpdate,
+        content: { type: "text", text: `m${seq} ` },
+      });
+    let events: RunEvent[] = [];
+    for (let seq = 1; seq <= 1500; seq++)
+      events = appendEvent(events, chunk(seq));
+    expect(events).toHaveLength(1);
+    expect(events[0].seq).toBe(1);
+    const text = (events[0].data.content as { text: string }).text;
+    expect(text.startsWith("m1 m2 ")).toBe(true);
+    expect(text.endsWith("m1500 ")).toBe(true);
+    events = appendEvent(events, chunk(1501, "agent_thought_chunk"));
+    expect(events).toHaveLength(2);
+  });
+  it("à la limite du total, le texte passe avant les autres événements", () => {
+    let events: RunEvent[] = [
+      event(1, "agent", {
+        sessionUpdate: "agent_message_chunk",
+        content: { type: "text", text: "à garder" },
+      }),
+    ];
+    for (let seq = 2; seq < 30; seq++)
+      events = appendEvent(events, event(seq, "state", {}), { maxEvents: 10 });
+    expect(events).toHaveLength(10);
+    expect(events[0].seq).toBe(1);
+  });
   it("le total reste borné", () => {
     let events: RunEvent[] = [];
     for (let seq = 0; seq < 30; seq++)

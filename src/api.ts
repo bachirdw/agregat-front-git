@@ -183,14 +183,51 @@ const isTextChunk = (event: RunEvent) =>
     String(event.data?.sessionUpdate),
   );
 
-// Long missions stream thousands of text chunks: only those are trimmed, so tools and states stay.
+const chunkText = (event: RunEvent) => {
+  const content = event.data?.content as
+    | { type?: string; text?: string }
+    | undefined;
+  return isTextChunk(event) && content?.type === "text" && content.text
+    ? content.text
+    : "";
+};
+
+// Long missions stream thousands of text chunks: consecutive ones are merged, so the text stays
+// whole while the list stays short. Only events without text are dropped when a limit is reached.
 export function appendEvent(
   old: RunEvent[],
   event: RunEvent,
   { maxText = 500, maxEvents = 5000 } = {},
 ) {
+  const last = old.at(-1);
+  const text = chunkText(event);
+  if (
+    last &&
+    text &&
+    chunkText(last) &&
+    last.data.sessionUpdate === event.data.sessionUpdate
+  )
+    // The first chunk keeps its seq: the activity feed uses it as a stable block key.
+    return [
+      ...old.slice(0, -1),
+      {
+        ...last,
+        data: {
+          ...last.data,
+          content: {
+            ...(last.data.content as object),
+            text: chunkText(last) + text,
+          },
+        },
+      },
+    ];
   const next = [...old, event];
-  if (next.filter(isTextChunk).length > maxText)
-    next.splice(next.findIndex(isTextChunk), 1);
-  return next.length > maxEvents ? next.slice(-maxEvents) : next;
+  const isEmptyChunk = (e: RunEvent) => isTextChunk(e) && !chunkText(e);
+  if (next.filter(isEmptyChunk).length > maxText)
+    next.splice(next.findIndex(isEmptyChunk), 1);
+  if (next.length > maxEvents) {
+    const oldest = next.findIndex((e) => !chunkText(e));
+    next.splice(Math.max(oldest, 0), 1);
+  }
+  return next;
 }

@@ -11,7 +11,8 @@ import { api, ApiError, appendEvent, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
-import { CareerThread } from "./Career";
+import { agentWarning } from "./agentStatus";
+import { CareerThread, SessionHistory } from "./Career";
 import { ConnectionsPanel } from "./ConnectionsPanel";
 import { MissionPill } from "./MissionPill";
 import { metaLine, Tracker } from "./Tracker";
@@ -59,6 +60,7 @@ export default function App() {
     [plan, setPlan] = useState<Plan | null>(null),
     [planned, setPlanned] = useState<MissionInput | null>(null);
   const [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [events, setEvents] = useState<RunEvent[]>([]),
@@ -94,6 +96,7 @@ export default function App() {
   // Instructions typed during a run, sent as a follow-up once it has completed.
   const [queued, setQueued] = useState<{ runId: string; text: string }[]>([]);
   const draining = useRef(false);
+  const launching = useRef<AbortController | null>(null);
   const [trackerOpen, setTrackerOpen] = useState(false),
     [trackerDetails, setTrackerDetails] = useState(false),
     [profileName, setProfileName] = useState(storedName);
@@ -387,10 +390,17 @@ export default function App() {
   const launch = async () => {
     if (!planned || busy) return;
     const version = viewVersion.current;
+    const controller = new AbortController();
+    launching.current = controller;
     setBusy(true);
     setError("");
+    setNotice("");
     try {
-      const next = await api<Run>("/runs", toApiInput(planned));
+      const next = await api<Run>(
+        "/runs",
+        toApiInput(planned),
+        controller.signal,
+      );
       if (version === viewVersion.current) {
         if (next.pack === "career-ops")
           setImmediatePrompt({ id: next.id, text: planned.prompt });
@@ -401,8 +411,15 @@ export default function App() {
       await history();
       setPlanned(null);
     } catch (e) {
-      report(e);
+      if (controller.signal.aborted) {
+        // Only the wait stops: the back may still have created the run.
+        setNotice(
+          "Lancement annulé dans l’interface. Si l’API avait reçu la demande, la mission apparaît dans l’historique.",
+        );
+        void history().catch(() => {});
+      } else report(e);
     } finally {
+      if (launching.current === controller) launching.current = null;
       setBusy(false);
     }
   };
@@ -777,6 +794,11 @@ export default function App() {
               )}
             </div>
           )}
+          {notice && (
+            <p className="loading" role="status">
+              {notice}
+            </p>
+          )}
           {loading && !catalog && (
             <p className="loading" role="status">
               Connexion au backend local…
@@ -822,6 +844,8 @@ export default function App() {
                 catalog={catalog}
                 busy={busy}
                 launch={() => void launch()}
+                cancel={() => launching.current?.abort()}
+                warning={agentWarning(plan.agent, catalog, runs)}
                 edit={() => {
                   setPlan(null);
                   setPlanned(null);
@@ -859,6 +883,7 @@ export default function App() {
                 </CareerThread>
               ) : (
                 <>
+                  <SessionHistory run={run} runs={runs} />
                   <PromptBubble key={run.id} text={run.prompt} />
                   <RunView
                     run={run}
@@ -958,6 +983,7 @@ export default function App() {
             input={input}
             onChange={change}
             onPlan={() => void (canReply ? reply() : prepare())}
+            agentWarning={agentWarning(input.agent, catalog, runs)}
             busy={busy}
             disabled={page === "mission" && !canReply}
             working={
@@ -978,7 +1004,15 @@ export default function App() {
             }}
             sessionSettings={
               page === "mission" && run
-                ? { agent: run.agent, model: run.model || "", pack: run.pack }
+                ? {
+                    agent: run.agent,
+                    model: run.model || "",
+                    pack: run.pack,
+                    // The snapshot lists the Skills the back actually loaded for this run.
+                    skills: run.skillsSnapshot?.length
+                      ? run.skillsSnapshot.map((s) => s.id)
+                      : run.skills || [],
+                  }
                 : undefined
             }
           />

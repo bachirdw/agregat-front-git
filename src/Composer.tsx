@@ -116,6 +116,7 @@ export function Composer({
   compact = false,
   onOpen,
   sessionSettings,
+  agentWarning,
 }: {
   catalog: Catalog | null;
   input: MissionInput;
@@ -128,7 +129,13 @@ export function Composer({
   scope?: number;
   compact?: boolean;
   onOpen?: () => void;
-  sessionSettings?: { agent: string; model: string; pack: string };
+  sessionSettings?: {
+    agent: string;
+    model: string;
+    pack: string;
+    skills: string[];
+  };
+  agentWarning?: string | null;
 }) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const measureRef = useRef<() => void>(() => {});
@@ -353,9 +360,19 @@ export function Composer({
             <span>Agent · {sessionSettings.agent}</span>
             <span>Modèle · {sessionSettings.model || "Défaut"}</span>
             <span>Pack · {sessionSettings.pack}</span>
-            <span>Skills · non transmis</span>
+            <span>
+              Skills ·{" "}
+              {sessionSettings.skills.length
+                ? sessionSettings.skills.join(", ")
+                : "aucun"}
+            </span>
             <small>Réglages de cette session</small>
           </div>
+        )}
+        {agentWarning && !reply && !disabled && (
+          <p className="agent-warning" role="alert">
+            {agentWarning}
+          </p>
         )}
         <div className="composer-bottom">
           <AttachMenu
