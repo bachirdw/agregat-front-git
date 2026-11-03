@@ -1,0 +1,20 @@
+     × 1. affiche la cause d'un appel en échec sans ouvrir le détail 17ms
+     × 2. un appel refusé avant l'envoi est nommé d'après son identifiant 7ms
+     × 3. « commandes » seulement pour le terminal, « actions » sinon 7ms
+     × 4. la durée du groupe et celle de ses appels sont calculées de la même façon 6ms
+     × 5. une mission incomplète est titrée comme telle, avec sa cause 54ms
+     × 6. l'enveloppe JSON de la réponse n'apparaît pas dans le fil 1ms
+     × 7. la provenance ne contredit pas la vérification du back 2ms
+     × 8. signale un agent indisponible : catalogue ou dernière limite d'usage connue 1ms
+     × 9. la pastille Skills montre les Skills de la mission 6ms
+     × 10. un lancement sans réponse de l'API peut être annulé 1184ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/affichage.test.tsx > outils en échec > 1. affiche la cause d'un appel en échec sans ouvrir le détail
+ FAIL  src/affichage.test.tsx > outils en échec > 2. un appel refusé avant l'envoi est nommé d'après son identifiant
+ FAIL  src/affichage.test.tsx > groupes d'outils > 3. « commandes » seulement pour le terminal, « actions » sinon
+              [0m✓[0m
+                    [0m✓[0m
+                    [0m✓[0m
+ FAIL  src/affichage.test.tsx > groupes d'outils > 4. la durée du groupe et celle de ses appels sont calculées de la même façon
+ FAIL  src/affichage.test.tsx > fin de mission > 5. une mission incomplète est titrée comme telle, avec sa cause
+ FAIL  src/affichage.test.tsx > fin de mission > 6. l'enveloppe JSON de la réponse n'apparaît pas dans le fil
