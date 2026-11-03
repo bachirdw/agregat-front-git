@@ -438,3 +438,26 @@ describe("lancement", () => {
     vi.doUnmock("./api");
   });
 });
+
+it("le texte de l'agent est rendu en Markdown, même si la mission échoue", () => {
+  render(
+    <AgentActivity
+      events={[
+        {
+          seq: 1,
+          type: "agent",
+          data: {
+            sessionUpdate: "agent_message_chunk",
+            content: {
+              type: "text",
+              text: "## Titre FICTIF\n\nTexte **gras**.",
+            },
+          },
+        },
+      ]}
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "Titre FICTIF" })).toBeTruthy();
+  expect(document.body.textContent).not.toContain("##");
+  expect(document.body.textContent).not.toContain("**");
+});

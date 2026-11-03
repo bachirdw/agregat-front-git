@@ -434,12 +434,12 @@ export function AgentActivity({
                 thinking={running && index === shown.length - 1}
               />
             ) : (
-              <p>
-                {block.text}
+              <>
+                <Markdown text={block.text} />
                 {running && index === shown.length - 1 && (
                   <span className="stream-caret" aria-hidden="true" />
                 )}
-              </p>
+              </>
             )}
           </li>
         ))}
