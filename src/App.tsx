@@ -11,7 +11,7 @@ import { api, ApiError, appendEvent, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
-import { CareerThread } from "./Career";
+import { CareerThread, SessionHistory } from "./Career";
 import { ConnectionsPanel } from "./ConnectionsPanel";
 import { MissionPill } from "./MissionPill";
 import { metaLine, Tracker } from "./Tracker";
@@ -859,6 +859,7 @@ export default function App() {
                 </CareerThread>
               ) : (
                 <>
+                  <SessionHistory run={run} runs={runs} />
                   <PromptBubble key={run.id} text={run.prompt} />
                   <RunView
                     run={run}

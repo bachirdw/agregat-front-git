@@ -784,3 +784,67 @@ test(
     assert.deepEqual(errors, []);
   },
 );
+
+test(
+  "conversation relancée : les tours passés restent dans le fil, avec leur détail",
+  { timeout: 60000 },
+  async (t) => {
+    const { page, app, errors } = await open(t);
+    const turn = (id, prompt, createdAt, resumedFrom, summary) =>
+      app.store.create({
+        id,
+        createdAt,
+        prompt,
+        state: "completed",
+        mode: "agent",
+        agent: "fixture",
+        pack: "core",
+        model: "",
+        simulated: true,
+        resumable: true,
+        sessionId: "fixture-thread",
+        resumedFrom,
+        budgetCents: 0,
+        plan: {
+          steps: [],
+          cost: {
+            platformCents: 0,
+            currency: "EUR",
+            budgetCents: 0,
+            withinBudget: true,
+            description: "Fictif",
+            lines: [],
+          },
+        },
+        result: { simulated: true, summary, evidence: [] },
+      });
+    const first = crypto.randomUUID();
+    const second = crypto.randomUUID();
+    turn(
+      first,
+      "Question FICTIVE un",
+      "2026-01-01T00:00:00.000Z",
+      null,
+      "Réponse FICTIVE un",
+    );
+    turn(
+      second,
+      "Question FICTIVE deux",
+      "2026-01-01T00:01:00.000Z",
+      first,
+      "Réponse FICTIVE deux",
+    );
+    app.store.event(first, "agent", {
+      sessionUpdate: "agent_message_chunk",
+      content: { type: "text", text: "Étape FICTIVE intermédiaire" },
+    });
+    await page.getByRole("button", { name: "Actualiser les missions" }).click();
+    await page.locator(".mission-link", { hasText: "deux" }).first().click();
+    await page.getByText("Réponse FICTIVE deux").waitFor();
+    await page.getByText("Question FICTIVE un").waitFor();
+    await page.getByText("Réponse FICTIVE un").waitFor();
+    await page.getByText("Détail de ce tour").click();
+    await page.getByText("Étape FICTIVE intermédiaire").waitFor();
+    assert.deepEqual(errors, []);
+  },
+);

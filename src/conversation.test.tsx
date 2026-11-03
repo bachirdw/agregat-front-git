@@ -225,6 +225,32 @@ describe("conversation (c) : actions repliables et groupées", () => {
     expect(container.querySelectorAll("details.tool-group")).toHaveLength(1);
     expect(container.querySelectorAll(".activity > li")).toHaveLength(3);
   });
+  it("tour terminé : garde les messages intermédiaires absents de la réponse", () => {
+    const say = (
+      seq: number,
+      text: string,
+      sessionUpdate = "agent_message_chunk",
+    ) =>
+      ({
+        seq,
+        type: "agent",
+        data: { sessionUpdate, content: { type: "text", text } },
+      }) as unknown as RunEvent;
+    const tool = {
+      seq: 2,
+      type: "agent",
+      data: { sessionUpdate: "tool_call", toolCallId: "t", title: "Outil" },
+    } as unknown as RunEvent;
+    render(
+      <AgentActivity
+        events={[say(1, "Je regarde d’abord."), tool, say(3, "Réponse finale")]}
+        final
+        answer="Réponse finale"
+      />,
+    );
+    expect(screen.getByText("Je regarde d’abord.")).toBeTruthy();
+    expect(screen.queryByText("Réponse finale")).toBeNull();
+  });
   it("affiche la durée mesurée du groupe quand les événements sont horodatés", () => {
     const events = [
       { ...tool("a", "x()"), at: "2026-10-28T00:00:00.000Z" },

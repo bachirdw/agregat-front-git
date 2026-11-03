@@ -143,6 +143,7 @@ export interface Run {
   title?: string;
   finishedAt?: string;
   sessionId?: string | null;
+  resumedFrom?: string | null;
   state: string;
   mode: string;
   agent: string;

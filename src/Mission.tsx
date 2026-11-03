@@ -363,7 +363,7 @@ export function RunView({
               running={!finalStates.has(run.state)}
             />
             <details className="event-log">
-              <summary>Journal en direct · {events.length} événements</summary>
+              <summary>Journal en direct · {events.length} entrées</summary>
               <ol>
                 {events.map((e) => (
                   <li key={e.seq}>

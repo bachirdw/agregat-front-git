@@ -16,6 +16,7 @@ import {
   CareerResults,
   CareerThread,
   sessionThread,
+  SessionHistory,
 } from "./Career";
 import { Skills } from "./Galleries";
 import type { Catalog, MissionInput, Plan, Run } from "./types";
@@ -1119,6 +1120,58 @@ describe("career-ops", () => {
     render(<AgentActivity events={events} />);
     expect(screen.getByText("jobs_search_live")).toBeTruthy();
     expect(screen.getByRole("img", { name: "réussi" })).toBeTruthy();
+  });
+  it("fil de session : resumedFrom relie les tours après un changement de session", () => {
+    const r = (id: string, sessionId: string, at: string, from?: string) =>
+      ({
+        id,
+        sessionId,
+        resumedFrom: from ?? null,
+        createdAt: at,
+        prompt: id,
+        state: "completed",
+      }) as unknown as Run;
+    const a = r("a", "s1", "1");
+    const b = r("b", "s1", "2", "a");
+    const c = r("c", "s2", "3", "b");
+    const other = r("z", "s9", "2");
+    expect(sessionThread(c, [c, other, b, a]).map((x) => x.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+  it("fil de session : les tours passés restent lisibles au-dessus de la relance", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ result: { summary: "Réponse du premier tour" } }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
+    const first = {
+      id: "a",
+      sessionId: "s1",
+      createdAt: "1",
+      prompt: "Première question",
+      state: "completed",
+    } as unknown as Run;
+    const second = {
+      ...first,
+      id: "b",
+      createdAt: "2",
+      prompt: "Relance",
+      resumedFrom: "a",
+    } as unknown as Run;
+    render(<SessionHistory run={second} runs={[second, first]} />);
+    expect(screen.getByText("Première question")).toBeTruthy();
+    expect(screen.queryByText("Relance")).toBeNull();
+    expect(await screen.findByText("Réponse du premier tour")).toBeTruthy();
+    expect(screen.getByText("Détail de ce tour")).toBeTruthy();
+    vi.unstubAllGlobals();
   });
   it("fil de session : tours de la même session, du plus ancien au plus récent", () => {
     const r = (id: string, sessionId: string | null, createdAt: string) =>

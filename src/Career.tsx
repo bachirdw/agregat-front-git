@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { api } from "./api";
+import { api, appendEvent, watchRun } from "./api";
 import { Markdown } from "./Markdown";
 import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money } from "./types";
@@ -301,20 +301,31 @@ function blocks(items: Item[]): Block[] {
   }
   return out;
 }
-// `final`: the run is over and its answer is shown apart, so only the folded steps remain.
+// `final`: the run is over and its answer is shown apart: only the text absent from `answer` remains.
 export function AgentActivity({
   events,
   running = false,
   final = false,
+  answer,
 }: {
   events: RunEvent[];
   running?: boolean;
   final?: boolean;
+  answer?: string | null;
 }) {
   const items = useMemo(() => activity(events), [events]);
   const shown = useMemo(
-    () => blocks(final ? items.filter((i) => i.kind !== "text") : items),
-    [items, final],
+    () =>
+      blocks(
+        final
+          ? items.filter(
+              (i) =>
+                i.kind !== "text" ||
+                (answer != null && !answer.includes(i.text.trim())),
+            )
+          : items,
+      ),
+    [items, final, answer],
   );
   const label = running ? waitingLabel(items) : null;
   if (!shown.length) return label ? <Waiting label={label} /> : null;
@@ -469,22 +480,78 @@ export function CareerResults({ run }: { run: Run }) {
 
 // One career-ops conversation = the runs sharing an agent session, oldest first (Claude-Code-like).
 export function sessionThread(run: Run, runs: Run[]): Run[] {
-  const same = run.sessionId
-    ? runs.filter(
-        (r) => r.sessionId === run.sessionId && r.createdAt <= run.createdAt,
-      )
-    : [];
-  const all = same.some((r) => r.id === run.id) ? same : [...same, run];
-  return [...all].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  // `resumedFrom` still links the turns when the agent had to open a new session.
+  const chain = new Map([[run.id, run]]);
+  let parent = run.resumedFrom;
+  while (parent && !chain.has(parent)) {
+    const previous = runs.find((r) => r.id === parent);
+    if (!previous) break;
+    chain.set(previous.id, previous);
+    parent = previous.resumedFrom;
+  }
+  const sessions = new Set(
+    [...chain.values()].map((r) => r.sessionId).filter(Boolean),
+  );
+  for (const r of runs)
+    if (sessions.has(r.sessionId) && r.createdAt <= run.createdAt)
+      chain.set(r.id, chain.get(r.id) ?? r);
+  return [...chain.values()].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
+}
+// Steps of a past turn, read from its journal the first time they are opened.
+function PastSteps({ run, answer }: { run: Run; answer: string | null }) {
+  const [opened, setOpened] = useState(false);
+  const [events, setEvents] = useState<RunEvent[]>([]);
+  const [status, setStatus] = useState<"loading" | "done" | "failed">(
+    "loading",
+  );
+  useEffect(() => {
+    if (!opened) return;
+    setEvents([]);
+    setStatus("loading");
+    const close = watchRun(run.id, {
+      connection: (ok) => {
+        if (ok) return;
+        close();
+        setStatus("failed");
+      },
+      update: (event) => setEvents((old) => appendEvent(old, event)),
+      end: () => setStatus("done"),
+    });
+    return close;
+  }, [opened, run.id]);
+  return (
+    <details
+      className="fold past-steps"
+      onToggle={(e) => {
+        if (e.currentTarget.open) setOpened(true);
+      }}
+    >
+      <summary>Détail de ce tour</summary>
+      {status === "loading" && <Waiting label="Chargement…" />}
+      {status === "failed" && (
+        <p className="danger" role="alert">
+          Impossible de charger le détail de ce tour.
+        </p>
+      )}
+      {status === "done" && !events.length && (
+        <p className="muted">Aucune étape enregistrée.</p>
+      )}
+      <AgentActivity events={events} final answer={answer ?? ""} />
+    </details>
+  );
 }
 function Turn({
   run,
   live,
   immediatePrompt,
+  source = "career",
 }: {
   run: Run;
   live?: RunEvent[];
   immediatePrompt?: string;
+  source?: "career" | "run";
 }) {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
@@ -496,6 +563,18 @@ function Turn({
     setPrompt(null);
     setAnswer(null);
     setAnswerError("");
+    if (source === "run") {
+      setPrompt(run.prompt);
+      if (done)
+        api<Run>(`/runs/${run.id}`, undefined, abort.signal)
+          .then((r) => {
+            if (!abort.signal.aborted) setAnswer(r.result?.summary || "");
+          })
+          .catch((e) => {
+            if (!abort.signal.aborted) setAnswerError((e as Error).message);
+          });
+      return () => abort.abort();
+    }
     api<{ prompt: string }>(
       `/career/runs/${run.id}/input`,
       undefined,
@@ -518,13 +597,19 @@ function Turn({
           if (!abort.signal.aborted) setAnswerError((e as Error).message);
         });
     return () => abort.abort();
-  }, [run.id, done, run.prompt]);
+  }, [run.id, done, run.prompt, source]);
   return (
     <>
       <PromptBubble text={prompt ?? immediatePrompt ?? "…"} />
       <div className="agent-turn">
         {live && !done && <AgentActivity events={live} running={running} />}
-        {live && done && <AgentActivity events={live} final />}
+        {live && done && (
+          <AgentActivity
+            events={live}
+            final
+            answer={answerError ? "" : answer}
+          />
+        )}
         {done && answer !== null && <Markdown text={answer} />}
         {done && answerError && (
           <p className="danger" role="alert">
@@ -535,8 +620,21 @@ function Turn({
         {["failed", "cancelled", "interrupted"].includes(run.state) && (
           <p className="danger">{run.error || "Tour interrompu."}</p>
         )}
+        {!live && !running && <PastSteps run={run} answer={answer} />}
       </div>
     </>
+  );
+}
+// Earlier turns of a resumable conversation, above the current run's own view.
+export function SessionHistory({ run, runs }: { run: Run; runs: Run[] }) {
+  const turns = sessionThread(run, runs).filter((t) => t.id !== run.id);
+  if (!turns.length) return null;
+  return (
+    <div className="career-thread">
+      {turns.map((t) => (
+        <Turn key={t.id} run={t} source="run" />
+      ))}
+    </div>
   );
 }
 export function CareerThread({
