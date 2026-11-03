@@ -845,6 +845,17 @@ test(
     await page.getByText("Réponse FICTIVE un").waitFor();
     await page.getByText("Détail de ce tour").click();
     await page.getByText("Étape FICTIVE intermédiaire").waitFor();
+    // Every message of the user sits on the right, in the flex thread and in the grid of past turns.
+    const sides = await page.evaluate(() =>
+      [...document.querySelectorAll(".prompt-bubble")].map((bubble) => {
+        const box = bubble.getBoundingClientRect();
+        const turn = document
+          .querySelector(".agent-turn, .results, .timeline")
+          .getBoundingClientRect();
+        return Math.round(turn.right - box.right) <= 1 && box.left > turn.left + 20;
+      }),
+    );
+    assert.deepEqual(sides, [true, true]);
     assert.deepEqual(errors, []);
   },
 );
