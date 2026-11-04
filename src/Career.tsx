@@ -224,6 +224,30 @@ export function describeTool(tool: Tool) {
     params: undefined,
   };
 }
+// Nom du skill/outil en cours, visible ~1,6 s au début de chaque appel ; masqué pendant une demande d'accord.
+export function SkillChip({ events, run }: { events: RunEvent[]; run: Run }) {
+  const tool = useMemo(
+    () =>
+      [...activity(events)]
+        .reverse()
+        .find((i): i is Tool => i.kind === "tool" && active(i.status)),
+    [events],
+  );
+  const [shown, setShown] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tool) return setShown(null);
+    setShown(tool.id);
+    const timer = window.setTimeout(() => setShown(null), 1600);
+    return () => window.clearTimeout(timer);
+  }, [tool?.id]);
+  if (!tool || shown !== tool.id || run.permissions?.length) return null;
+  return (
+    <div className="skill-chip" role="status">
+      <i aria-hidden="true" />
+      {describeTool(tool).name}
+    </div>
+  );
+}
 // One format for a call and for its group, so that both stay comparable.
 function formatDuration(ms: number) {
   if (ms < 100) return "< 0,1 s";
@@ -685,6 +709,7 @@ function Turn({
   return (
     <>
       <PromptBubble text={prompt ?? immediatePrompt ?? "…"} />
+      {live && running && <SkillChip events={live} run={run} />}
       <div className="agent-turn">
         {live && !done && <AgentActivity events={live} running={running} />}
         {live && done && (
