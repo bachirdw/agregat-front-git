@@ -18,7 +18,7 @@ import { MissionPill } from "./MissionPill";
 import { metaLine, Tracker } from "./Tracker";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
-import { PlanCard, RunView } from "./Mission";
+import { PlanCard, RunTurn, RunView } from "./Mission";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
 type Page =
   | "home"
@@ -885,7 +885,7 @@ export default function App() {
                 <>
                   <SessionHistory run={run} runs={runs} />
                   <PromptBubble key={run.id} text={run.prompt} />
-                  <RunView
+                  <RunTurn
                     run={run}
                     events={events}
                     connection={connection}

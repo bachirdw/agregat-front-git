@@ -63,6 +63,27 @@ export function trackerPhrase(run: Run, items: TrackerItem[]) {
 }
 const lastEvent = (events: RunEvent[], type: string) =>
   [...events].reverse().find((event) => event.type === type);
+export const dataModeLabel = {
+  fixture: "Sources fictives · démonstration",
+  live: "Sources réelles · provenance à vérifier",
+  user: "Données fournies par l’utilisateur · non vérifiées",
+  unverified: "Provenance des données non vérifiée",
+};
+// Provenance of the run's data, in the backend's own words; never a broader claim.
+export function dataLabel(run: Run, events: RunEvent[]) {
+  if (!run.dataMode) return "";
+  const scope = lastEvent(events, "verification")?.data.scope;
+  const browserEvidenceConfirmed =
+    run.state === "completed" &&
+    run.result?.simulated === false &&
+    run.result.provenance?.data === "navigateur réel" &&
+    !!run.result.evidence?.length;
+  return browserEvidenceConfirmed
+    ? "Page observée · preuves navigateur"
+    : run.dataMode === "unverified" && scope
+      ? String(scope)
+      : dataModeLabel[run.dataMode];
+}
 // One line under the result; each part appears only if the backend reported it.
 export function metaLine(run: Run, events: RunEvent[]) {
   if (!finalStates.has(run.state)) return "";
@@ -85,6 +106,8 @@ export function trackerDetails(run: Run, events: RunEvent[]) {
   ];
   if (session) rows.push(["Session", `ACP · mode ${mode || "non annoncé"}`]);
   if (run.browser) rows.push(["Navigateur", run.browser]);
+  const data = dataLabel(run, events);
+  if (data) rows.push(["Données", data]);
   if (proofs) rows.push(["Preuves", String(proofs)]);
   if (verification)
     rows.push([
@@ -167,16 +190,31 @@ export function Tracker({
             Détails techniques
           </button>
           {details && (
-            <dl>
-              {trackerDetails(run, events).map(([key, value, tone]) => (
-                <div key={key}>
-                  <dt>{key}</dt>
-                  <dd className={tone} title={value}>
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <>
+              <dl>
+                {trackerDetails(run, events).map(([key, value, tone]) => (
+                  <div key={key}>
+                    <dt>{key}</dt>
+                    <dd className={tone} title={value}>
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <details className="event-log">
+                <summary>Journal brut · {events.length} entrées</summary>
+                <ol>
+                  {events.map((e) => (
+                    <li key={e.seq}>
+                      <span>
+                        #{e.seq} · {e.type}
+                      </span>
+                      <pre>{JSON.stringify(e.data, null, 2)}</pre>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            </>
           )}
         </div>
       )}

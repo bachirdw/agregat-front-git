@@ -200,24 +200,31 @@ test(
     );
     await shot(page, "08-plan");
     await page.getByRole("button", { name: "Lancer", exact: true }).click();
-    await page
-      .getByRole("region", { name: "Exécution", exact: true })
-      .waitFor();
+    // conversation-02 : le tour compact remplace la carte « Exécution ».
+    await page.locator(".thread .agent-turn").waitFor();
     await shot(page, "09-execution");
     await finished(page);
     assert.match(
       await page.locator(".results").innerText(),
-      /DONNÉES FICTIVES/,
+      /Données fictives/,
     );
     assert.equal(await page.locator(".offer").count(), 3);
-    assert.match(await page.locator(".usage-card").innerText(), /Intègre/);
+    assert.equal(await page.locator(".thread .usage-card").count(), 0);
+    assert.match(await page.locator(".panel-cost").innerText(), /Intègre/);
     await shot(page, "02-mission-offres-2");
     assert.ok(
       app.store.events(app.store.list()[0].id).some((e) => e.type === "step"),
     );
-    await page.locator(".timeline-heading").click();
-    await page.locator(".event-log summary").click();
-    assert.match(await page.locator(".event-log").innerText(), /step/);
+    // conversation-02 : le journal brut est dans Suivi › Détails techniques.
+    const tracker = page.getByRole("region", { name: "Suivi de la mission" });
+    if (
+      (await tracker.locator(".tracker-head").getAttribute("aria-expanded")) !==
+      "true"
+    )
+      await tracker.locator(".tracker-head").click();
+    await tracker.getByRole("button", { name: /Détails techniques/ }).click();
+    await tracker.locator(".event-log summary").click();
+    assert.match(await tracker.locator(".event-log").innerText(), /step/);
     // Real HTTP SSE replay with the saved sequence, no client mocks.
     const id = app.store.list()[0].id,
       cursor = app.store.events(id)[1].seq;
@@ -279,15 +286,18 @@ test(
       .waitFor({ timeout: 45000 });
     await shot(page, "02-mission-senior-0");
     await shot(page, "10-execution-suite");
-    assert.match(await page.locator(".approval").innerText(), /Aucun envoi/);
+    assert.match(
+      await page.locator(".inline-approval").innerText(),
+      /Aucun envoi/,
+    );
     assert.match(await page.locator(".review-output").innerText(), /\S+/);
     await page.getByRole("button", { name: "Refuser", exact: true }).click();
     await page
-      .getByRole("button", { name: "Reprendre le workflow" })
+      .getByRole("button", { name: "Reprendre", exact: true })
       .waitFor({ timeout: 30000 });
     await shot(page, "02-mission-veille-1");
     const original = app.store.list()[0].id;
-    await page.getByRole("button", { name: "Reprendre le workflow" }).click();
+    await page.getByRole("button", { name: "Reprendre", exact: true }).click();
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor({ timeout: 30000 });
@@ -416,9 +426,17 @@ test(
       .getByText("Connexion perdue · reconnexion…", { exact: true })
       .waitFor({ timeout: 25000 });
     await page.context().setOffline(false);
+    // conversation-02 : « Flux en direct » n'est plus affiché dans le tour.
+    // On attend la reconnexion SSE native elle-même (requête avec Last-Event-ID), puis la fin du message de perte.
+    const deadline = Date.now() + 25000;
+    while (
+      !reconnectCursors.some((cursor) => Number(cursor) > 0) &&
+      Date.now() < deadline
+    )
+      await new Promise((r) => setTimeout(r, 200));
     await page
-      .getByText("Flux en direct", { exact: true })
-      .waitFor({ timeout: 25000 });
+      .getByText("Connexion perdue · reconnexion…", { exact: true })
+      .waitFor({ state: "detached", timeout: 25000 });
     assert.ok(
       reconnectCursors.some((cursor) => Number(cursor) > 0),
       "Reconnexion native avec Last-Event-ID",

@@ -1,15 +1,19 @@
-import { AgentActivity } from "./Career";
+import { AgentActivity, SkillChip } from "./Career";
 import { SkillSteps } from "./SkillSteps";
-import { useEffect, useState } from "react";
-import type { Catalog, Cost, Plan, Run, RunEvent } from "./types";
+import { Fragment, useEffect, useState } from "react";
+import type {
+  Catalog,
+  Cost,
+  Opportunity,
+  Permission,
+  Plan,
+  Run,
+  RunEvent,
+  Step,
+} from "./types";
 import { finalStates, labels, money } from "./types";
 import { Markdown, safeLink } from "./Markdown";
-const dataModeLabel = {
-  fixture: "Sources fictives · démonstration",
-  live: "Sources réelles · provenance à vérifier",
-  user: "Données fournies par l’utilisateur · non vérifiées",
-  unverified: "Provenance des données non vérifiée",
-};
+import { dataLabel, dataModeLabel, trackerItems } from "./Tracker";
 export function CostDetails({
   cost,
   catalog,
@@ -220,6 +224,389 @@ function showOutput(value: unknown) {
     return String(value.summary);
   return JSON.stringify(value, null, 2);
 }
+type Act = (path: string, body: unknown) => Promise<void>;
+// Ticks every second while a permission can expire, for its countdown.
+function useNow(run: Run) {
+  const [now, setNow] = useState(Date.now());
+  const expiring =
+    run.permissions?.some((p) => Number.isFinite(p.expiresAt)) ?? false;
+  useEffect(() => {
+    if (!expiring) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [expiring]);
+  return now;
+}
+const resumableRun = (run: Run) =>
+  (run.mode === "workflow" &&
+    ["failed", "cancelled", "interrupted"].includes(run.state)) ||
+  (run.resumable && finalStates.has(run.state));
+// The back finishes a run with unmet required steps as "Mission incomplète : <steps>".
+const incompleteSteps = (run: Run) =>
+  run.error?.match(/^Mission incomplète\s*:\s*([\s\S]+)/)?.[1];
+const reviewText = (step: Step) =>
+  step.state === "uncertain"
+    ? "L’effet de cette étape est incertain. Vérifiez son résultat avant de décider."
+    : "Relisez le brouillon avant de valider. Aucun envoi ne sera effectué.";
+// Outputs the step under review depends on: what the user reads before deciding.
+const reviewed = (run: Run, step: Step) =>
+  run.steps?.filter(
+    (p) =>
+      p.output &&
+      run.plan.workflow?.steps
+        .find((d) => d.id === step.step_id)
+        ?.dependsOn?.includes(p.step_id),
+  ) ?? [];
+// Decision buttons of a workflow step; one source for both views, so the calls stay identical.
+function StepActions({
+  run,
+  step,
+  busy,
+  act,
+}: {
+  run: Run;
+  step: Step;
+  busy: boolean;
+  act: Act;
+}) {
+  const path = `/runs/${run.id}/steps/${step.step_id}`;
+  return step.state === "waiting_approval" ? (
+    <>
+      <button
+        className="primary"
+        disabled={busy}
+        onClick={() => void act(path, { approved: true })}
+      >
+        Approuver
+      </button>
+      <button
+        disabled={busy}
+        onClick={() => void act(path, { approved: false })}
+      >
+        Refuser
+      </button>
+    </>
+  ) : (
+    <>
+      {[
+        ["retry", "Relancer"],
+        ["done", "Marquer comme faite"],
+        ["fail", "Marquer en échec"],
+      ].map(([action, title]) => (
+        <button
+          key={action}
+          disabled={busy}
+          onClick={() => void act(path, { action })}
+        >
+          {title}
+        </button>
+      ))}
+    </>
+  );
+}
+// ACP permission options; "allow_always" is never offered.
+function PermissionActions({
+  permission: p,
+  now,
+  busy,
+  act,
+}: {
+  permission: Permission;
+  now: number;
+  busy: boolean;
+  act: Act;
+}) {
+  return (
+    <>
+      {p.options
+        .filter((o) =>
+          ["allow_once", "reject_once", "reject_always"].includes(o.kind),
+        )
+        .map((o) => (
+          <button
+            key={o.optionId}
+            className={o.kind === "allow_once" ? "primary" : ""}
+            disabled={busy || (p.expiresAt !== undefined && now >= p.expiresAt)}
+            onClick={() =>
+              void act(`/permissions/${p.id}`, { optionId: o.optionId })
+            }
+          >
+            {o.name}
+          </button>
+        ))}
+    </>
+  );
+}
+const countdown = (p: Permission, now: number) =>
+  Number.isFinite(p.expiresAt)
+    ? now >= p.expiresAt!
+      ? "Accord expiré"
+      : `Expire dans ${Math.ceil((p.expiresAt! - now) / 1000)} s`
+    : "Une permission expirée est refusée par le serveur.";
+// `plain`: no badge (compact turn), same words.
+function Opportunities({
+  list,
+  plain = false,
+}: {
+  list: Opportunity[];
+  plain?: boolean;
+}) {
+  return (
+    <>
+      <div className="table-wrap card">
+        <table>
+          <caption>Classement des offres</caption>
+          <thead>
+            <tr>
+              <th>Employeur</th>
+              <th>Lieu</th>
+              <th>Score</th>
+              <th>Sponsoring</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((o) => (
+              <tr key={o.id}>
+                <th scope="row">{o.company}</th>
+                <td>{o.location}</td>
+                <td>{o.score}</td>
+                <td>
+                  {o.sponsorship === "uk_register_name_match"
+                    ? "Nom présent · entité à confirmer"
+                    : "Non vérifié"}
+                </td>
+                <td>
+                  {safeLink(o.url) ? (
+                    <a href={o.url} target="_blank" rel="noopener noreferrer">
+                      {o.source || o.attribution || "Voir la source"} ↗
+                    </a>
+                  ) : (
+                    o.source || "Non fournie"
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="offer-grid">
+        {list.map((o) => (
+          <article className="card offer" key={o.id}>
+            <div className="card-pad">
+              <div className="spread">
+                <div>
+                  <strong>{o.title}</strong>
+                  <p>{o.company}</p>
+                  <small>{o.location}</small>
+                </div>
+                <strong className="score">
+                  {o.score}
+                  <small>/100</small>
+                </strong>
+              </div>
+              <meter
+                min="0"
+                max="100"
+                value={o.score}
+                aria-label={`Score ${o.title}`}
+              />
+              <ul>
+                {o.reasons?.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+              <span className={plain ? "warning" : "badge warning"}>
+                {o.sponsorship === "uk_register_name_match"
+                  ? "Nom au registre UK · entité à confirmer"
+                  : "Sponsoring : non vérifié"}
+              </span>
+              <small>
+                Source : {o.attribution || o.source || "Non fournie"}
+                {o.fetchedAt &&
+                  " · " + new Date(o.fetchedAt).toLocaleString("fr-FR")}
+              </small>
+              {safeLink(o.url) && (
+                <a href={o.url} target="_blank" rel="noopener noreferrer">
+                  Voir l’offre ↗
+                </a>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}
+const stepMarks = {
+  done: "✓",
+  failed: "✕",
+  running: "•",
+  waiting: "•",
+  pending: "○",
+} as const;
+// Compact agent turn of a mission outside career-ops: no badge, no card grid; details live in the Tracker.
+export function RunTurn({
+  run,
+  events,
+  connection,
+  busy,
+  act,
+}: {
+  run: Run;
+  events: RunEvent[];
+  connection: string;
+  busy: boolean;
+  act: Act;
+}) {
+  const now = useNow(run);
+  const running = !finalStates.has(run.state);
+  const items = run.plan.workflow?.steps?.length
+    ? trackerItems(run, events)
+    : [];
+  const current =
+    items.find((i) => ["running", "waiting", "failed"].includes(i.mark)) ??
+    items.find((i) => i.mark === "pending") ??
+    items.at(-1);
+  const incomplete = incompleteSteps(run);
+  const opportunities = run.result?.opportunities ?? [];
+  const evidence = run.result?.evidence ?? [];
+  return (
+    <>
+      {running && <SkillChip events={events} run={run} />}
+      <div className="agent-turn">
+        <AgentActivity events={events} running={running} />
+        {current && (
+          <details
+            className={
+              "fold tool-group" +
+              (items.some((i) => i.mark === "failed") ? " failed" : "")
+            }
+          >
+            <summary>
+              Étape {items.indexOf(current) + 1}/{items.length} ·{" "}
+              {current.title}
+            </summary>
+            <ol>
+              {items.map((item) => (
+                <li key={item.id}>
+                  <span aria-hidden="true">{stepMarks[item.mark]}</span>
+                  <span>{item.title}</span>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )}
+        {run.pack !== "career-ops" && (
+          <SkillSteps progress={run.skillProgress} />
+        )}
+        {run.steps
+          ?.filter(
+            (s) => s.state === "waiting_approval" || s.state === "uncertain",
+          )
+          .map((s) => {
+            const reviews = reviewed(run, s);
+            return (
+              <Fragment key={s.step_id}>
+                <section
+                  className="inline-approval"
+                  aria-label="Votre accord est requis"
+                >
+                  <i aria-hidden="true" />
+                  <span>
+                    {run.plan.workflow?.steps.find((d) => d.id === s.step_id)
+                      ?.title || s.step_id}
+                  </span>
+                  <StepActions run={run} step={s} busy={busy} act={act} />
+                  <small>{reviewText(s)}</small>
+                </section>
+                {reviews.length > 0 && (
+                  <details className="fold" open>
+                    <summary>À relire avant de décider</summary>
+                    {reviews.map((p) => (
+                      <div className="review-output" key={p.step_id}>
+                        <Markdown text={showOutput(p.output)} />
+                      </div>
+                    ))}
+                  </details>
+                )}
+              </Fragment>
+            );
+          })}
+        {run.permissions?.map((p) => (
+          <Fragment key={p.id}>
+            <section className="inline-approval" aria-label="Permission agent">
+              <i aria-hidden="true" />
+              <span>{p.tool.title || "Autorisation agent"}</span>
+              <PermissionActions
+                permission={p}
+                now={now}
+                busy={busy}
+                act={act}
+              />
+              <small role="timer">{countdown(p, now)}</small>
+            </section>
+            <details className="fold">
+              <summary>Détails de la demande</summary>
+              <pre>{JSON.stringify(p.tool, null, 2)}</pre>
+            </details>
+          </Fragment>
+        ))}
+        {connection.includes("perdue") && (
+          <small className="danger">{connection}</small>
+        )}
+        {run.error && (
+          <p className="danger" role="alert">
+            {incomplete
+              ? `Mission incomplète : ${incomplete}`
+              : `${labels[run.state] || run.state} · ${run.error}`}
+          </p>
+        )}
+        {run.result && (
+          <section className="results" aria-label="Résultats">
+            <Markdown text={run.result.summary} />
+            {run.result.simulated && (
+              <small className="warning">Données fictives</small>
+            )}
+            {opportunities.length > 0 && (
+              <details className="fold">
+                <summary>Voir les {opportunities.length} offres</summary>
+                <Opportunities list={opportunities} plain />
+              </details>
+            )}
+            {evidence.length > 0 && (
+              <details className="fold">
+                <summary>Preuves · {evidence.length}</summary>
+                {evidence.map((e, i) => (
+                  <pre key={i}>{showOutput(e)}</pre>
+                ))}
+              </details>
+            )}
+          </section>
+        )}
+        {running && (
+          <button
+            className="stop-mission"
+            disabled={busy}
+            onClick={() => void act(`/runs/${run.id}/cancel`, {})}
+          >
+            Arrêter la mission
+          </button>
+        )}
+        {resumableRun(run) && (
+          <button
+            type="button"
+            className="resume"
+            disabled={busy}
+            onClick={() => void act(`/runs/${run.id}/resume`, {})}
+          >
+            Reprendre
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
 export function RunView({
   run,
   events,
@@ -234,17 +621,10 @@ export function RunView({
   act: (path: string, body: unknown) => Promise<void>;
 }) {
   const [timelineOpen, setTimelineOpen] = useState(!finalStates.has(run.state));
-  const [now, setNow] = useState(Date.now());
-  const hasExpiringPermission =
-    run.permissions?.some((p) => Number.isFinite(p.expiresAt)) ?? false;
+  const now = useNow(run);
   useEffect(() => {
     setTimelineOpen(!finalStates.has(run.state));
   }, [run.id, run.state]);
-  useEffect(() => {
-    if (!hasExpiringPermission) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [hasExpiringPermission]);
   const definitions = run.plan.workflow?.steps || [];
   const done = run.steps?.filter((s) => s.state === "succeeded").length || 0;
   const verification = [...events]
@@ -258,22 +638,8 @@ export function RunView({
   )?.current;
   const selectedMode = (session?.data.modes as { current?: string } | undefined)
     ?.current;
-  const resumable =
-    (run.mode === "workflow" &&
-      ["failed", "cancelled", "interrupted"].includes(run.state)) ||
-    (run.resumable && finalStates.has(run.state));
-  // The back finishes a run with unmet required steps as "Mission incomplète : <steps>".
-  const incomplete = run.error?.match(
-    /^Mission incomplète\s*:\s*([\s\S]+)/,
-  )?.[1];
-  const verificationScope = verification?.data.scope
-    ? String(verification.data.scope)
-    : "";
-  const browserEvidenceConfirmed =
-    run.state === "completed" &&
-    run.result?.simulated === false &&
-    run.result.provenance?.data === "navigateur réel" &&
-    !!run.result.evidence?.length;
+  const resumable = resumableRun(run);
+  const incomplete = incompleteSteps(run);
   return (
     <>
       <div className="spread">
@@ -294,12 +660,7 @@ export function RunView({
           <span
             className={"badge " + (run.dataMode === "fixture" ? "warning" : "")}
           >
-            {browserEvidenceConfirmed
-              ? "Page observée · preuves navigateur"
-              : run.dataMode === "unverified" && verificationScope
-                ? // Same words as the back's verification, never a broader claim.
-                  verificationScope
-                : dataModeLabel[run.dataMode]}
+            {dataLabel(run, events)}
           </span>
         )}
         {session && (
@@ -435,71 +796,15 @@ export function RunView({
                 {definitions.find((d) => d.id === s.step_id)?.title ||
                   s.step_id}
               </h2>
-              <p>
-                {s.state === "uncertain"
-                  ? "L’effet de cette étape est incertain. Vérifiez son résultat avant de décider."
-                  : "Relisez le brouillon avant de valider. Aucun envoi ne sera effectué."}
-              </p>
-              {run.steps
-                ?.filter(
-                  (p) =>
-                    p.output &&
-                    definitions
-                      .find((d) => d.id === s.step_id)
-                      ?.dependsOn?.includes(p.step_id),
-                )
-                .map((p) => (
-                  <div className="review-output" key={p.step_id}>
-                    <Markdown text={showOutput(p.output)} />
-                  </div>
-                ))}
+              <p>{reviewText(s)}</p>
+              {reviewed(run, s).map((p) => (
+                <div className="review-output" key={p.step_id}>
+                  <Markdown text={showOutput(p.output)} />
+                </div>
+              ))}
             </div>
             <footer>
-              {s.state === "waiting_approval" ? (
-                <>
-                  <button
-                    className="primary"
-                    disabled={busy}
-                    onClick={() =>
-                      void act(`/runs/${run.id}/steps/${s.step_id}`, {
-                        approved: true,
-                      })
-                    }
-                  >
-                    Approuver
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      void act(`/runs/${run.id}/steps/${s.step_id}`, {
-                        approved: false,
-                      })
-                    }
-                  >
-                    Refuser
-                  </button>
-                </>
-              ) : (
-                <>
-                  {[
-                    ["retry", "Relancer"],
-                    ["done", "Marquer comme faite"],
-                    ["fail", "Marquer en échec"],
-                  ].map(([action, title]) => (
-                    <button
-                      key={action}
-                      disabled={busy}
-                      onClick={() =>
-                        void act(`/runs/${run.id}/steps/${s.step_id}`, {
-                          action,
-                        })
-                      }
-                    >
-                      {title}
-                    </button>
-                  ))}
-                </>
-              )}
+              <StepActions run={run} step={s} busy={busy} act={act} />
             </footer>
           </section>
         ))}
@@ -515,33 +820,10 @@ export function RunView({
             </small>
             <h2>{p.tool.title || "Autorisation agent"}</h2>
             <pre>{JSON.stringify(p.tool, null, 2)}</pre>
-            <small role="timer">
-              {Number.isFinite(p.expiresAt)
-                ? now >= p.expiresAt!
-                  ? "Accord expiré"
-                  : `Expire dans ${Math.ceil((p.expiresAt! - now) / 1000)} s`
-                : "Une permission expirée est refusée par le serveur."}
-            </small>
+            <small role="timer">{countdown(p, now)}</small>
           </div>
           <footer>
-            {p.options
-              .filter((o) =>
-                ["allow_once", "reject_once", "reject_always"].includes(o.kind),
-              )
-              .map((o) => (
-                <button
-                  key={o.optionId}
-                  className={o.kind === "allow_once" ? "primary" : ""}
-                  disabled={
-                    busy || (p.expiresAt !== undefined && now >= p.expiresAt)
-                  }
-                  onClick={() =>
-                    void act(`/permissions/${p.id}`, { optionId: o.optionId })
-                  }
-                >
-                  {o.name}
-                </button>
-              ))}
+            <PermissionActions permission={p} now={now} busy={busy} act={act} />
           </footer>
         </section>
       ))}
@@ -601,96 +883,7 @@ export function RunView({
           )}
           {!!run.result.opportunities?.length && (
             <>
-              <div className="table-wrap card">
-                <table>
-                  <caption>Classement des offres</caption>
-                  <thead>
-                    <tr>
-                      <th>Employeur</th>
-                      <th>Lieu</th>
-                      <th>Score</th>
-                      <th>Sponsoring</th>
-                      <th>Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {run.result.opportunities.map((o) => (
-                      <tr key={o.id}>
-                        <th scope="row">{o.company}</th>
-                        <td>{o.location}</td>
-                        <td>{o.score}</td>
-                        <td>
-                          {o.sponsorship === "uk_register_name_match"
-                            ? "Nom présent · entité à confirmer"
-                            : "Non vérifié"}
-                        </td>
-                        <td>
-                          {safeLink(o.url) ? (
-                            <a
-                              href={o.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {o.source || o.attribution || "Voir la source"} ↗
-                            </a>
-                          ) : (
-                            o.source || "Non fournie"
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="offer-grid">
-                {run.result.opportunities.map((o) => (
-                  <article className="card offer" key={o.id}>
-                    <div className="card-pad">
-                      <div className="spread">
-                        <div>
-                          <strong>{o.title}</strong>
-                          <p>{o.company}</p>
-                          <small>{o.location}</small>
-                        </div>
-                        <strong className="score">
-                          {o.score}
-                          <small>/100</small>
-                        </strong>
-                      </div>
-                      <meter
-                        min="0"
-                        max="100"
-                        value={o.score}
-                        aria-label={`Score ${o.title}`}
-                      />
-                      <ul>
-                        {o.reasons?.map((r, i) => (
-                          <li key={i}>{r}</li>
-                        ))}
-                      </ul>
-                      <span className="badge warning">
-                        {o.sponsorship === "uk_register_name_match"
-                          ? "Nom au registre UK · entité à confirmer"
-                          : "Sponsoring : non vérifié"}
-                      </span>
-                      <small>
-                        Source : {o.attribution || o.source || "Non fournie"}
-                        {o.fetchedAt &&
-                          " · " + new Date(o.fetchedAt).toLocaleString("fr-FR")}
-                      </small>
-                      {safeLink(o.url) && (
-                        <a
-                          href={o.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Voir l’offre ↗
-                        </a>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
+              <Opportunities list={run.result.opportunities} />
             </>
           )}
           {!!run.result.evidence?.length && (
