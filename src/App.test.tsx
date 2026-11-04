@@ -51,13 +51,13 @@ it("conserve la saisie effectuée avant le catalogue et permet de réessayer une
       .value,
   ).toBe("Saisie rapide");
 });
-it("une réponse de plan tardive ne remplace pas une nouvelle mission", async () => {
-  let resolvePlan!: (value: Plan) => void;
-  const pending = new Promise<Plan>((r) => (resolvePlan = r));
-  vi.mocked(api).mockImplementation((path) =>
+it("un lancement tardif ne remplace pas une nouvelle mission", async () => {
+  let resolveRun!: (value: Run) => void;
+  const pending = new Promise<Run>((r) => (resolveRun = r));
+  vi.mocked(api).mockImplementation((path, body) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/plan"
+      : path === "/runs" && body
         ? (pending as never)
         : (Promise.resolve([]) as never),
   );
@@ -66,7 +66,7 @@ it("une réponse de plan tardive ne remplace pas une nouvelle mission", async ()
     expect(
       (
         screen.getByRole("button", {
-          name: "Préparer le plan",
+          name: "Lancer la mission",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true),
@@ -78,61 +78,42 @@ it("une réponse de plan tardive ne remplace pas une nouvelle mission", async ()
     expect(
       (
         screen.getByRole("button", {
-          name: "Préparer le plan",
+          name: "Lancer la mission",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(false),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Préparer le plan" }));
+  fireEvent.click(screen.getByRole("button", { name: "Lancer la mission" }));
   fireEvent.click(screen.getByRole("button", { name: /Nouvelle mission/ }));
   await act(async () =>
-    resolvePlan({
+    resolveRun({
+      id: "00000000-0000-4000-8000-0000000000d1",
+      prompt: "Ancien objectif",
+      state: "running",
+      mode: "agent",
       agent: "fixture",
       pack: "core",
-      steps: [],
-      cost: {
-        platformCents: 0,
-        currency: "EUR",
-        budgetCents: 0,
-        withinBudget: true,
-        description: "Test",
-        lines: [],
-      },
-      permissions: [],
-      simulated: true,
-      routing: { reasons: [], rejected: [] },
-      workflow: null,
-    }),
+      createdAt: "2026-11-04T00:00:00.000Z",
+    } as unknown as Run),
   );
-  expect(screen.queryByRole("region", { name: "Plan proposé" })).toBeNull();
+  expect(api).not.toHaveBeenCalledWith(
+    "/runs/00000000-0000-4000-8000-0000000000d1",
+  );
+  expect(
+    screen.getByRole("heading", { name: "Que dois-je faire ?" }),
+  ).toBeTruthy();
   expect(
     (screen.getByLabelText("Objectif de la mission") as HTMLTextAreaElement)
       .value,
   ).toBe("");
 });
-it("affiche le plan avec un composeur compact, place les actions en bas et rouvre Modifier", async () => {
-  const plan = {
-    agent: "fixture",
-    pack: "core",
-    steps: ["Étape fictive"],
-    cost: {
-      platformCents: 0,
-      currency: "EUR",
-      budgetCents: 0,
-      withinBudget: true,
-      description: "Test fictif",
-      lines: [],
-    },
-    permissions: [],
-    simulated: true,
-    routing: { reasons: [], rejected: [] },
-    workflow: null,
-  } as Plan;
-  vi.mocked(api).mockImplementation(
-    (path) =>
-      Promise.resolve(
-        path === "/catalog" ? catalog : path === "/plan" ? plan : [],
-      ) as never,
+it("pendant le lancement, le composeur est compact et le fil montre le message envoyé", async () => {
+  vi.mocked(api).mockImplementation((path, body) =>
+    path === "/catalog"
+      ? (Promise.resolve(catalog) as never)
+      : path === "/runs" && body
+        ? (new Promise(() => {}) as never)
+        : (Promise.resolve([]) as never),
   );
   const { container } = render(<App />);
   const feed = container.querySelector<HTMLElement>(".scroll-content")!;
@@ -141,33 +122,26 @@ it("affiche le plan avec un composeur compact, place les actions en bas et rouvr
     value: 1000,
   });
   fireEvent.change(screen.getByLabelText("Objectif de la mission"), {
-    target: {
-      value:
-        "Ligne fictive 1\nLigne fictive 2\nLigne fictive 3\nLigne fictive 4",
-    },
+    target: { value: "Ligne fictive 1\nLigne fictive 2" },
   });
   await waitFor(() =>
     expect(
       (
         screen.getByRole("button", {
-          name: "Préparer le plan",
+          name: "Lancer la mission",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(false),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Préparer le plan" }));
-  await screen.findByRole("region", { name: "Plan proposé" });
+  fireEvent.click(screen.getByRole("button", { name: "Lancer la mission" }));
+  await screen.findByText("Lancement de la mission…");
+  expect(
+    screen.getByRole("button", { name: "Annuler le lancement" }),
+  ).toBeTruthy();
   expect(
     container.querySelector(".composer")?.getAttribute("data-compact"),
   ).toBe("true");
   expect(feed.scrollTo).toHaveBeenCalledWith({ top: 1000 });
-  fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
-  expect(
-    container.querySelector(".composer")?.getAttribute("data-compact"),
-  ).toBe("false");
-  expect(document.activeElement).toBe(
-    screen.getByLabelText("Objectif de la mission"),
-  );
 });
 
 it("mesure le dock et garde le bas visible quand il grandit, sans déplacer une lecture plus haut", async () => {
@@ -192,7 +166,7 @@ it("mesure le dock et garde le bas visible quand il grandit, sans déplacer une 
     (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,
   );
   const { container, unmount } = render(<App />);
-  await screen.findByRole("button", { name: "Préparer le plan" });
+  await screen.findByRole("button", { name: "Lancer la mission" });
   const main = container.querySelector<HTMLElement>(".main")!;
   const feed = container.querySelector<HTMLElement>(".scroll-content")!;
   const dock = container.querySelector<HTMLElement>(".composer-dock")!;
@@ -231,7 +205,7 @@ it("retire la réserve mesurée lorsqu'on quitte une page avec dock", async () =
     (path) => Promise.resolve(path === "/catalog" ? catalog : []) as never,
   );
   const { container } = render(<App />);
-  await screen.findByRole("button", { name: "Préparer le plan" });
+  await screen.findByRole("button", { name: "Lancer la mission" });
   const main = container.querySelector<HTMLElement>(".main")!;
   main.style.setProperty("--dock-h", "180px");
   fireEvent.click(screen.getByRole("button", { name: "Agents" }));
@@ -471,9 +445,7 @@ it("vide l'objectif initial après le lancement pour ne pas le proposer comme r�
   render(<App />);
   const composer = await screen.findByLabelText("Objectif de la mission");
   fireEvent.change(composer, { target: { value: "Profil FICTIF initial" } });
-  fireEvent.click(screen.getByRole("button", { name: "Préparer le plan" }));
-  await screen.findByRole("region", { name: "Plan proposé" });
-  fireEvent.click(screen.getByRole("button", { name: "Lancer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Lancer la mission" }));
   await screen.findByRole("button", { name: "Envoyer la réponse" });
   expect((composer as HTMLTextAreaElement).value).toBe("");
   expect(
@@ -586,7 +558,7 @@ it("une nouvelle mission ne conserve pas les pièces jointes précédentes", asy
     ),
   );
   render(<App />);
-  await screen.findByRole("button", { name: "Préparer le plan" });
+  await screen.findByRole("button", { name: "Lancer la mission" });
   fireEvent.change(screen.getByLabelText("Fichier à joindre"), {
     target: {
       files: [new File(["fake"], "cv-fictif.txt", { type: "text/plain" })],
@@ -606,7 +578,7 @@ it("ignore un fichier dont l’envoi finit après le début d’une nouvelle mis
     vi.fn(() => new Promise<Response>((resolve) => (finish = resolve))),
   );
   render(<App />);
-  await screen.findByRole("button", { name: "Préparer le plan" });
+  await screen.findByRole("button", { name: "Lancer la mission" });
   fireEvent.change(screen.getByLabelText("Fichier à joindre"), {
     target: {
       files: [new File(["fake"], "cv-fictif.txt", { type: "text/plain" })],
@@ -634,7 +606,7 @@ it("annule l'envoi d'un fichier en quittant la mission et ignore son erreur tard
   );
   vi.stubGlobal("fetch", fetcher);
   render(<App />);
-  await screen.findByRole("button", { name: "Préparer le plan" });
+  await screen.findByRole("button", { name: "Lancer la mission" });
   fireEvent.change(screen.getByLabelText("Fichier à joindre"), {
     target: { files: [new File(["FICTIF"], "cv-fictif.txt")] },
   });
@@ -780,4 +752,44 @@ it("après une réponse, le tour précédent reste dans le fil même si le back 
   ).toBeTruthy();
   expect(await screen.findByText("Réponse FICTIVE un")).toBeTruthy();
   localStorage.clear();
+});
+it("l'envoi lance la mission directement, sans plan à confirmer", async () => {
+  const run = {
+    id: "00000000-0000-4000-8000-0000000000c1",
+    prompt: "Objectif FICTIF direct",
+    state: "running",
+    mode: "agent",
+    agent: "fixture",
+    model: "",
+    pack: "core",
+    simulated: true,
+    createdAt: "2026-11-04T00:00:00.000Z",
+    plan: { steps: [], workflow: null },
+  } as unknown as Run;
+  vi.mocked(api).mockImplementation((path, body) =>
+    path === "/catalog"
+      ? (Promise.resolve(catalog) as never)
+      : path === "/runs"
+        ? (Promise.resolve(body ? run : []) as never)
+        : (Promise.resolve(run) as never),
+  );
+  render(<App />);
+  fireEvent.change(await screen.findByLabelText("Objectif de la mission"), {
+    target: { value: "Objectif FICTIF direct" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Lancer la mission" }));
+  await waitFor(() =>
+    expect(api).toHaveBeenCalledWith(
+      "/runs",
+      expect.objectContaining({ prompt: "Objectif FICTIF direct" }),
+      expect.anything(),
+    ),
+  );
+  expect(vi.mocked(api).mock.calls.some(([path]) => path === "/plan")).toBe(
+    false,
+  );
+  expect(screen.queryByRole("region", { name: "Plan proposé" })).toBeNull();
+  await screen.findByText("Objectif FICTIF direct", {
+    selector: ".prompt-bubble-text",
+  });
 });

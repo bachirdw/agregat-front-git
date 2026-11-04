@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import { Markdown } from "./Markdown";
 import { Composer } from "./Composer";
-import { PlanCard, RunView } from "./Mission";
+import { RunView } from "./Mission";
 import {
   activity,
   AgentActivity,
@@ -20,7 +20,7 @@ import {
   SessionHistory,
 } from "./Career";
 import { Skills } from "./Galleries";
-import type { Catalog, MissionInput, Plan, Run } from "./types";
+import type { Catalog, MissionInput, Run } from "./types";
 import { agentStatus } from "./types";
 afterEach(() => {
   cleanup();
@@ -65,24 +65,6 @@ const input: MissionInput = {
   budgetCents: 0,
   mode: "workflow",
   workflow: "auto",
-};
-const plan: Plan = {
-  agent: "Démonstrateur ACP",
-  pack: "Najah AI",
-  steps: ["Chercher", "Classer"],
-  cost: {
-    platformCents: 50,
-    currency: "EUR",
-    budgetCents: 0,
-    withinBudget: false,
-    description: "Aucun modèle appelé",
-    lines: [{ dimension: "workflow_run", units: 1, cents: 50 }],
-  },
-  permissions: ["Aucun envoi"],
-  simulated: true,
-  dataMode: "fixture",
-  routing: { reasons: ["Choix manuel"], rejected: [] },
-  workflow: null,
 };
 describe("rendu fiable", () => {
   it("distingue CLI détecté, session ouverte et prompt réellement validé", () => {
@@ -271,7 +253,7 @@ describe("rendu fiable", () => {
     expect(
       (
         screen.getByRole("button", {
-          name: "Préparer le plan",
+          name: "Lancer la mission",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
@@ -424,38 +406,6 @@ describe("rendu fiable", () => {
       /Type refusé/,
     );
     expect(fetcher).toHaveBeenCalledTimes(1);
-  });
-  it("plan réel : coût, budget, provenance et lancement explicite", () => {
-    const launch = vi.fn();
-    render(
-      <PlanCard
-        plan={plan}
-        catalog={catalog}
-        busy={false}
-        launch={launch}
-        edit={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("alert").textContent).toContain(
-      "supérieure au budget",
-    );
-    expect(screen.getByText("Agent fictif · aucun modèle appelé")).toBeTruthy();
-    expect(screen.getByText("Sources fictives · démonstration")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Lancer" }));
-    expect(launch).toHaveBeenCalledOnce();
-  });
-  it("agent réel et sources fictives restent deux états distincts", () => {
-    render(
-      <PlanCard
-        plan={{ ...plan, simulated: false, agent: "Codex" }}
-        catalog={catalog}
-        busy={false}
-        launch={vi.fn()}
-        edit={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("Agent réel · compte BYOA")).toBeTruthy();
-    expect(screen.getByText("Sources fictives · démonstration")).toBeTruthy();
   });
   it("résultat : la portée de vérification est distincte du succès de l’outil", () => {
     const run = {

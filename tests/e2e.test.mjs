@@ -81,7 +81,7 @@ async function choose(page, label, value) {
   await select.selectOption(value);
   await select.press("Escape");
 }
-async function prepare(page, workflow = "opportunity-discovery-dag") {
+async function launch(page, workflow = "opportunity-discovery-dag") {
   await page
     .getByLabel("Objectif de la mission")
     .fill(
@@ -91,10 +91,10 @@ async function prepare(page, workflow = "opportunity-discovery-dag") {
   await choose(page, "Pack", "najah");
   await choose(page, "Mode", "workflow");
   await choose(page, "Workflow", workflow);
+  // The mission starts on send: there is no plan to confirm.
   await page
-    .getByRole("button", { name: "Préparer le plan", exact: true })
+    .getByRole("button", { name: "Lancer la mission", exact: true })
     .click();
-  await page.getByRole("region", { name: "Plan proposé" }).waitFor();
 }
 async function finished(page) {
   await page
@@ -193,13 +193,7 @@ test(
       .getByRole("button", { name: /Trouver des offres Python/ })
       .click();
     await shot(page, "07-suggestion-remplie");
-    await prepare(page);
-    assert.match(
-      await page.locator(".plan").innerText(),
-      /[Dd]onnées fictives|Sources fictives/,
-    );
-    await shot(page, "08-plan");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     await page
       .getByRole("region", { name: "Exécution", exact: true })
       .waitFor();
@@ -272,8 +266,7 @@ test(
   { timeout: 120000 },
   async (t) => {
     const { page, app, errors } = await open(t);
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor({ timeout: 45000 });
@@ -300,17 +293,12 @@ test(
   },
 );
 test(
-  "budget réel : estimation puis refus serveur, aucune mission créée",
+  "budget réel : refus serveur dès l’envoi, aucune mission créée",
   { timeout: 60000 },
   async (t) => {
     const { page, app } = await open(t);
     app.engine.pricing.centsPerUnit.tool_call = 50;
-    await prepare(page);
-    assert.match(
-      await page.locator(".plan").innerText(),
-      /Estimation supérieure au budget/,
-    );
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     await page
       .getByRole("alert")
       .filter({ hasText: "Budget insuffisant" })
@@ -370,8 +358,7 @@ test(
   { timeout: 90000 },
   async (t) => {
     const { page, app, base, errors } = await open(t, { dev: true });
-    await prepare(page);
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     await finished(page);
     assert.equal(app.store.list().length, 1);
     const denied = await post(base, "/plan", {
@@ -400,8 +387,7 @@ test(
   { timeout: 90000 },
   async (t) => {
     const { page, app, errors } = await open(t);
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor({ timeout: 45000 });
@@ -631,8 +617,7 @@ test(
   { timeout: 60000 },
   async (t) => {
     const { page, app, errors } = await open(t);
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor({ timeout: 45000 });
@@ -687,8 +672,7 @@ test(
     assert.equal(panel.width, 276);
     const dock = await page.locator(".composer-dock").boundingBox();
     assert.ok(dock.x + dock.width <= panel.x, "saisie sous le panneau");
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor();
@@ -743,8 +727,7 @@ test(
   { timeout: 120000 },
   async (t) => {
     const { page, errors } = await open(t);
-    await prepare(page);
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     const tracker = page.getByRole("region", { name: "Suivi de la mission" });
     await tracker.waitFor();
     await finished(page);
@@ -872,9 +855,8 @@ test(
     await choose(page, "Pack", "core");
     await choose(page, "Mode", "agent");
     await page
-      .getByRole("button", { name: "Préparer le plan", exact: true })
+      .getByRole("button", { name: "Lancer la mission", exact: true })
       .click();
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
     const reply = page.getByRole("button", { name: "Envoyer la réponse" });
     const bubbles = () =>
       page.locator(".thread .prompt-bubble-text").allInnerTexts();

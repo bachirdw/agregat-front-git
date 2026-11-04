@@ -179,7 +179,9 @@ it("le composeur compact masque les réglages, garde l'envoi et se rouvre au cli
   expect(container.querySelector(".filters")?.getAttribute("aria-hidden")).toBe(
     "true",
   );
-  expect(screen.getByRole("button", { name: "Préparer le plan" })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Lancer la mission" }),
+  ).toBeTruthy();
   fireEvent.click(screen.getByLabelText("Objectif de la mission"));
   fireEvent.focus(screen.getByLabelText("Objectif de la mission"));
   fireEvent.change(screen.getByLabelText("Objectif de la mission"), {
