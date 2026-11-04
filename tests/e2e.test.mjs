@@ -81,7 +81,7 @@ async function choose(page, label, value) {
   await select.selectOption(value);
   await select.press("Escape");
 }
-async function prepare(page, workflow = "opportunity-discovery-dag") {
+async function launch(page, workflow = "opportunity-discovery-dag") {
   await page
     .getByLabel("Objectif de la mission")
     .fill(
@@ -91,10 +91,10 @@ async function prepare(page, workflow = "opportunity-discovery-dag") {
   await choose(page, "Pack", "najah");
   await choose(page, "Mode", "workflow");
   await choose(page, "Workflow", workflow);
+  // The mission starts on send: there is no plan to confirm.
   await page
-    .getByRole("button", { name: "Préparer le plan", exact: true })
+    .getByRole("button", { name: "Lancer la mission", exact: true })
     .click();
-  await page.getByRole("region", { name: "Plan proposé" }).waitFor();
 }
 async function finished(page) {
   await page
@@ -193,13 +193,7 @@ test(
       .getByRole("button", { name: /Trouver des offres Python/ })
       .click();
     await shot(page, "07-suggestion-remplie");
-    await prepare(page);
-    assert.match(
-      await page.locator(".plan").innerText(),
-      /[Dd]onnées fictives|Sources fictives/,
-    );
-    await shot(page, "08-plan");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     // conversation-02 : le tour compact remplace la carte « Exécution ».
     await page.locator(".thread .agent-turn").waitFor();
     await shot(page, "09-execution");
@@ -279,8 +273,7 @@ test(
   { timeout: 120000 },
   async (t) => {
     const { page, app, errors } = await open(t);
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor({ timeout: 45000 });
@@ -310,17 +303,12 @@ test(
   },
 );
 test(
-  "budget réel : estimation puis refus serveur, aucune mission créée",
+  "budget réel : refus serveur dès l’envoi, aucune mission créée",
   { timeout: 60000 },
   async (t) => {
     const { page, app } = await open(t);
     app.engine.pricing.centsPerUnit.tool_call = 50;
-    await prepare(page);
-    assert.match(
-      await page.locator(".plan").innerText(),
-      /Estimation supérieure au budget/,
-    );
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     await page
       .getByRole("alert")
       .filter({ hasText: "Budget insuffisant" })
@@ -380,8 +368,7 @@ test(
   { timeout: 90000 },
   async (t) => {
     const { page, app, base, errors } = await open(t, { dev: true });
-    await prepare(page);
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     await finished(page);
     assert.equal(app.store.list().length, 1);
     const denied = await post(base, "/plan", {
@@ -410,8 +397,7 @@ test(
   { timeout: 90000 },
   async (t) => {
     const { page, app, errors } = await open(t);
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor({ timeout: 45000 });
@@ -649,8 +635,7 @@ test(
   { timeout: 60000 },
   async (t) => {
     const { page, app, errors } = await open(t);
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor({ timeout: 45000 });
@@ -705,8 +690,7 @@ test(
     assert.equal(panel.width, 276);
     const dock = await page.locator(".composer-dock").boundingBox();
     assert.ok(dock.x + dock.width <= panel.x, "saisie sous le panneau");
-    await prepare(page, "application-draft");
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
       .waitFor();
@@ -761,8 +745,7 @@ test(
   { timeout: 120000 },
   async (t) => {
     const { page, errors } = await open(t);
-    await prepare(page);
-    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    await launch(page);
     const tracker = page.getByRole("region", { name: "Suivi de la mission" });
     await tracker.waitFor();
     await finished(page);
@@ -863,6 +846,83 @@ test(
     await page.getByText("Réponse FICTIVE un").waitFor();
     await page.getByText("Détail de ce tour").click();
     await page.getByText("Étape FICTIVE intermédiaire").waitFor();
+    // Every message of the user sits on the right, in the flex thread and in the grid of past turns.
+    const sides = await page.evaluate(() =>
+      [...document.querySelectorAll(".prompt-bubble")].map((bubble) => {
+        const box = bubble.getBoundingClientRect();
+        const turn = document
+          .querySelector(".agent-turn, .results, .timeline")
+          .getBoundingClientRect();
+        return (
+          Math.round(turn.right - box.right) <= 1 && box.left > turn.left + 20
+        );
+      }),
+    );
+    assert.deepEqual(sides, [true, true]);
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
+  "relance réelle : chaque tour reste dans le fil après une nouvelle session et un rechargement",
+  { timeout: 180000 },
+  async (t) => {
+    const { page, errors } = await open(t);
+    await page.getByLabel("Objectif de la mission").fill("Question FICTIVE un");
+    await choose(page, "Agent", "fixture");
+    await choose(page, "Pack", "core");
+    await choose(page, "Mode", "agent");
+    await page
+      .getByRole("button", { name: "Lancer la mission", exact: true })
+      .click();
+    const reply = page.getByRole("button", { name: "Envoyer la réponse" });
+    const bubbles = () =>
+      page.locator(".thread .prompt-bubble-text").allInnerTexts();
+    for (const text of ["Relance FICTIVE deux", "Relance FICTIVE trois"]) {
+      await page.getByLabel("Objectif de la mission").waitFor();
+      await page
+        .locator(".toolbar .badge")
+        .filter({ hasText: "Terminée" })
+        .waitFor({ timeout: 45000 });
+      await page.getByLabel("Objectif de la mission").fill(text);
+      await reply.click();
+      await page
+        .locator(".thread .prompt-bubble-text", { hasText: text })
+        .waitFor();
+    }
+    await page
+      .locator(".toolbar .badge")
+      .filter({ hasText: "Terminée" })
+      .waitFor({ timeout: 45000 });
+    const expected = [
+      "Question FICTIVE un",
+      "Relance FICTIVE deux",
+      "Relance FICTIVE trois",
+    ];
+    await page.waitForFunction(
+      (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
+      expected.length,
+    );
+    assert.deepEqual(await bubbles(), expected);
+    // One conversation, one entry: its latest turn, with the number of turns.
+    const entries = await page.locator(".mission-link").allInnerTexts();
+    assert.equal(entries.length, 1);
+    assert.match(entries[0], /3 tours/);
+    // The back may not reload the agent session: the hint must not promise it.
+    assert.doesNotMatch(
+      await page.locator(".composer-note").innerText(),
+      /même session/,
+    );
+    await shot(page, "relance-reelle-fil");
+    // Reloaded, the thread of the latest turn still holds every turn.
+    await page.reload();
+    await page.locator(".app[data-ready=true]").waitFor();
+    await page.locator(".mission-link").first().click();
+    await page.waitForFunction(
+      (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
+      expected.length,
+    );
+    assert.deepEqual(await bubbles(), expected);
     assert.deepEqual(errors, []);
   },
 );

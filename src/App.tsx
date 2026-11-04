@@ -5,20 +5,21 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Catalog, MissionInput, Plan, Run, RunEvent } from "./types";
+import type { Catalog, MissionInput, Run, RunEvent } from "./types";
 import { finalStates, labels } from "./types";
 import { api, ApiError, appendEvent, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
 import { agentWarning } from "./agentStatus";
-import { CareerThread, SessionHistory } from "./Career";
+import { rememberResume } from "./resumeLinks";
+import { CareerThread, SessionHistory, conversations } from "./Career";
 import { ConnectionsPanel } from "./ConnectionsPanel";
 import { MissionPill } from "./MissionPill";
 import { metaLine, Tracker } from "./Tracker";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
-import { PlanCard, RunTurn, RunView } from "./Mission";
+import { RunTurn, RunView } from "./Mission";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
 type Page =
   | "home"
@@ -57,8 +58,8 @@ export default function App() {
     [run, setRun] = useState<Run | null>(null),
     [page, setPage] = useState<Page>("home");
   const [input, setInput] = useState(initial),
-    [plan, setPlan] = useState<Plan | null>(null),
-    [planned, setPlanned] = useState<MissionInput | null>(null);
+    // The prompt being sent: the mission starts on send, with no plan to confirm.
+    [starting, setStarting] = useState<string | null>(null);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
@@ -148,13 +149,13 @@ export default function App() {
   }, [theme]);
   useEffect(() => {
     scroll.current?.scrollTo({
-      top: page === "home" && plan ? scroll.current.scrollHeight : 0,
+      top: page === "home" && starting ? scroll.current.scrollHeight : 0,
     });
     lastScrollTop.current = 0;
     lastScrollSize.current = "";
     setComposerCompact(false);
     document.title = `agre agent · ${titles[page]}`;
-  }, [page, run?.id, plan]);
+  }, [page, run?.id, starting]);
   useLayoutEffect(() => {
     const main = mainRef.current;
     const feed = scroll.current;
@@ -186,7 +187,7 @@ export default function App() {
     const observer = new ResizeObserver(measure);
     observer.observe(dock);
     return () => observer.disconnect();
-  }, [page, plan, run?.id]);
+  }, [page, starting, run?.id]);
   const go = (next: Page) => {
     viewVersion.current++;
     setPage(next);
@@ -199,8 +200,6 @@ export default function App() {
     setRun(null);
     setImmediatePrompt(null);
     current.current = "";
-    setPlan(null);
-    setPlanned(null);
     setInput((old) => ({ ...old, prompt: "", attachments: [] }));
     setError("");
     if (innerWidth <= 760) setSide(false);
@@ -243,7 +242,6 @@ export default function App() {
       if (current.current === id && version === viewVersion.current) {
         setRun(next);
         setPage("mission");
-        setPlan(null);
         setStreamKey((k) => k + 1);
         if (innerWidth <= 760) setSide(false);
       }
@@ -367,49 +365,30 @@ export default function App() {
     };
     // A refresh of the same run must not reopen its SSE stream.
   }, [run?.id, streamKey, history]);
-  const prepare = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    const candidate = structuredClone(input);
-    const version = viewVersion.current;
-    try {
-      const next = await api<Plan>("/plan", toApiInput(candidate));
-      if (version !== viewVersion.current) return;
-      setPlan(next);
-      setPlanned(candidate);
-      setRun(null);
-      current.current = "";
-      setPage("home");
-    } catch (e) {
-      if (version === viewVersion.current) report(e);
-    } finally {
-      setBusy(false);
-    }
-  };
   const launch = async () => {
-    if (!planned || busy) return;
+    if (busy || !input.prompt.trim()) return;
+    const candidate = structuredClone(input);
     const version = viewVersion.current;
     const controller = new AbortController();
     launching.current = controller;
     setBusy(true);
     setError("");
     setNotice("");
+    setStarting(candidate.prompt);
     try {
       const next = await api<Run>(
         "/runs",
-        toApiInput(planned),
+        toApiInput(candidate),
         controller.signal,
       );
       if (version === viewVersion.current) {
         if (next.pack === "career-ops")
-          setImmediatePrompt({ id: next.id, text: planned.prompt });
+          setImmediatePrompt({ id: next.id, text: candidate.prompt });
         await openRun(next.id);
         if (viewVersion.current === version + 1 && current.current === next.id)
           setInput((old) => ({ ...old, prompt: "", attachments: [] }));
       }
       await history();
-      setPlanned(null);
     } catch (e) {
       if (controller.signal.aborted) {
         // Only the wait stops: the back may still have created the run.
@@ -420,6 +399,7 @@ export default function App() {
       } else report(e);
     } finally {
       if (launching.current === controller) launching.current = null;
+      setStarting(null);
       setBusy(false);
     }
   };
@@ -462,10 +442,9 @@ export default function App() {
             skills.some((s) => s.id === id && s.active && s.integrity),
           ),
         }));
-        setPlan(null);
-        setPlanned(null);
       } else if (path.endsWith("/resume")) {
         const resumed = response as Run;
+        rememberResume(resumed.id, path.split("/")[2]);
         const prompt = (body as { prompt?: unknown })?.prompt;
         if (resumed.pack === "career-ops" && typeof prompt === "string")
           setImmediatePrompt({ id: resumed.id, text: prompt });
@@ -541,8 +520,6 @@ export default function App() {
   const change = (next: MissionInput) => {
     if (busy) return;
     setInput(next);
-    setPlan(null);
-    setPlanned(null);
   };
   const choose = (patch: Partial<MissionInput>) => {
     newMission();
@@ -638,7 +615,7 @@ export default function App() {
             </button>
           </div>
           <div className="mission-list">
-            {runs.map((r) => (
+            {conversations(runs).map(({ run: r, turns }) => (
               <button
                 key={r.id}
                 className={
@@ -652,6 +629,7 @@ export default function App() {
                 <small className={finalStates.has(r.state) ? "sr-only" : ""}>
                   {labels[r.state] || r.state}
                 </small>
+                {turns > 1 && <small className="turns">{turns} tours</small>}
                 {r.simulated && <small>fictif</small>}
               </button>
             ))}
@@ -804,13 +782,13 @@ export default function App() {
               Connexion au backend local…
             </p>
           )}
-          {page === "home" && !plan && (
+          {page === "home" && !starting && (
             <section className="home">
               <div className="home-inner">
                 <h1>Que dois-je faire ?</h1>
                 <p>
-                  Décris une mission. L’agent prépare un plan et attend ton
-                  accord avant d’exécuter quoi que ce soit.
+                  Décris une mission : elle part dès l’envoi. Les actions
+                  sensibles demandent toujours ton accord.
                 </p>
                 <div className="suggestions">
                   {suggestions.map((s) => (
@@ -836,24 +814,15 @@ export default function App() {
               </div>
             </section>
           )}
-          {plan && page === "home" && (
+          {starting && page === "home" && (
             <div className="thread">
-              <PromptBubble text={planned?.prompt || ""} />
-              <PlanCard
-                plan={plan}
-                catalog={catalog}
-                busy={busy}
-                launch={() => void launch()}
-                cancel={() => launching.current?.abort()}
-                warning={agentWarning(plan.agent, catalog, runs)}
-                edit={() => {
-                  setPlan(null);
-                  setPlanned(null);
-                  requestAnimationFrame(() =>
-                    document.getElementById("prompt")?.focus(),
-                  );
-                }}
-              />
+              <PromptBubble text={starting} />
+              <div className="launching" role="status">
+                <span>Lancement de la mission…</span>
+                <button onClick={() => launching.current?.abort()}>
+                  Annuler le lancement
+                </button>
+              </div>
             </div>
           )}
           {page === "mission" && run && (
@@ -982,7 +951,7 @@ export default function App() {
             catalog={catalog}
             input={input}
             onChange={change}
-            onPlan={() => void (canReply ? reply() : prepare())}
+            onPlan={() => void (canReply ? reply() : launch())}
             agentWarning={agentWarning(input.agent, catalog, runs)}
             busy={busy}
             disabled={page === "mission" && !canReply}
@@ -993,15 +962,10 @@ export default function App() {
             }
             reply={canReply}
             compact={
-              (page === "home" && !!plan) ||
+              (page === "home" && !!starting) ||
               (page === "mission" && composerCompact)
             }
-            onOpen={() => {
-              if (page === "home" && plan) {
-                setPlan(null);
-                setPlanned(null);
-              } else setComposerCompact(false);
-            }}
+            onOpen={() => setComposerCompact(false)}
             sessionSettings={
               page === "mission" && run
                 ? {

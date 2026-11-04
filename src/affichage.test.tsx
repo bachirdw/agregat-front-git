@@ -419,9 +419,7 @@ describe("lancement", () => {
     render(<App />);
     const composer = await screen.findByLabelText("Objectif de la mission");
     fireEvent.change(composer, { target: { value: "Objectif FICTIF" } });
-    fireEvent.click(screen.getByRole("button", { name: "Préparer le plan" }));
-    await screen.findByRole("region", { name: "Plan proposé" });
-    fireEvent.click(screen.getByRole("button", { name: "Lancer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lancer la mission" }));
     const cancel = await screen.findByRole("button", {
       name: "Annuler le lancement",
     });
@@ -429,12 +427,38 @@ describe("lancement", () => {
     expect(signals[0]?.aborted).toBe(true);
     await waitFor(() =>
       expect(
-        (screen.getByRole("button", { name: "Lancer" }) as HTMLButtonElement)
-          .disabled,
+        (
+          screen.getByRole("button", {
+            name: "Lancer la mission",
+          }) as HTMLButtonElement
+        ).disabled,
       ).toBe(false),
     );
     expect(screen.queryByRole("alert")).toBeNull();
     vi.unstubAllGlobals();
     vi.doUnmock("./api");
   });
+});
+
+it("le texte de l'agent est rendu en Markdown, même si la mission échoue", () => {
+  render(
+    <AgentActivity
+      events={[
+        {
+          seq: 1,
+          type: "agent",
+          data: {
+            sessionUpdate: "agent_message_chunk",
+            content: {
+              type: "text",
+              text: "## Titre FICTIF\n\nTexte **gras**.",
+            },
+          },
+        },
+      ]}
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "Titre FICTIF" })).toBeTruthy();
+  expect(document.body.textContent).not.toContain("##");
+  expect(document.body.textContent).not.toContain("**");
 });

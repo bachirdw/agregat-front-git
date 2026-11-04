@@ -6,6 +6,7 @@ import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 import { SkillSteps } from "./SkillSteps";
+import { resumedFromLinks } from "./resumeLinks";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
 type Tool = {
@@ -458,12 +459,12 @@ export function AgentActivity({
                 thinking={running && index === shown.length - 1}
               />
             ) : (
-              <p>
-                {block.text}
+              <>
+                <Markdown text={block.text} />
                 {running && index === shown.length - 1 && (
                   <span className="stream-caret" aria-hidden="true" />
                 )}
-              </p>
+              </>
             )}
           </li>
         ))}
@@ -587,15 +588,20 @@ export function CareerResults({ run }: { run: Run }) {
 }
 
 // One career-ops conversation = the runs sharing an agent session, oldest first (Claude-Code-like).
-export function sessionThread(run: Run, runs: Run[]): Run[] {
+export function sessionThread(
+  run: Run,
+  runs: Run[],
+  links: Record<string, string> = resumedFromLinks(),
+): Run[] {
   // `resumedFrom` still links the turns when the agent had to open a new session.
   const chain = new Map([[run.id, run]]);
-  let parent = run.resumedFrom;
+  const parentOf = (r: Run) => r.resumedFrom || links[r.id];
+  let parent = parentOf(run);
   while (parent && !chain.has(parent)) {
     const previous = runs.find((r) => r.id === parent);
     if (!previous) break;
     chain.set(previous.id, previous);
-    parent = previous.resumedFrom;
+    parent = parentOf(previous);
   }
   const sessions = new Set(
     [...chain.values()].map((r) => r.sessionId).filter(Boolean),
@@ -604,8 +610,31 @@ export function sessionThread(run: Run, runs: Run[]): Run[] {
     if (sessions.has(r.sessionId) && r.createdAt <= run.createdAt)
       chain.set(r.id, chain.get(r.id) ?? r);
   return [...chain.values()].sort((a, b) =>
-    a.createdAt.localeCompare(b.createdAt),
+    (a.createdAt || "").localeCompare(b.createdAt || ""),
   );
+}
+// The sidebar lists conversations: a turn continued by a later one (resume link or shared agent
+// session) is shown through that later turn, with the number of turns.
+export function conversations(
+  runs: Run[],
+  links: Record<string, string> = resumedFromLinks(),
+): { run: Run; turns: number }[] {
+  const continued = new Set(
+    runs.map((r) => r.resumedFrom || links[r.id]).filter(Boolean),
+  );
+  const latest = new Map<string, Run>();
+  for (const r of runs)
+    if (r.sessionId) {
+      const known = latest.get(r.sessionId);
+      if (!known || (known.createdAt || "") < (r.createdAt || ""))
+        latest.set(r.sessionId, r);
+    }
+  return runs
+    .filter(
+      (r) =>
+        !continued.has(r.id) && (!r.sessionId || latest.get(r.sessionId) === r),
+    )
+    .map((r) => ({ run: r, turns: sessionThread(r, runs, links).length }));
 }
 // Steps of a past turn, read from its journal the first time they are opened.
 function PastSteps({ run, answer }: { run: Run; answer: string | null }) {

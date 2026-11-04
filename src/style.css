@@ -745,7 +745,9 @@ textarea:focus-visible {
   gap: 18px;
 }
 .prompt-bubble {
+  /* The thread is a flex column; the career and past-turn threads are grids. */
   align-self: flex-end;
+  justify-self: end;
   width: fit-content;
   max-width: min(80%, 560px);
   padding: 11px 15px;

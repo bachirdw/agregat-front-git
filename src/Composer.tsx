@@ -640,7 +640,7 @@ export function Composer({
           <button
             className="send primary"
             type="submit"
-            aria-label={reply ? "Envoyer la réponse" : "Préparer le plan"}
+            aria-label={reply ? "Envoyer la réponse" : "Lancer la mission"}
             disabled={
               busy ||
               uploading > 0 ||
@@ -655,10 +655,10 @@ export function Composer({
       </form>
       <small className="composer-note">
         {reply
-          ? "Votre réponse relance la même session de l’agent, avec son historique."
+          ? "Votre réponse poursuit cette mission. Si l’agent ne peut pas recharger sa session, il repart de sa dernière réponse."
           : disabled
             ? "Cette mission ne peut pas être poursuivie. Créez une nouvelle mission."
-            : "L’envoi prépare d’abord un plan. Rien n’est exécuté sans votre accord."}
+            : "L’envoi lance directement la mission. Les actions sensibles demandent toujours votre décision."}
       </small>
     </div>
   );
