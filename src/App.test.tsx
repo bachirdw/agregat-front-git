@@ -711,3 +711,73 @@ describe("instruction mise en file pendant une mission", () => {
     ).toBe("Aussi en remote");
   });
 });
+it("après une réponse, le tour précédent reste dans le fil même si le back ouvre une nouvelle session", async () => {
+  localStorage.clear();
+  const base = {
+    state: "completed",
+    mode: "agent",
+    agent: "fixture",
+    model: "",
+    pack: "core",
+    resumable: true,
+    simulated: true,
+    plan: {
+      steps: [],
+      workflow: null,
+      cost: {
+        platformCents: 0,
+        currency: "EUR",
+        budgetCents: 0,
+        withinBudget: true,
+        description: "FICTIF",
+        lines: [],
+      },
+    },
+  };
+  const parent = {
+    ...base,
+    id: "00000000-0000-4000-8000-0000000000b1",
+    prompt: "Question FICTIVE un",
+    sessionId: "session-un",
+    createdAt: "2026-11-03T07:00:00.000Z",
+    result: { simulated: true, summary: "Réponse FICTIVE un", evidence: [] },
+  } as unknown as Run;
+  // The back opens a new session on resume and sends no resumedFrom.
+  const child = {
+    ...base,
+    id: "00000000-0000-4000-8000-0000000000b2",
+    prompt: "Relance FICTIVE",
+    sessionId: "session-deux",
+    createdAt: "2026-11-03T07:10:00.000Z",
+  } as unknown as Run;
+  let resumed = false;
+  vi.mocked(api).mockImplementation((path) => {
+    if (path === "/catalog") return Promise.resolve(catalog) as never;
+    if (path === "/runs")
+      return Promise.resolve(resumed ? [child, parent] : [parent]) as never;
+    if (path === `/runs/${parent.id}/resume`) {
+      resumed = true;
+      return Promise.resolve(child) as never;
+    }
+    if (path === `/runs/${child.id}`) return Promise.resolve(child) as never;
+    return Promise.resolve(parent) as never;
+  });
+  render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: /Question FICTIVE un/ }),
+  );
+  fireEvent.change(await screen.findByLabelText("Objectif de la mission"), {
+    target: { value: "Relance FICTIVE" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Envoyer la réponse" }));
+  await screen.findByText("Relance FICTIVE", {
+    selector: ".prompt-bubble-text",
+  });
+  expect(
+    await screen.findByText("Question FICTIVE un", {
+      selector: ".prompt-bubble-text",
+    }),
+  ).toBeTruthy();
+  expect(await screen.findByText("Réponse FICTIVE un")).toBeTruthy();
+  localStorage.clear();
+});

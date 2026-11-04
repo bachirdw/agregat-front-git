@@ -6,6 +6,7 @@ import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 import { SkillSteps } from "./SkillSteps";
+import { resumedFromLinks } from "./resumeLinks";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
 type Tool = {
@@ -563,15 +564,20 @@ export function CareerResults({ run }: { run: Run }) {
 }
 
 // One career-ops conversation = the runs sharing an agent session, oldest first (Claude-Code-like).
-export function sessionThread(run: Run, runs: Run[]): Run[] {
+export function sessionThread(
+  run: Run,
+  runs: Run[],
+  links: Record<string, string> = resumedFromLinks(),
+): Run[] {
   // `resumedFrom` still links the turns when the agent had to open a new session.
   const chain = new Map([[run.id, run]]);
-  let parent = run.resumedFrom;
+  const parentOf = (r: Run) => r.resumedFrom || links[r.id];
+  let parent = parentOf(run);
   while (parent && !chain.has(parent)) {
     const previous = runs.find((r) => r.id === parent);
     if (!previous) break;
     chain.set(previous.id, previous);
-    parent = previous.resumedFrom;
+    parent = parentOf(previous);
   }
   const sessions = new Set(
     [...chain.values()].map((r) => r.sessionId).filter(Boolean),
@@ -580,7 +586,7 @@ export function sessionThread(run: Run, runs: Run[]): Run[] {
     if (sessions.has(r.sessionId) && r.createdAt <= run.createdAt)
       chain.set(r.id, chain.get(r.id) ?? r);
   return [...chain.values()].sort((a, b) =>
-    a.createdAt.localeCompare(b.createdAt),
+    (a.createdAt || "").localeCompare(b.createdAt || ""),
   );
 }
 // Steps of a past turn, read from its journal the first time they are opened.

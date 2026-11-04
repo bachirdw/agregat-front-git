@@ -12,6 +12,7 @@ import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
 import { agentWarning } from "./agentStatus";
+import { rememberResume } from "./resumeLinks";
 import { CareerThread, SessionHistory } from "./Career";
 import { ConnectionsPanel } from "./ConnectionsPanel";
 import { MissionPill } from "./MissionPill";
@@ -466,6 +467,7 @@ export default function App() {
         setPlanned(null);
       } else if (path.endsWith("/resume")) {
         const resumed = response as Run;
+        rememberResume(resumed.id, path.split("/")[2]);
         const prompt = (body as { prompt?: unknown })?.prompt;
         if (resumed.pack === "career-ops" && typeof prompt === "string")
           setImmediatePrompt({ id: resumed.id, text: prompt });
