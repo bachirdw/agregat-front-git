@@ -660,6 +660,103 @@ test(
 );
 
 test(
+  "accord d'envoi : un clic, un seul envoi, libellés de l'envoi",
+  { timeout: 60000 },
+  async (t) => {
+    const { page, app, errors } = await open(t);
+    await launch(page, "application-draft");
+    await page
+      .getByRole("button", { name: "Approuver", exact: true })
+      .waitFor({ timeout: 45000 });
+    const id = app.store.list()[0].id;
+    // A final send as the gateways ask for it (actionClass "send", docs/api-sends.md).
+    const decision = app.engine.permission(
+      id,
+      {
+        actionClass: "send",
+        toolCall: {
+          title: "Envoyer à recruteur@exemple.test : candidature FICTIVE",
+          toolCallId: "send-test",
+          kind: "other",
+        },
+        options: [
+          { optionId: "allow", name: "Allow", kind: "allow_once" },
+          { optionId: "deny", name: "Reject", kind: "reject_once" },
+        ],
+      },
+      false,
+      new AbortController().signal,
+    );
+    const card = page.getByRole("region", { name: "Envoi à approuver" });
+    await card.waitFor();
+    assert.match(await card.innerText(), /recruteur@exemple\.test/);
+    await card.getByRole("button", { name: "Refuser", exact: true }).waitFor();
+    await shot(page, "16-envoi-a-approuver");
+    await card
+      .getByRole("button", { name: "Approuver l’envoi", exact: true })
+      .click();
+    assert.equal((await decision).outcome.optionId, "allow");
+    await card.waitFor({ state: "detached" });
+    await page.getByRole("button", { name: "Approuver", exact: true }).click();
+    await finished(page);
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
+  "question de l'agent : la mission attend, le formulaire répond, la mission reprend",
+  { timeout: 90000 },
+  async (t) => {
+    const { page, app, errors } = await open(t);
+    // The back's demonstration agent asks nothing: its ACP test agent asks through a form
+    // elicitation (askQuestion), as in the back's own tests/elicitation.test.js.
+    const plan = app.engine.plan.bind(app.engine);
+    app.engine.plan = async (...args) => {
+      const chosen = await plan(...args);
+      chosen.agent = {
+        ...chosen.agent,
+        command: process.execPath,
+        args: [resolve(backend, "tests/fixtures/fake-acp.js")],
+        fixedEnv: {
+          ...chosen.agent.fixedEnv,
+          FAKE_ACP: JSON.stringify({ askQuestion: true }),
+        },
+      };
+      return chosen;
+    };
+    await page
+      .getByLabel("Objectif de la mission")
+      .fill("Mission FICTIVE qui demande une précision");
+    await choose(page, "Agent", "fixture");
+    await choose(page, "Pack", "core");
+    await choose(page, "Mode", "agent");
+    await page
+      .getByRole("button", { name: "Lancer la mission", exact: true })
+      .click();
+    const form = page.getByRole("form", { name: "Question de l’agent" });
+    await form.waitFor({ timeout: 45000 });
+    assert.match(await form.innerText(), /L’agent attend votre réponse/);
+    assert.match(await form.innerText(), /Dois-je enregistrer cette offre/);
+    const id = app.store.list()[0].id;
+    assert.equal(app.store.get(id).state, "awaiting_owner");
+    await shot(page, "17-question-agent");
+    await form.getByLabel(/Réponse/).fill("Oui FICTIF, enregistre-la");
+    await form.getByRole("button", { name: "Répondre", exact: true }).click();
+    await form.waitFor({ state: "detached", timeout: 45000 });
+    await page
+      .locator(".toolbar .badge")
+      .filter({ hasText: "Terminée" })
+      .waitFor({ timeout: 45000 });
+    const answers = (await app.store.events(id))
+      .filter((e) => e.type === "answer")
+      .map((e) => e.data);
+    assert.equal(answers.length, 1);
+    assert.equal(answers[0].action, "accept");
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
   "visuel v2 : barre flottante, panneau, pastille à la place de la saisie, retour en fin de mission",
   { timeout: 120000 },
   async (t) => {

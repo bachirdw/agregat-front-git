@@ -120,9 +120,42 @@ export interface Step {
 }
 export interface Permission {
   id: string;
-  expiresAt?: number;
+  // null: no ceiling (a final send in owner mode waits for the owner).
+  expiresAt?: number | null;
+  actionClass?: string | null;
+  capability?: string;
+  askedAt?: string;
   tool: { title?: string; [key: string]: unknown };
   options: { optionId: string; name: string; kind: string }[];
+}
+// One field of an ACP elicitation schema (flat, see docs/api-questions.md).
+export interface QuestionField {
+  type: "string" | "number" | "integer" | "boolean" | "array";
+  title?: string;
+  description?: string;
+  enum?: string[];
+  oneOf?: { const: string; title?: string }[];
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  examples?: string[];
+  items?: { enum?: string[]; anyOf?: { const: string; title?: string }[] };
+  minItems?: number;
+  maxItems?: number;
+}
+export interface Question {
+  id: string;
+  kind: "form" | "prose";
+  message: string;
+  options?: string[];
+  requestedSchema: {
+    type: "object";
+    properties: Record<string, QuestionField>;
+    required?: string[];
+  };
+  toolCallId: string | null;
+  askedAt: string;
 }
 export interface Opportunity {
   id: string;
@@ -178,6 +211,7 @@ export interface Run {
     }[];
   } | null;
   permissions?: Permission[];
+  pendingQuestion?: Question | null;
   result?: {
     simulated: boolean;
     summary: string;
@@ -220,6 +254,7 @@ export const labels: Record<string, string> = {
   pending: "En attente",
   waiting_approval: "Accord requis",
   waiting_permission: "Autorisation requise",
+  awaiting_owner: "Attend votre réponse",
   succeeded: "Réussie",
   skipped: "Ignorée",
   uncertain: "Incertaine · décision requise",

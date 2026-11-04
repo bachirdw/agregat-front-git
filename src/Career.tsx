@@ -7,6 +7,8 @@ import { finalStates, labels, money } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 import { SkillSteps } from "./SkillSteps";
 import { resumedFromLinks } from "./resumeLinks";
+import { OwnerRequests } from "./OwnerRequests";
+import type { Act } from "./OwnerRequests";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
 type Tool = {
@@ -759,6 +761,7 @@ export function CareerThread({
   connection,
   stop,
   resume,
+  act,
   children,
 }: {
   run: Run;
@@ -769,6 +772,8 @@ export function CareerThread({
   connection?: string;
   stop?: () => void;
   resume?: () => void;
+  // Answers the owner's requests (send agreement, agent's question) from the thread itself.
+  act?: Act;
   children: ReactNode;
 }) {
   const turns = sessionThread(run, runs);
@@ -804,6 +809,7 @@ export function CareerThread({
           Playwriter indisponible).
         </p>
       )}
+      {act && <OwnerRequests run={run} busy={busy} act={act} />}
       {stop && !finalStates.has(run.state) && (
         <button className="stop-button" disabled={busy} onClick={stop}>
           <span aria-hidden="true">■</span> Stop

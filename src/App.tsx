@@ -841,6 +841,7 @@ export default function App() {
                   connection={connection}
                   stop={() => void action(`/runs/${run.id}/cancel`, {})}
                   resume={() => void action(`/runs/${run.id}/resume`, {})}
+                  act={action}
                 >
                   <RunView
                     run={run}
@@ -848,6 +849,7 @@ export default function App() {
                     connection={connection}
                     busy={busy}
                     act={action}
+                    requests={false}
                   />
                 </CareerThread>
               ) : (

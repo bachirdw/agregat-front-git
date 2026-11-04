@@ -1,5 +1,6 @@
 import { AgentActivity } from "./Career";
 import { SkillSteps } from "./SkillSteps";
+import { OwnerRequests } from "./OwnerRequests";
 import { useEffect, useState } from "react";
 import type { Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
@@ -70,25 +71,20 @@ export function RunView({
   connection,
   busy,
   act,
+  requests = true,
 }: {
   run: Run;
   events: RunEvent[];
   connection: string;
   busy: boolean;
-  act: (path: string, body: unknown) => Promise<void>;
+  act: (path: string, body: unknown, throwOnError?: boolean) => Promise<void>;
+  // false when the career-ops thread already shows the owner's requests.
+  requests?: boolean;
 }) {
   const [timelineOpen, setTimelineOpen] = useState(!finalStates.has(run.state));
-  const [now, setNow] = useState(Date.now());
-  const hasExpiringPermission =
-    run.permissions?.some((p) => Number.isFinite(p.expiresAt)) ?? false;
   useEffect(() => {
     setTimelineOpen(!finalStates.has(run.state));
   }, [run.id, run.state]);
-  useEffect(() => {
-    if (!hasExpiringPermission) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [hasExpiringPermission]);
   const definitions = run.plan.workflow?.steps || [];
   const done = run.steps?.filter((s) => s.state === "succeeded").length || 0;
   const verification = [...events]
@@ -347,48 +343,7 @@ export function RunView({
             </footer>
           </section>
         ))}
-      {run.permissions?.map((p) => (
-        <section
-          className="card approval"
-          key={p.id}
-          aria-label="Permission agent"
-        >
-          <div className="card-pad">
-            <small className="warning">
-              Votre accord est requis · permission ponctuelle
-            </small>
-            <h2>{p.tool.title || "Autorisation agent"}</h2>
-            <pre>{JSON.stringify(p.tool, null, 2)}</pre>
-            <small role="timer">
-              {Number.isFinite(p.expiresAt)
-                ? now >= p.expiresAt!
-                  ? "Accord expiré"
-                  : `Expire dans ${Math.ceil((p.expiresAt! - now) / 1000)} s`
-                : "Une permission expirée est refusée par le serveur."}
-            </small>
-          </div>
-          <footer>
-            {p.options
-              .filter((o) =>
-                ["allow_once", "reject_once", "reject_always"].includes(o.kind),
-              )
-              .map((o) => (
-                <button
-                  key={o.optionId}
-                  className={o.kind === "allow_once" ? "primary" : ""}
-                  disabled={
-                    busy || (p.expiresAt !== undefined && now >= p.expiresAt)
-                  }
-                  onClick={() =>
-                    void act(`/permissions/${p.id}`, { optionId: o.optionId })
-                  }
-                >
-                  {o.name}
-                </button>
-              ))}
-          </footer>
-        </section>
-      ))}
+      {requests && <OwnerRequests run={run} busy={busy} act={act} />}
       <div className="actions">
         {!finalStates.has(run.state) && (
           <button
