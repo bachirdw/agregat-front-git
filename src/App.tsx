@@ -13,7 +13,7 @@ import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
 import { agentWarning } from "./agentStatus";
 import { rememberResume } from "./resumeLinks";
-import { CareerThread, SessionHistory } from "./Career";
+import { CareerThread, SessionHistory, conversations } from "./Career";
 import { ConnectionsPanel } from "./ConnectionsPanel";
 import { MissionPill } from "./MissionPill";
 import { metaLine, Tracker } from "./Tracker";
@@ -640,7 +640,7 @@ export default function App() {
             </button>
           </div>
           <div className="mission-list">
-            {runs.map((r) => (
+            {conversations(runs).map(({ run: r, turns }) => (
               <button
                 key={r.id}
                 className={
@@ -654,6 +654,7 @@ export default function App() {
                 <small className={finalStates.has(r.state) ? "sr-only" : ""}>
                   {labels[r.state] || r.state}
                 </small>
+                {turns > 1 && <small className="turns">{turns} tours</small>}
                 {r.simulated && <small>fictif</small>}
               </button>
             ))}

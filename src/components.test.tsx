@@ -16,6 +16,7 @@ import {
   CareerResults,
   CareerThread,
   sessionThread,
+  conversations,
   SessionHistory,
 } from "./Career";
 import { Skills } from "./Galleries";
@@ -1189,6 +1190,40 @@ describe("career-ops", () => {
     expect(sessionThread(c, [d, c, b, a]).map((x) => x.id)).toEqual(["a", "c"]);
     expect(sessionThread(r("x", null, "z"), [a]).map((x) => x.id)).toEqual([
       "x",
+    ]);
+  });
+});
+
+describe("barre latérale", () => {
+  it("une conversation = une entrée : son dernier tour et le nombre de tours", () => {
+    const r = (
+      id: string,
+      createdAt: string,
+      sessionId: string | null,
+      resumedFrom?: string,
+    ) =>
+      ({
+        id,
+        createdAt,
+        sessionId,
+        resumedFrom: resumedFrom ?? null,
+        prompt: id,
+        state: "completed",
+      }) as unknown as Run;
+    const runs = [
+      r("c", "3", "s3"), // resumed from b, link known by the front only
+      r("x", "2.5", "sx"),
+      r("b", "2", "s2", "a"),
+      r("a", "1", "s1"),
+      r("y2", "0.9", "sy"), // same agent session as y1: one conversation
+      r("y1", "0.8", "sy"),
+    ];
+    expect(
+      conversations(runs, { c: "b" }).map((e) => [e.run.id, e.turns]),
+    ).toEqual([
+      ["c", 3],
+      ["x", 1],
+      ["y2", 2],
     ]);
   });
 });

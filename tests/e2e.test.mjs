@@ -852,10 +852,77 @@ test(
         const turn = document
           .querySelector(".agent-turn, .results, .timeline")
           .getBoundingClientRect();
-        return Math.round(turn.right - box.right) <= 1 && box.left > turn.left + 20;
+        return (
+          Math.round(turn.right - box.right) <= 1 && box.left > turn.left + 20
+        );
       }),
     );
     assert.deepEqual(sides, [true, true]);
+    assert.deepEqual(errors, []);
+  },
+);
+
+test(
+  "relance réelle : chaque tour reste dans le fil après une nouvelle session et un rechargement",
+  { timeout: 180000 },
+  async (t) => {
+    const { page, errors } = await open(t);
+    await page.getByLabel("Objectif de la mission").fill("Question FICTIVE un");
+    await choose(page, "Agent", "fixture");
+    await choose(page, "Pack", "core");
+    await choose(page, "Mode", "agent");
+    await page
+      .getByRole("button", { name: "Préparer le plan", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Lancer", exact: true }).click();
+    const reply = page.getByRole("button", { name: "Envoyer la réponse" });
+    const bubbles = () =>
+      page.locator(".thread .prompt-bubble-text").allInnerTexts();
+    for (const text of ["Relance FICTIVE deux", "Relance FICTIVE trois"]) {
+      await page.getByLabel("Objectif de la mission").waitFor();
+      await page
+        .locator(".toolbar .badge")
+        .filter({ hasText: "Terminée" })
+        .waitFor({ timeout: 45000 });
+      await page.getByLabel("Objectif de la mission").fill(text);
+      await reply.click();
+      await page
+        .locator(".thread .prompt-bubble-text", { hasText: text })
+        .waitFor();
+    }
+    await page
+      .locator(".toolbar .badge")
+      .filter({ hasText: "Terminée" })
+      .waitFor({ timeout: 45000 });
+    const expected = [
+      "Question FICTIVE un",
+      "Relance FICTIVE deux",
+      "Relance FICTIVE trois",
+    ];
+    await page.waitForFunction(
+      (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
+      expected.length,
+    );
+    assert.deepEqual(await bubbles(), expected);
+    // One conversation, one entry: its latest turn, with the number of turns.
+    const entries = await page.locator(".mission-link").allInnerTexts();
+    assert.equal(entries.length, 1);
+    assert.match(entries[0], /3 tours/);
+    // The back may not reload the agent session: the hint must not promise it.
+    assert.doesNotMatch(
+      await page.locator(".composer-note").innerText(),
+      /même session/,
+    );
+    await shot(page, "relance-reelle-fil");
+    // Reloaded, the thread of the latest turn still holds every turn.
+    await page.reload();
+    await page.locator(".app[data-ready=true]").waitFor();
+    await page.locator(".mission-link").first().click();
+    await page.waitForFunction(
+      (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
+      expected.length,
+    );
+    assert.deepEqual(await bubbles(), expected);
     assert.deepEqual(errors, []);
   },
 );

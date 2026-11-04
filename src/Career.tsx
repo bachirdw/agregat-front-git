@@ -589,6 +589,29 @@ export function sessionThread(
     (a.createdAt || "").localeCompare(b.createdAt || ""),
   );
 }
+// The sidebar lists conversations: a turn continued by a later one (resume link or shared agent
+// session) is shown through that later turn, with the number of turns.
+export function conversations(
+  runs: Run[],
+  links: Record<string, string> = resumedFromLinks(),
+): { run: Run; turns: number }[] {
+  const continued = new Set(
+    runs.map((r) => r.resumedFrom || links[r.id]).filter(Boolean),
+  );
+  const latest = new Map<string, Run>();
+  for (const r of runs)
+    if (r.sessionId) {
+      const known = latest.get(r.sessionId);
+      if (!known || (known.createdAt || "") < (r.createdAt || ""))
+        latest.set(r.sessionId, r);
+    }
+  return runs
+    .filter(
+      (r) =>
+        !continued.has(r.id) && (!r.sessionId || latest.get(r.sessionId) === r),
+    )
+    .map((r) => ({ run: r, turns: sessionThread(r, runs, links).length }));
+}
 // Steps of a past turn, read from its journal the first time they are opened.
 function PastSteps({ run, answer }: { run: Run; answer: string | null }) {
   const [opened, setOpened] = useState(false);

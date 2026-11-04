@@ -136,6 +136,9 @@ nav {
   font-size: 11px;
   color: var(--orange);
 }
+.mission-link small.turns {
+  color: var(--muted);
+}
 .mission-link:hover {
   background: var(--fill2);
 }
