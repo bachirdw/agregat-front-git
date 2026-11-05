@@ -110,6 +110,19 @@ export default function App() {
   } = useFollow(scroll, page === "mission", events, run?.id);
   const report = (e: unknown) =>
     setError(e instanceof Error ? e.message : String(e));
+  // Missions waiting for the owner (question or send approval), counted over the whole list.
+  const waiting = runs.filter((r) => ownerStates.has(r.state)).length;
+  const waitingBadge = waiting > 0 && (
+    <span
+      className="badge warning owner-count"
+      aria-label={`${waiting} mission${waiting > 1 ? "s" : ""} attend${
+        waiting > 1 ? "ent" : ""
+      } votre réponse`}
+      title="À vous de répondre"
+    >
+      {waiting}
+    </span>
+  );
   const history = useCallback(
     async () => setRuns(await api<Run[]>("/runs")),
     [],
@@ -620,6 +633,7 @@ export default function App() {
           </nav>
           <div className="missions-title">
             <strong>Missions</strong>
+            {waitingBadge}
             <button
               className="icon-button"
               aria-label="Actualiser les missions"
@@ -650,7 +664,9 @@ export default function App() {
                   {labels[r.state] || r.state}
                 </small>
                 {ownerStates.has(r.state) && (
-                  <small className="owner-turn">À vous de répondre</small>
+                  <small className="owner-turn" title="À vous de répondre">
+                    À vous
+                  </small>
                 )}
                 {turns > 1 && <small className="turns">{turns} tours</small>}
                 {r.simulated && <small>fictif</small>}
@@ -713,6 +729,7 @@ export default function App() {
               <Icon name="side" />
             </button>
           )}
+          {!side && waitingBadge}
           <strong>
             {page === "mission" ? run?.title || run?.prompt : titles[page]}
           </strong>

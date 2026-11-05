@@ -83,7 +83,8 @@ it("la liste des missions suit la mission ouverte : question, puis reprise, sans
     expect(item.textContent).toContain("Attend votre réponse"),
   );
   expect(item.textContent).not.toContain("En cours");
-  expect(item.querySelector(".owner-turn")?.textContent).toBe(
+  expect(item.querySelector(".owner-turn")?.textContent).toBe("À vous");
+  expect(item.querySelector(".owner-turn")?.getAttribute("title")).toBe(
     "À vous de répondre",
   );
   expect(item.querySelector(".dot.awaiting_owner")).not.toBeNull();
@@ -148,4 +149,46 @@ it("un événement d'état SSE met la liste à jour avant même la relecture de 
   expect(link(/Mission FICTIVE immédiate/).textContent).toContain(
     "Attend votre réponse",
   );
+});
+
+it("le compteur des missions qui attendent le propriétaire apparaît et disparaît", async () => {
+  const runs = [
+    mission("c1", "Mission FICTIVE question", "awaiting_owner"),
+    mission("c2", "Mission FICTIVE accord", "waiting_permission"),
+    mission("c3", "Mission FICTIVE en cours", "running"),
+    mission("c4", "Mission FICTIVE finie", "completed"),
+  ];
+  vi.mocked(api).mockImplementation((path) =>
+    path === "/catalog"
+      ? (Promise.resolve(catalog) as never)
+      : (Promise.resolve(runs) as never),
+  );
+  render(<App />);
+  await screen.findByRole("button", { name: /Mission FICTIVE finie/ });
+  const counter = screen.getByLabelText("2 missions attendent votre réponse");
+  expect(counter.textContent).toBe("2");
+  expect(counter.closest(".missions-title")).not.toBeNull();
+  // Hidden sidebar: the counter moves to the toolbar.
+  fireEvent.click(
+    screen.getByRole("button", { name: "Masquer la barre latérale" }),
+  );
+  expect(
+    screen
+      .getByLabelText("2 missions attendent votre réponse")
+      .closest(".toolbar"),
+  ).not.toBeNull();
+});
+
+it("le compteur est masqué quand aucune mission n'attend", async () => {
+  vi.mocked(api).mockImplementation((path) =>
+    path === "/catalog"
+      ? (Promise.resolve(catalog) as never)
+      : (Promise.resolve([
+          mission("c5", "Mission FICTIVE seule", "running"),
+        ]) as never),
+  );
+  render(<App />);
+  await screen.findByRole("button", { name: /Mission FICTIVE seule/ });
+  expect(screen.queryByLabelText(/attendent votre réponse/)).toBeNull();
+  expect(screen.queryByLabelText(/attend votre réponse/)).toBeNull();
 });

@@ -23,3 +23,12 @@ réel disponible, API simulée (Vitest) seulement.
   Vérifié : `npx vitest run src/etat-liste.test.tsx` 2/2 verts, `npm test` 164 verts (12 fichiers),
   `npx tsc --noEmit` OK, `npx prettier --check src` OK (les .md de .manager/reports ne passent pas Prettier,
   comme les rapports précédents : hors périmètre).
+- 05:50 — Point 1 commité (dae9939). Point 2 : test rouge (compteur absent), puis compteur `waiting` = missions
+  de `runs` dans `ownerStates`, badge orange avec aria-label « N mission(s) attend(ent) votre réponse »,
+  dans le titre « Missions » de la barre latérale et dans la barre haute quand la barre latérale est masquée
+  (la règle mobile qui cache les badges de la barre haute l'exempte). Masqué à zéro.
+- 05:50 — Vérification visuelle avec un backend FACTICE local (script dans le scratchpad, données fictives,
+  port 4310, Vite 5173, Chromium headless) : le badge « À vous de répondre » écrasait le titre de la
+  mission (ligne de 28 px) → texte visible raccourci en « À vous », infobulle « À vous de répondre »,
+  libellé d'état complet en `sr-only`. Captures non commitées (comme les lots précédents). Serveurs arrêtés.
+  Vérifié : `npm test` 166 verts, `npx tsc --noEmit` OK, `npx prettier --check src` OK.
