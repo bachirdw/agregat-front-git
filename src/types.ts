@@ -244,6 +244,8 @@ export const finalStates = new Set([
   "cancelled",
   "interrupted",
 ]);
+// States in which the mission waits for the owner (agent question or final send approval).
+export const ownerStates = new Set(["awaiting_owner", "waiting_permission"]);
 export const labels: Record<string, string> = {
   queued: "En attente",
   running: "En cours",

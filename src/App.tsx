@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import type { Catalog, MissionInput, Run, RunEvent } from "./types";
-import { finalStates, labels } from "./types";
+import { finalStates, labels, ownerStates } from "./types";
 import { api, ApiError, appendEvent, toApiInput, watchRun } from "./api";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
@@ -112,6 +112,17 @@ export default function App() {
     setError(e instanceof Error ? e.message : String(e));
   const history = useCallback(
     async () => setRuns(await api<Run[]>("/runs")),
+    [],
+  );
+  // The list shows the state of the open mission as its refresh (SSE then re-read) learns it,
+  // so an agent question or a send approval appears there without reloading the list.
+  const syncList = useCallback(
+    (next: Pick<Run, "id" | "state">) =>
+      setRuns((old) =>
+        old.some((r) => r.id === next.id && r.state !== next.state)
+          ? old.map((r) => (r.id === next.id ? { ...r, state: next.state } : r))
+          : old,
+      ),
     [],
   );
   const load = useCallback(async () => {
@@ -270,6 +281,7 @@ export default function App() {
         );
         if (active && current.current === id) {
           setRun(next);
+          syncList(next);
           setConnection((old) =>
             old.includes("perdue")
               ? "API reconnectée · journal synchronisé"
@@ -313,6 +325,8 @@ export default function App() {
       update: (event) => {
         if (!active) return;
         setEvents((old) => appendEvent(old, event));
+        if (event.type === "state")
+          syncList({ id, state: String(event.data.state) });
         setRun((old) => {
           if (!old || old.id !== id) return old;
           if (event.type === "state")
@@ -364,7 +378,7 @@ export default function App() {
       if (heartbeat) clearInterval(heartbeat);
     };
     // A refresh of the same run must not reopen its SSE stream.
-  }, [run?.id, streamKey, history]);
+  }, [run?.id, streamKey, history, syncList]);
   const launch = async () => {
     if (busy || !input.prompt.trim()) return;
     const candidate = structuredClone(input);
@@ -626,9 +640,18 @@ export default function App() {
               >
                 <i className={"dot " + r.state} />
                 <span title={r.prompt}>{r.title || r.prompt}</span>
-                <small className={finalStates.has(r.state) ? "sr-only" : ""}>
+                <small
+                  className={
+                    finalStates.has(r.state) || ownerStates.has(r.state)
+                      ? "sr-only"
+                      : ""
+                  }
+                >
                   {labels[r.state] || r.state}
                 </small>
+                {ownerStates.has(r.state) && (
+                  <small className="owner-turn">À vous de répondre</small>
+                )}
                 {turns > 1 && <small className="turns">{turns} tours</small>}
                 {r.simulated && <small>fictif</small>}
               </button>

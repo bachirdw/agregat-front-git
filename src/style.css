@@ -300,6 +300,29 @@ nav {
 .dot.interrupted {
   background: var(--red);
 }
+.dot.awaiting_owner,
+.dot.waiting_permission {
+  background: var(--orange);
+  animation: owner-pulse 1.6s ease-in-out infinite;
+}
+@keyframes owner-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--orangeFill);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--orangeFill);
+  }
+}
+.owner-turn {
+  border-radius: 10px;
+  padding: 0 7px;
+  line-height: 18px;
+  background: var(--orangeFill);
+  color: var(--orange);
+  font-weight: 600;
+  white-space: nowrap;
+}
 .connections-panel {
   position: absolute;
   top: 64px;
