@@ -1,4 +1,5 @@
 import { Markdown } from "./Markdown";
+import { withoutResultEnvelope } from "./envelope";
 
 // The back appends its own lines (verification, Bilan, send, questions…) after the agent's answer
 // in `result.summary` (orchestrator/index.js, career-ops/truth.js). They are split from the answer
@@ -79,6 +80,40 @@ const listOf = (line: string, label: RegExp, separator: string) => {
   return items(value, separator).length;
 };
 
+// With the back's own fields (`result.answer`, `result.platformNotes`), the answer and the
+// platform's lines are taken as given; only the visible/folded choice is made here, by sentence.
+export function splitResult(
+  summary: string,
+  answer?: string,
+  notes?: string[],
+): SplitSummary {
+  if (!Array.isArray(notes) || typeof answer !== "string")
+    return splitSummary(summary);
+  const lines = notes.map((l) => String(l).trim()).filter(Boolean);
+  const lead = lines.filter((l) => /^Avertissement — /.test(l));
+  const rest = lines.filter((l) => !lead.includes(l));
+  const warnings = rest.filter((l) => !l.startsWith("- ") && isWarning(l));
+  const details = rest.filter((l) => !warnings.includes(l));
+  return {
+    // A private or missing answer: what the summary says in its place (« Réponse disponible… »).
+    answer: answer.trim() || splitSummary(summary).answer,
+    lead,
+    warnings,
+    details,
+    counts: countLines(details),
+  };
+}
+function countLines(details: string[]) {
+  const counts = { ok: 0, failed: 0, mixed: 0, notDone: 0 };
+  for (const line of details) {
+    counts.ok += listOf(line, /^- Actions réussies : (.*)$/, ", ");
+    counts.failed += listOf(line, /^- Actions échouées : (.*)$/, " ; ");
+    counts.failed += listOf(line, /^Action\(s\) échouée\(s\) : (.*)$/, " ; ");
+    counts.mixed += listOf(line, /^- Résultats mixtes : (.*)$/, " ; ");
+    counts.notDone += listOf(line, /^- Non exécuté : (.*)$/, " ; ");
+  }
+  return counts;
+}
 export function splitSummary(summary: string): SplitSummary {
   const lines = summary.replace(/\s+$/, "").split("\n");
   // From the end: platform lines, and « - » lines only under a « Bilan » header.
@@ -109,14 +144,7 @@ export function splitSummary(summary: string): SplitSummary {
   const trailer = lines.slice(start).map((l) => l.trim());
   const warnings = trailer.filter((l) => !l.startsWith("- ") && isWarning(l));
   const details = trailer.filter((l) => !warnings.includes(l));
-  const counts = { ok: 0, failed: 0, mixed: 0, notDone: 0 };
-  for (const line of details) {
-    counts.ok += listOf(line, /^- Actions réussies : (.*)$/, ", ");
-    counts.failed += listOf(line, /^- Actions échouées : (.*)$/, " ; ");
-    counts.failed += listOf(line, /^Action\(s\) échouée\(s\) : (.*)$/, " ; ");
-    counts.mixed += listOf(line, /^- Résultats mixtes : (.*)$/, " ; ");
-    counts.notDone += listOf(line, /^- Non exécuté : (.*)$/, " ; ");
-  }
+  const counts = countLines(details);
   return {
     answer: lines.slice(first, start).join("\n").trim(),
     lead,
@@ -144,8 +172,19 @@ export function detailsTitle({
 }
 
 // The agent's answer first; the platform's warnings in sight; the Bilan folded.
-export function AgentAnswer({ text }: { text: string }) {
-  const { answer, lead, warnings, details, counts } = splitSummary(text);
+export function AgentAnswer({
+  text,
+  answer: given,
+  notes,
+}: {
+  text: string;
+  answer?: string;
+  notes?: string[];
+}) {
+  const split = splitResult(text, given, notes);
+  const { lead, warnings, details, counts } = split;
+  // An answer left as the agent's JSON result (the back could not read it) shows its summary.
+  const answer = withoutResultEnvelope(split.answer, true);
   return (
     <div className="agent-answer">
       {lead.map((line) => (

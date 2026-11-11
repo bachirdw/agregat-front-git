@@ -3,6 +3,12 @@ import type { ReactNode } from "react";
 import { api, appendEvent, watchRun } from "./api";
 import { Markdown } from "./Markdown";
 import { AgentAnswer } from "./Bilan";
+import { isResultEnvelope, withoutResultEnvelope } from "./envelope";
+export {
+  envelopeSummary,
+  isResultEnvelope,
+  withoutResultEnvelope,
+} from "./envelope";
 import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
@@ -21,6 +27,13 @@ type Tool = {
   callKind?: string;
   // Name of the tool as the Claude adapter reports it (`_meta.claudeCode.toolName`).
   toolName?: string;
+  // Codex marks its MCP calls `kind: "execute"` with `_meta.is_mcp_tool_call`: not terminal commands.
+  mcp?: boolean;
+  // File named by the call (`locations[0].path`), for Codex's reads and edits.
+  location?: string;
+  // Terminal output streamed by Codex (`_meta.terminal_output_delta.data`), and its exit code.
+  terminal?: string;
+  exitCode?: number;
   // Failed before any start event: the agent refused the call itself.
   refused?: boolean;
   input?: unknown;
@@ -57,6 +70,26 @@ function toolOutput(u: Record<string, unknown>): string | undefined {
       return u.rawOutput
         .map((b: { text: string }) => pretty(b.text))
         .join("\n");
+    const raw = u.rawOutput as {
+      result?: { content?: unknown };
+      content?: unknown;
+      exit_code?: unknown;
+    };
+    // Codex: an MCP result `{ result: { content: [{ type: "text", text }] } }`.
+    const content = raw?.result?.content ?? raw?.content;
+    if (
+      Array.isArray(content) &&
+      content.length &&
+      content.every((b) => b?.type === "text" && typeof b?.text === "string")
+    )
+      return content.map((b: { text: string }) => pretty(b.text)).join("\n");
+    // Codex: a command's result is only its exit code; its output came as terminal deltas.
+    if (
+      raw &&
+      typeof raw === "object" &&
+      Object.keys(raw).every((k) => ["exit_code", "exitCode"].includes(k))
+    )
+      return undefined;
     return JSON.stringify(u.rawOutput, null, 2);
   }
   const blocks = Array.isArray(u.content) ? u.content : [];
@@ -99,6 +132,25 @@ export function activity(events: RunEvent[]): Item[] {
       const meta = (u._meta as { claudeCode?: { toolName?: unknown } })
         ?.claudeCode?.toolName;
       if (typeof meta === "string" && meta) tool.toolName = meta;
+      const codex = u._meta as
+        | {
+            is_mcp_tool_call?: unknown;
+            terminal_output_delta?: { data?: unknown };
+            terminal_exit?: { exit_code?: unknown };
+          }
+        | undefined;
+      if (codex?.is_mcp_tool_call === true) tool.mcp = true;
+      const delta = codex?.terminal_output_delta?.data;
+      if (typeof delta === "string")
+        tool.terminal = (tool.terminal ?? "") + delta;
+      const exit =
+        codex?.terminal_exit?.exit_code ??
+        (u.rawOutput as { exit_code?: unknown } | undefined)?.exit_code;
+      if (typeof exit === "number") tool.exitCode = exit;
+      const where = Array.isArray(u.locations)
+        ? (u.locations[0] as { path?: unknown } | undefined)?.path
+        : undefined;
+      if (typeof where === "string" && where) tool.location = where;
       if (u.status) tool.status = String(u.status);
       if (u.status && !active(String(u.status))) tool.endAt = e.at;
       if (u.title) tool.title = String(u.title);
@@ -266,6 +318,38 @@ export function describeTool(tool: Tool) {
       summary: call[2],
       params: tool.input === undefined ? call[2] : undefined,
     };
+  // Codex's own tools: a command (`kind: "execute"`, rawInput.command) or a file action
+  // (« Read file '…' » with `locations`).
+  if (!tool.mcp && !tool.toolName) {
+    const command = (tool.input as { command?: unknown } | undefined)?.command;
+    if (tool.callKind === "execute" && command !== undefined)
+      return {
+        name: "Commande",
+        summary: Array.isArray(command) ? command.join(" ") : String(command),
+        params: undefined,
+      };
+    // « Read file '…' », « List files in 'output' », « Search for 'x' in AGENTS.md ».
+    const quoted = tool.title.match(/^([^'"\n]+?)\s+'([\s\S]*)'(.*)$/);
+    if (quoted)
+      return {
+        name: quoted[1],
+        summary: tool.location ?? (quoted[2] + quoted[3]).trim(),
+        params: undefined,
+      };
+    if (tool.location)
+      return { name: tool.title, summary: tool.location, params: undefined };
+    // « Web search » ({ type: "webSearch", query }): its query, never the whole input.
+    if (
+      typeof (tool.input as { type?: unknown } | undefined)?.type === "string"
+    )
+      return {
+        name: tool.title.split(": ")[0],
+        summary:
+          mainArgument(tool.input) ??
+          tool.title.split(": ").slice(1).join(": "),
+        params: undefined,
+      };
+  }
   if (tool.toolName) {
     const name = shortToolName(tool.toolName);
     const rest = tool.title.startsWith(tool.toolName + " ")
@@ -340,11 +424,20 @@ function CopyButton({ text }: { text: string }) {
     </button>
   );
 }
+// What the call gave back: its result, else the terminal output (Codex), with a non-zero exit code.
+function toolResult(tool: Tool) {
+  const output = tool.output ?? tool.terminal;
+  if (tool.exitCode && output !== undefined)
+    return `${output.replace(/\n$/, "")}\n(code de sortie ${tool.exitCode})`;
+  return (
+    output ?? (tool.exitCode ? `Code de sortie ${tool.exitCode}` : undefined)
+  );
+}
 function ToolLine({ tool }: { tool: Tool }) {
   const { name, summary, params } = describeTool(tool);
   const duration = toolDuration(tool);
-  const cause =
-    tool.status === "failed" ? failureCause(tool.output) : undefined;
+  const output = toolResult(tool);
+  const cause = tool.status === "failed" ? failureCause(output) : undefined;
   const input =
     tool.input === undefined ? params : JSON.stringify(tool.input, null, 2);
   return (
@@ -373,7 +466,7 @@ function ToolLine({ tool }: { tool: Tool }) {
         )}
         <small>Résultat</small>
         <pre>
-          {tool.output ??
+          {output ??
             (active(tool.status) ? "En cours…" : "Aucun résultat transmis.")}
         </pre>
       </div>
@@ -396,7 +489,7 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
           tools.map((t) => t.endAt),
         )
       : null;
-  const noun = tools.every((t) => t.callKind === "execute")
+  const noun = tools.every((t) => t.callKind === "execute" && !t.mcp)
     ? "commandes"
     : "actions";
   // Which tools, in order of first use: « browser_snapshot ×2 · browser_click ».
@@ -450,34 +543,6 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
     </>
   );
 }
-// The agent's final message is often the JSON result the platform parses; its summary is shown apart.
-export function isResultEnvelope(text: string) {
-  const body = text
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/```$/, "")
-    .trim();
-  if (!body.startsWith("{")) return false;
-  try {
-    const value = JSON.parse(body) as { summary?: unknown };
-    return typeof value?.summary === "string";
-  } catch {
-    return false;
-  }
-}
-// Text said before a final JSON result in the same message (« Voici le bilan. {…} »): the JSON
-// is the platform's to read; its summary is shown as the answer.
-export function withoutResultEnvelope(text: string) {
-  if (isResultEnvelope(text)) return "";
-  for (const marker of ["```json", "```", "\n{"]) {
-    let at = text.indexOf(marker);
-    while (at > 0) {
-      if (isResultEnvelope(text.slice(at))) return text.slice(0, at).trimEnd();
-      at = text.indexOf(marker, at + 1);
-    }
-  }
-  return text;
-}
 type Block = Exclude<Item, Tool> | { kind: "tools"; id: string; tools: Tool[] };
 function blocks(items: Item[]): Block[] {
   const out: Block[] = [];
@@ -505,10 +570,12 @@ export function AgentActivity({
     () =>
       activity(events)
         .map((i) =>
-          i.kind === "text" ? { ...i, text: withoutResultEnvelope(i.text) } : i,
+          i.kind === "text"
+            ? { ...i, text: withoutResultEnvelope(i.text, !final) }
+            : i,
         )
         .filter((i) => i.kind !== "text" || i.text.trim()),
-    [events],
+    [events, final],
   );
   const shown = useMemo(
     () =>
@@ -782,6 +849,8 @@ function Turn({
   const [answerError, setAnswerError] = useState("");
   // The private result could not be read: the mission's own summary is shown instead.
   const [fallback, setFallback] = useState(false);
+  // The back's split of a public result (`answer`, `platformNotes`), when it has one.
+  const [split, setSplit] = useState<{ answer?: string; notes?: string[] }>({});
   const done = run.state === "completed";
   const running = !finalStates.has(run.state);
   useEffect(() => {
@@ -790,12 +859,18 @@ function Turn({
     setAnswer(null);
     setAnswerError("");
     setFallback(false);
+    setSplit({});
     if (source === "run") {
       setPrompt(run.prompt);
       if (done)
         api<Run>(`/runs/${run.id}`, undefined, abort.signal)
           .then((r) => {
-            if (!abort.signal.aborted) setAnswer(r.result?.summary || "");
+            if (abort.signal.aborted) return;
+            setAnswer(r.result?.summary || "");
+            setSplit({
+              answer: r.result?.answer,
+              notes: r.result?.platformNotes,
+            });
           })
           .catch((e) => {
             if (!abort.signal.aborted) setAnswerError((e as Error).message);
@@ -824,6 +899,10 @@ function Turn({
           if (abort.signal.aborted) return;
           if (run.result?.summary) {
             setAnswer(run.result.summary);
+            setSplit({
+              answer: run.result.answer,
+              notes: run.result.platformNotes,
+            });
             setFallback(true);
           } else setAnswerError((e as Error).message);
         });
@@ -841,7 +920,13 @@ function Turn({
             answer={answerError ? "" : answer}
           />
         )}
-        {done && answer !== null && <AgentAnswer text={answer} />}
+        {done && answer !== null && (
+          <AgentAnswer
+            text={answer}
+            answer={split.answer}
+            notes={split.notes}
+          />
+        )}
         {fallback && (
           <p className="muted answer-source">
             Résultat privé illisible : réponse enregistrée sur la mission.

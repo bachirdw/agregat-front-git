@@ -215,6 +215,10 @@ export interface Run {
   result?: {
     simulated: boolean;
     summary: string;
+    // Since the back of 11/11 (19:51): the agent's answer alone ("" when private or not found) and
+    // the lines the platform wrote after it, in order. Absent from older runs.
+    answer?: string;
+    platformNotes?: string[];
     provenance?: { data: string; analysis: string };
     evidence: unknown[];
     opportunities?: Opportunity[];

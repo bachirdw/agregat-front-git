@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { AgentActivity, mainArgument, withoutResultEnvelope } from "./Career";
+import {
+  AgentActivity,
+  CareerThread,
+  mainArgument,
+  withoutResultEnvelope,
+} from "./Career";
 import { AgentAnswer, splitSummary } from "./Bilan";
 import { RunView } from "./Mission";
 import type { Run, RunEvent } from "./types";
@@ -404,5 +409,252 @@ describe("page d'une mission core", () => {
       />,
     );
     expect(container.querySelector(".run-transcript")).toBeNull();
+  });
+});
+
+// Shapes copied from a real Codex mission of the API (4313, f831e62b / f7271831, 11/11), values FICTIVES.
+const codexCall = (id: string, data: Record<string, unknown>) =>
+  agent({
+    sessionUpdate: "tool_call",
+    toolCallId: id,
+    status: "in_progress",
+    ...data,
+  });
+const codexUpdate = (id: string, data: Record<string, unknown>) =>
+  agent({ sessionUpdate: "tool_call_update", toolCallId: id, ...data });
+
+describe("transcription : missions Codex", () => {
+  it("commande : nom « Commande », la commande en argument, sortie du terminal et code de sortie", () => {
+    const { container } = render(
+      <AgentActivity
+        events={[
+          codexCall("exec-1", {
+            title: "node update-system.mjs check",
+            name: "exec_command",
+            kind: "execute",
+            rawInput: { command: "node update-system.mjs check", cwd: "x" },
+            _meta: { terminal_info: { terminal_id: "exec-1" } },
+          }),
+          codexUpdate("exec-1", {
+            _meta: { terminal_output_delta: { data: '{"status":"FICTIF"}\n' } },
+          }),
+          codexUpdate("exec-1", {
+            status: "failed",
+            rawOutput: { exit_code: 2 },
+            _meta: { terminal_exit: { exit_code: 2 } },
+          }),
+        ]}
+      />,
+    );
+    const line = container.querySelector("details.tool")!;
+    expect(line.querySelector("summary code")!.textContent).toBe("Commande");
+    expect(line.querySelector(".tool-summary")!.textContent).toBe(
+      "node update-system.mjs check",
+    );
+    fireEvent.click(line.querySelector("summary")!);
+    const output = [...line.querySelectorAll("pre")].at(-1)!.textContent!;
+    expect(output).toBe('{"status":"FICTIF"}\n(code de sortie 2)');
+  });
+  it("outils MCP (kind execute + is_mcp_tool_call) : « actions », nom court, argument, résultat déballé", () => {
+    const mcp = (id: string, tool: string, args: unknown, text: string) => [
+      codexCall(id, {
+        title: `mcp.platform.${tool}`,
+        kind: "execute",
+        rawInput: { server: "platform", tool, arguments: args },
+        _meta: { is_mcp_tool_call: true },
+      }),
+      codexUpdate(id, { status: "in_progress" }),
+      codexUpdate(id, {
+        status: "completed",
+        rawOutput: { result: { content: [{ type: "text", text }] } },
+      }),
+    ];
+    const { container } = render(
+      <AgentActivity
+        events={[
+          ...mcp("m1", "career_read", { path: "cv.md" }, '{"path":"cv.md"}'),
+          ...mcp(
+            "m2",
+            "browser_navigate",
+            { url: "https://example.test/offre" },
+            '{"title":"Offre FICTIVE"}',
+          ),
+        ]}
+      />,
+    );
+    const group = container.querySelector("details.tool-group")!;
+    expect(group.querySelector(".tool-group-label")!.textContent).toContain(
+      "A exécuté 2 actions",
+    );
+    expect(group.querySelector(".tool-group-names")!.textContent).toBe(
+      "career_read · browser_navigate",
+    );
+    const lines = [...group.querySelectorAll("details.tool")];
+    expect(lines[1].querySelector(".tool-summary")!.textContent).toBe(
+      "https://example.test/offre",
+    );
+    const output = [...lines[1].querySelectorAll("pre")].at(-1)!.textContent!;
+    expect(output).toContain('"title": "Offre FICTIVE"');
+    expect(output).not.toContain('"result"');
+  });
+  it("lecture, liste, recherche et recherche web : verbe du titre et argument, jamais l'entrée brute", () => {
+    const { container } = render(
+      <AgentActivity
+        events={[
+          codexCall("r1", {
+            title: "Read file '/espace/FICTIF/SKILL.md'",
+            kind: "read",
+            locations: [{ path: "/espace/FICTIF/SKILL.md" }],
+          }),
+          codexUpdate("r1", {
+            status: "completed",
+            rawOutput: { exit_code: 0 },
+          }),
+          say("Je cherche."),
+          codexCall("l1", { title: "List files in 'output'", kind: "read" }),
+          say("Puis."),
+          codexCall("s1", {
+            title: "Search for 'Ethical Use|below 4' in AGENTS.md",
+            kind: "search",
+          }),
+          say("Enfin."),
+          codexCall("w1", {
+            title: "Web search",
+            kind: "search",
+            rawInput: { type: "webSearch", id: "w1", query: "", action: null },
+          }),
+          codexUpdate("w1", { title: 'Web search: "Agence FICTIVE" 2026' }),
+        ]}
+      />,
+    );
+    const lines = [...container.querySelectorAll("details.tool > summary")].map(
+      (s) => [
+        s.querySelector("code")!.textContent,
+        s.querySelector(".tool-summary")?.textContent ?? "",
+      ],
+    );
+    expect(lines).toEqual([
+      ["Read file", "/espace/FICTIF/SKILL.md"],
+      ["List files in", "output"],
+      ["Search for", "Ethical Use|below 4 in AGENTS.md"],
+      ["Web search", '"Agence FICTIVE" 2026'],
+    ]);
+  });
+});
+
+describe("transcription : réponse lisible avant la question de l'agent", () => {
+  const envelope =
+    '{\n  "simulated": false,\n  "summary": "Annonce FICTIVE lue.\nLigne deux.",\n  "question": "Confirmez-vous l’agence FICTIVE ?"\n}';
+  it("JSON avec de vrais retours à la ligne : reconnu ; pendant la mission son résumé reste dans le fil", () => {
+    expect(withoutResultEnvelope(`Voici.\n${envelope}`)).toBe("Voici.");
+    expect(withoutResultEnvelope(envelope, true)).toBe(
+      "Annonce FICTIVE lue.\nLigne deux.\n\n**Question de l’agent :** Confirmez-vous l’agence FICTIVE ?",
+    );
+  });
+  it("question en prose en attente : la réponse déjà écrite est dans le fil, au-dessus du formulaire", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
+    const run = {
+      id: "r-prose",
+      sessionId: null,
+      createdAt: "2026-11-11T08:50:00Z",
+      prompt: "Évalue l’offre FICTIVE",
+      state: "awaiting_owner",
+      mode: "agent",
+      pack: "career-ops",
+      pendingQuestion: {
+        id: "q1",
+        kind: "prose",
+        message: "Confirmez-vous l’agence FICTIVE ?",
+        options: [],
+        requestedSchema: {
+          type: "object",
+          properties: { reponse: { type: "string", title: "Réponse" } },
+          required: ["reponse"],
+        },
+        toolCallId: null,
+        askedAt: "2026-11-11T08:52:00Z",
+      },
+    } as unknown as Run;
+    render(
+      <CareerThread
+        run={run}
+        runs={[]}
+        events={[say(envelope)]}
+        act={vi.fn(async () => {})}
+      >
+        {null}
+      </CareerThread>,
+    );
+    const answer = screen.getByText(/Annonce FICTIVE lue\./);
+    const form = screen.getByRole("form", { name: "Question de l’agent" });
+    expect(document.body.textContent).not.toContain('"simulated"');
+    expect(
+      answer.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("réponse finale : champs answer et platformNotes du back", () => {
+  it("les champs du back priment sur la reconnaissance par phrases", () => {
+    const { container } = render(
+      <AgentAnswer
+        text="résumé ancien, ignoré pour le découpage"
+        answer="Réponse FICTIVE de l'agent."
+        notes={[
+          "Affirmations de l’agent : non vérifiées.",
+          "Bilan",
+          "- Actions réussies : career_read, browser_navigate.",
+          "- Non exécuté : évaluation enregistrée.",
+          "Envoi par la plateforme : aucun approuvé.",
+          "Une ligne nouvelle de la plateforme, inconnue du front.",
+        ]}
+      />,
+    );
+    const answer = container.querySelector(".agent-answer")!;
+    expect(answer.firstElementChild!.textContent).toBe(
+      "Réponse FICTIVE de l'agent.",
+    );
+    expect(screen.getAllByRole("alert").map((a) => a.textContent)).toEqual([
+      "Envoi par la plateforme : aucun approuvé.",
+    ]);
+    const fold = container.querySelector<HTMLDetailsElement>(
+      "details.action-details",
+    )!;
+    expect(fold.open).toBe(false);
+    expect(fold.querySelector("summary")!.textContent).toBe(
+      "Détails des actions · 2 réussies · 1 non exécutée",
+    );
+    // A line the front does not know still lands in the platform's part, never in the answer.
+    expect(fold.textContent).toContain("Une ligne nouvelle de la plateforme");
+  });
+  it("réponse vide (privée) : le texte du résumé à sa place ; réponse restée en JSON : son résumé", () => {
+    const empty = splitSummary("Réponse disponible dans l’espace privé.");
+    expect(empty.answer).toBe("Réponse disponible dans l’espace privé.");
+    render(
+      <AgentAnswer
+        text={
+          "Réponse disponible dans l’espace privé.\nEnvoi par la plateforme : aucun approuvé."
+        }
+        answer=""
+        notes={["Envoi par la plateforme : aucun approuvé."]}
+      />,
+    );
+    expect(
+      screen.getByText("Réponse disponible dans l’espace privé."),
+    ).toBeTruthy();
+    cleanup();
+    render(
+      <AgentAnswer
+        text="x"
+        answer={'{"simulated":false,"summary":"Résumé FICTIF en JSON."}'}
+        notes={[]}
+      />,
+    );
+    expect(screen.getByText("Résumé FICTIF en JSON.")).toBeTruthy();
+    expect(document.body.textContent).not.toContain('"simulated"');
   });
 });

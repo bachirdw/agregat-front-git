@@ -411,7 +411,11 @@ export function RunView({
           {run.pack !== "career-ops" && (
             <>
               <h2>Synthèse</h2>
-              <AgentAnswer text={run.result.summary} />
+              <AgentAnswer
+                text={run.result.summary}
+                answer={run.result.answer}
+                notes={run.result.platformNotes}
+              />
             </>
           )}
           {!!run.result.opportunities?.length && (
