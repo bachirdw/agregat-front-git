@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
 import { Markdown, safeLink } from "./Markdown";
+import { AgentAnswer } from "./Bilan";
 const dataModeLabel = {
   fixture: "Sources fictives · démonstration",
   live: "Sources réelles · provenance à vérifier",
@@ -72,6 +73,7 @@ export function RunView({
   busy,
   act,
   requests = true,
+  transcript = true,
 }: {
   run: Run;
   events: RunEvent[];
@@ -80,6 +82,8 @@ export function RunView({
   act: (path: string, body: unknown, throwOnError?: boolean) => Promise<void>;
   // false when the career-ops thread already shows the owner's requests.
   requests?: boolean;
+  // false when the career-ops thread already shows the agent's activity.
+  transcript?: boolean;
 }) {
   const [timelineOpen, setTimelineOpen] = useState(!finalStates.has(run.state));
   useEffect(() => {
@@ -221,10 +225,12 @@ export function RunView({
                 </p>
               </div>
             )}
-            <AgentActivity
-              events={events}
-              running={!finalStates.has(run.state)}
-            />
+            {!transcript && (
+              <AgentActivity
+                events={events}
+                running={!finalStates.has(run.state)}
+              />
+            )}
             <details className="event-log">
               <summary>Journal en direct · {events.length} entrées</summary>
               <ol>
@@ -241,6 +247,16 @@ export function RunView({
           </>
         )}
       </section>
+      {transcript && (
+        <div className="agent-turn run-transcript">
+          <AgentActivity
+            events={events}
+            running={!finalStates.has(run.state)}
+            final={run.state === "completed" && !!run.result}
+            answer={run.result?.summary ?? null}
+          />
+        </div>
+      )}
       {run.pack !== "career-ops" && <SkillSteps progress={run.skillProgress} />}
       {run.error && (
         <section className="card error-card" role="alert">
@@ -395,7 +411,7 @@ export function RunView({
           {run.pack !== "career-ops" && (
             <>
               <h2>Synthèse</h2>
-              <Markdown text={run.result.summary} />
+              <AgentAnswer text={run.result.summary} />
             </>
           )}
           {!!run.result.opportunities?.length && (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { api, appendEvent, watchRun } from "./api";
 import { Markdown } from "./Markdown";
+import { AgentAnswer } from "./Bilan";
 import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
@@ -18,6 +19,8 @@ type Tool = {
   status: string;
   // ACP kind: "execute" is a terminal command, the rest are tool actions.
   callKind?: string;
+  // Name of the tool as the Claude adapter reports it (`_meta.claudeCode.toolName`).
+  toolName?: string;
   // Failed before any start event: the agent refused the call itself.
   refused?: boolean;
   input?: unknown;
@@ -29,12 +32,33 @@ type Item =
   | Tool
   | { kind: "text"; id: string; text: string; at?: string }
   | { kind: "thought"; id: string; text: string; at?: string };
-// Tool result as sent by the agent: rawOutput, else the text of its content blocks.
+// A JSON text is shown indented; any other text as sent.
+function pretty(text: string) {
+  const body = text.trim();
+  if (!/^[[{]/.test(body)) return text;
+  try {
+    return JSON.stringify(JSON.parse(body), null, 2);
+  } catch {
+    return text;
+  }
+}
+// Tool result as sent by the agent: rawOutput, else the text of its content blocks. An MCP result
+// (`[{ type: "text", text }]`) is shown as its text, not as the JSON of its envelope.
 function toolOutput(u: Record<string, unknown>): string | undefined {
-  if (u.rawOutput !== undefined && u.rawOutput !== null)
-    return typeof u.rawOutput === "string"
-      ? u.rawOutput
-      : JSON.stringify(u.rawOutput, null, 2);
+  if (u.rawOutput !== undefined && u.rawOutput !== null) {
+    if (typeof u.rawOutput === "string") return u.rawOutput;
+    if (
+      Array.isArray(u.rawOutput) &&
+      u.rawOutput.length &&
+      u.rawOutput.every(
+        (b) => b?.type === "text" && typeof b?.text === "string",
+      )
+    )
+      return u.rawOutput
+        .map((b: { text: string }) => pretty(b.text))
+        .join("\n");
+    return JSON.stringify(u.rawOutput, null, 2);
+  }
   const blocks = Array.isArray(u.content) ? u.content : [];
   const text = blocks
     .map((b: { content?: { text?: string }; text?: string }) =>
@@ -72,6 +96,9 @@ export function activity(events: RunEvent[]): Item[] {
         tools.set(id, tool);
         items.push(tool);
       }
+      const meta = (u._meta as { claudeCode?: { toolName?: unknown } })
+        ?.claudeCode?.toolName;
+      if (typeof meta === "string" && meta) tool.toolName = meta;
       if (u.status) tool.status = String(u.status);
       if (u.status && !active(String(u.status))) tool.endAt = e.at;
       if (u.title) tool.title = String(u.title);
@@ -190,6 +217,41 @@ export function failureCause(output?: string): string | undefined {
     }
   return output;
 }
+// "mcp__platform__browser_click" (Claude) → "browser_click".
+export function shortToolName(name: string) {
+  return name.replace(/^mcp__[^_]+(?:_[^_]+)*?__/, "");
+}
+// The one argument that tells what a call does (URL, file, command…), as Claude Code shows it.
+const mainKeys = [
+  "url",
+  "command",
+  "cmd",
+  "file_path",
+  "filePath",
+  "notebook_path",
+  "path",
+  "pattern",
+  "query",
+];
+export function mainArgument(input: unknown): string | undefined {
+  if (!input || typeof input !== "object" || Array.isArray(input))
+    return undefined;
+  const args = input as Record<string, unknown>;
+  for (const key of mainKeys) {
+    const value = args[key];
+    if (typeof value === "string" && value) {
+      const extra = args.args;
+      return Array.isArray(extra) && extra.every((a) => typeof a === "string")
+        ? [value, ...extra].join(" ")
+        : value;
+    }
+    if (Array.isArray(value) && value.every((a) => typeof a === "string"))
+      return value.join(" ");
+  }
+  if (Array.isArray(args.fields))
+    return `${args.fields.length} champ${args.fields.length > 1 ? "s" : ""}`;
+  return undefined;
+}
 export function describeTool(tool: Tool) {
   if (tool.refused)
     return {
@@ -204,6 +266,19 @@ export function describeTool(tool: Tool) {
       summary: call[2],
       params: tool.input === undefined ? call[2] : undefined,
     };
+  if (tool.toolName) {
+    const name = shortToolName(tool.toolName);
+    const rest = tool.title.startsWith(tool.toolName + " ")
+      ? tool.title.slice(tool.toolName.length + 1)
+      : tool.title === tool.toolName
+        ? ""
+        : tool.title;
+    return {
+      name,
+      summary: mainArgument(tool.input) ?? rest,
+      params: undefined,
+    };
+  }
   const fromId = toolNameFromId(tool.id);
   if (fromId && fromId !== tool.title)
     return { name: fromId, summary: tool.title, params: undefined };
@@ -213,17 +288,20 @@ export function describeTool(tool: Tool) {
     (tool.input as { arguments?: unknown } | undefined)?.arguments ??
     tool.input;
   return {
-    name: named ? tool.title.slice(0, colon) : tool.title.split(".").pop()!,
+    name: named
+      ? tool.title.slice(0, colon)
+      : shortToolName(tool.title.split(".").pop()!),
     summary: named
       ? tool.title.slice(colon + 2)
-      : args && typeof args === "object"
-        ? Object.entries(args)
-            .map(
-              ([k, v]) =>
-                `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`,
-            )
-            .join(", ")
-        : "",
+      : (mainArgument(args) ??
+        (args && typeof args === "object"
+          ? Object.entries(args)
+              .map(
+                ([k, v]) =>
+                  `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`,
+              )
+              .join(", ")
+          : "")),
     params: undefined,
   };
 }
@@ -321,6 +399,19 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
   const noun = tools.every((t) => t.callKind === "execute")
     ? "commandes"
     : "actions";
+  // Which tools, in order of first use: « browser_snapshot ×2 · browser_click ».
+  const counts = new Map<string, number>();
+  for (const t of tools) {
+    const name = describeTool(t).name;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const names = [...counts]
+    .map(([name, n]) => (n > 1 ? `${name} ×${n}` : name))
+    .join(" · ");
+  // While folded, the running call and the failures stay in sight.
+  const visible = tools.filter(
+    (t) => t.status === "failed" || active(t.status),
+  );
   return (
     <>
       <details
@@ -330,11 +421,14 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
       >
         <summary>
           <StatusIcon status={status} />
-          {status === "in_progress" ? "Exécute" : "A exécuté"} {tools.length}{" "}
-          {noun}
-          {failed.length > 0 &&
-            ` · ${failed.length} ${failed.length > 1 ? "erreurs" : "erreur"}`}
-          {duration && ` · ${duration}`}
+          <span className="tool-group-label">
+            {status === "in_progress" ? "Exécute" : "A exécuté"} {tools.length}{" "}
+            {noun}
+            {failed.length > 0 &&
+              ` · ${failed.length} ${failed.length > 1 ? "erreurs" : "erreur"}`}
+            {duration && ` · ${duration}`}
+          </span>
+          <span className="tool-group-names">{names}</span>
         </summary>
         <ol>
           {tools.map((t) => (
@@ -344,9 +438,9 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
           ))}
         </ol>
       </details>
-      {!open && failed.length > 0 && (
+      {!open && visible.length > 0 && (
         <ol className="tool-failures">
-          {failed.map((t) => (
+          {visible.map((t) => (
             <li key={t.id}>
               <ToolLine tool={t} />
             </li>
@@ -370,6 +464,19 @@ export function isResultEnvelope(text: string) {
   } catch {
     return false;
   }
+}
+// Text said before a final JSON result in the same message (« Voici le bilan. {…} »): the JSON
+// is the platform's to read; its summary is shown as the answer.
+export function withoutResultEnvelope(text: string) {
+  if (isResultEnvelope(text)) return "";
+  for (const marker of ["```json", "```", "\n{"]) {
+    let at = text.indexOf(marker);
+    while (at > 0) {
+      if (isResultEnvelope(text.slice(at))) return text.slice(0, at).trimEnd();
+      at = text.indexOf(marker, at + 1);
+    }
+  }
+  return text;
 }
 type Block = Exclude<Item, Tool> | { kind: "tools"; id: string; tools: Tool[] };
 function blocks(items: Item[]): Block[] {
@@ -396,9 +503,11 @@ export function AgentActivity({
 }) {
   const items = useMemo(
     () =>
-      activity(events).filter(
-        (i) => i.kind !== "text" || !isResultEnvelope(i.text),
-      ),
+      activity(events)
+        .map((i) =>
+          i.kind === "text" ? { ...i, text: withoutResultEnvelope(i.text) } : i,
+        )
+        .filter((i) => i.kind !== "text" || i.text.trim()),
     [events],
   );
   const shown = useMemo(
@@ -671,6 +780,8 @@ function Turn({
   const [prompt, setPrompt] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
   const [answerError, setAnswerError] = useState("");
+  // The private result could not be read: the mission's own summary is shown instead.
+  const [fallback, setFallback] = useState(false);
   const done = run.state === "completed";
   const running = !finalStates.has(run.state);
   useEffect(() => {
@@ -678,6 +789,7 @@ function Turn({
     setPrompt(null);
     setAnswer(null);
     setAnswerError("");
+    setFallback(false);
     if (source === "run") {
       setPrompt(run.prompt);
       if (done)
@@ -709,10 +821,14 @@ function Turn({
           if (!abort.signal.aborted) setAnswer(r.summary || "");
         })
         .catch((e) => {
-          if (!abort.signal.aborted) setAnswerError((e as Error).message);
+          if (abort.signal.aborted) return;
+          if (run.result?.summary) {
+            setAnswer(run.result.summary);
+            setFallback(true);
+          } else setAnswerError((e as Error).message);
         });
     return () => abort.abort();
-  }, [run.id, done, run.prompt, source]);
+  }, [run.id, done, run.prompt, source, run.result?.summary]);
   return (
     <>
       <PromptBubble text={prompt ?? immediatePrompt ?? "…"} />
@@ -725,7 +841,12 @@ function Turn({
             answer={answerError ? "" : answer}
           />
         )}
-        {done && answer !== null && <Markdown text={answer} />}
+        {done && answer !== null && <AgentAnswer text={answer} />}
+        {fallback && (
+          <p className="muted answer-source">
+            Résultat privé illisible : réponse enregistrée sur la mission.
+          </p>
+        )}
         {done && answerError && (
           <p className="danger" role="alert">
             {answerError}

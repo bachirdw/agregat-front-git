@@ -1022,3 +1022,50 @@ fieldset.question-field label {
     max-height: 32vh;
   }
 }
+/* Transcription : réponse de l'agent d'abord, avertissements visibles, Bilan replié. */
+.agent-answer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+.answer-warning {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 2px solid var(--red);
+  color: var(--red);
+  background: var(--fill2);
+  border-radius: 4px 8px 8px 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.action-details > ul {
+  margin: 4px 0 0 14px;
+  padding: 0 0 0 14px;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  box-shadow: inset 1.5px 0 0 var(--sep);
+  list-style: none;
+}
+.answer-source {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+.tool-group-label {
+  flex: none;
+  white-space: nowrap;
+}
+.tool-group-names {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  opacity: 0.85;
+}

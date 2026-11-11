@@ -890,6 +890,7 @@ export default function App() {
                     busy={busy}
                     act={action}
                     requests={false}
+                    transcript={false}
                   />
                 </CareerThread>
               ) : (
