@@ -314,12 +314,45 @@ const input = {
 
 describe("avant le lancement", () => {
   it("8. signale un agent indisponible : catalogue ou dernière limite d'usage connue", () => {
-    expect(agentWarning("codex", catalog, [limited])).toContain(
+    const during = Date.parse("Nov 5, 2026 12:00 PM");
+    expect(agentWarning("codex", catalog, [limited], during)).toContain(
       "réessayer à Nov 6th, 2026 12:54 PM",
     );
-    expect(agentWarning("gemini", catalog, [limited])).toBeNull();
+    // 11/11 : the hour the agent gave has passed, the limit is over; nothing is shown.
+    expect(
+      agentWarning(
+        "codex",
+        catalog,
+        [limited],
+        Date.parse("Nov 11, 2026 8:45 PM"),
+      ),
+    ).toBeNull();
+    // No readable hour: shown for a day after the failure, not after.
+    const undated = run({
+      agent: "codex",
+      createdAt: "2026-11-02T11:30:00Z",
+      error:
+        "Limite d’usage de Codex atteinte. Choisir un autre agent ou attendre.",
+    });
+    expect(
+      agentWarning(
+        "codex",
+        catalog,
+        [undated],
+        Date.parse("2026-11-02T15:00:00Z"),
+      ),
+    ).toContain("Limite d’usage");
+    expect(
+      agentWarning(
+        "codex",
+        catalog,
+        [undated],
+        Date.parse("2026-11-04T15:00:00Z"),
+      ),
+    ).toBeNull();
+    expect(agentWarning("gemini", catalog, [limited], during)).toBeNull();
     expect(agentWarning("opencode", catalog, [])).toContain("auth FICTIVE");
-    expect(agentWarning("auto", catalog, [limited])).toBeNull();
+    expect(agentWarning("auto", catalog, [limited], during)).toBeNull();
     // A later success of the same agent clears the old limit.
     expect(
       agentWarning("codex", catalog, [
@@ -338,7 +371,7 @@ describe("avant le lancement", () => {
         onChange={vi.fn()}
         onPlan={vi.fn()}
         busy={false}
-        agentWarning={agentWarning("codex", catalog, [limited])}
+        agentWarning={agentWarning("codex", catalog, [limited], during)}
       />,
     );
     expect(screen.getByRole("alert").textContent).toContain("Codex");
