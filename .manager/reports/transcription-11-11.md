@@ -108,3 +108,52 @@ Le « Bilan » n'est pas un champ structuré : le back l'ajoute en texte à la f
    vaut parfois « No matching deferred tools found » alors que la recherche suivante trouve) ; non affiché.
 6. Quand l'agent termine par un JSON invalide (8f365fd4 : retour à la ligne brut dans une chaîne), le back
    garde tout le texte comme `summary`, bloc ```json compris ; le front l'affiche tel quel.
+
+---
+
+## Suite du 11/11 (19:52-19:58) — back relancé sur 5071103
+
+### Fait (commit `52227b7`)
+- **`result.answer` / `result.platformNotes`** (`src/Bilan.tsx` `splitResult`, `src/types.ts`) : quand les deux
+  champs existent, la réponse et les lignes de la plateforme sont prises telles quelles ; seul le choix
+  « visible / replié » se fait par phrase sur chaque ligne de `platformNotes`. Une ligne inconnue du front
+  reste du côté plateforme (repliée). `answer` vide (privée) → texte du résumé à sa place. Repli par phrases
+  inchangé pour les anciennes missions et le résultat privé career-ops. Utilisé dans la synthèse core, les
+  tours de `SessionHistory` et le repli du fil career-ops.
+- **Codex** (`src/Career.tsx`), formes lues sur f831e62b et f7271831 (4313) :
+  - commandes `kind: "execute"` avec `rawInput.command` → « Commande » + la commande ; sortie prise dans
+    `_meta.terminal_output_delta.data` (le `rawOutput` final n'est que `{ exit_code }`) ; code de sortie non
+    nul ajouté à la sortie ;
+  - outils MCP : `kind: "execute"` + `_meta.is_mcp_tool_call` → comptés « actions » (plus « commandes ») ;
+    résultat `{ result: { content: [{type:"text"}] } }` déballé ;
+  - titres « Read file '…' » (avant : nom `md'`), « List files in '…' », « Search for '…' in … »,
+    « Open page », « Web search: … » (avant : l'entrée brute `type: webSearch, id: …` en argument).
+- **Enveloppe JSON** déplacée dans `src/envelope.ts` (réexportée par `Career.tsx`) : JSON avec retours à la
+  ligne bruts toléré ; tant que la réponse n'est pas montrée à part (mission en cours, **question en attente**),
+  le résumé de l'enveloppe reste dans le fil au lieu d'être retiré, avec la question qu'elle porte
+  (« **Question de l’agent :** … »). Avant, une réponse Codex en JSON pur disparaissait du fil pendant l'attente.
+  Une réponse finale restée en JSON (`result.answer` = l'enveloppe) affiche son résumé.
+
+### Vérifications
+- `npx vitest run` : `Test Files 13 passed (13)`, `Tests 185 passed (185)` (7 nouveaux).
+- `npm run build` : `✓ built in 675ms` ; `prettier --check src` : OK.
+- 5176 + 4313 : conversation Codex f831e62b → f7271831 (2 tours, career-ops) : tour 1 terminé (réponse,
+  question de l'agent, « Envoi par la plateforme : aucun approuvé » visible, « Détails des actions ·
+  4 réussies · 2 non exécutées » replié) ; tour 2 **en cours** observé en direct : groupe « Exécute 4 actions »
+  avec la ligne en cours visible sous le groupe replié et « Exécution… » ; noms et arguments de toutes les
+  lignes Codex relus (Read file, List files in, Search for, Web search, Open page, Commande, career_*).
+  Réflexion Codex (`agent_thought_chunk`) présente et repliée.
+
+### Non vérifié
+- Une mission **réellement en attente** d'une question en prose : aucune sur 4313 pendant le contrôle
+  (`pendingQuestion` toujours `null`) ; couvert par un test (`CareerThread`, état `awaiting_owner`,
+  question `prose`, réponse JSON au-dessus du formulaire).
+- Les champs `answer` / `platformNotes` d'une mission **core** réelle : seule la mission Codex f831e62b
+  (career-ops, finie 19:52) les porte ; rendu core couvert par les tests.
+
+### Manque côté back (nouveau)
+7. f831e62b : la réponse Codex est un JSON **valide** dont `question` est une **chaîne**
+   (`"question": "Confirmez-vous …"`), pas `{ message }`. Le back ne l'a ni posée (aucun événement
+   `question`, `pendingQuestion` nul) ni déballée : `result.answer` et le résumé privé contiennent tout le
+   JSON. Le front affiche son résumé et la question, mais la question n'a pas été transmise comme telle
+   (le propriétaire a répondu en relançant un tour).
