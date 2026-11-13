@@ -717,6 +717,57 @@ describe("career-ops", () => {
     expect(screen.getByText("Postule à l’offre FICTIVE")).toBeTruthy();
     expect(screen.getByText(/Agent silencieux depuis 1 min/)).toBeTruthy();
   });
+  it("retire l'avis de silence en attente du propriétaire ou quand l'agent reparle (E104)", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
+    const run = (state: string) =>
+      ({
+        id: "00000000-0000-4000-8000-000000000010",
+        prompt: "Mission FICTIVE",
+        state,
+        mode: "agent",
+        pack: "career-ops",
+        createdAt: "2026-11-13T10:00:00.000Z",
+      }) as unknown as Run;
+    const silent = {
+      seq: 1,
+      type: "agent_silent",
+      data: { elapsedMs: 120000, stopped: false },
+    };
+    const show = (state: string, events: object[]) => {
+      cleanup();
+      const r = run(state);
+      render(
+        <CareerThread run={r} runs={[r]} events={events as never}>
+          <span />
+        </CareerThread>,
+      );
+      return screen.queryByText(/Agent silencieux depuis/);
+    };
+    expect(show("awaiting_owner", [silent])).toBeNull();
+    expect(
+      show("running", [
+        silent,
+        {
+          seq: 2,
+          type: "agent",
+          data: {
+            sessionUpdate: "agent_message_chunk",
+            content: { type: "text", text: "Je reprends." },
+          },
+        },
+      ]),
+    ).toBeNull();
+    expect(
+      show("running", [
+        silent,
+        { seq: 2, type: "state", data: { state: "running" } },
+      ]),
+    ).toBeNull();
+    expect(show("running", [silent])).toBeTruthy();
+  });
   it("affiche une seule fois le repli Chrome isolé dans le fil de la mission", () => {
     vi.stubGlobal(
       "fetch",

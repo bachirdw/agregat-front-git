@@ -10,7 +10,7 @@ export {
   withoutResultEnvelope,
 } from "./envelope";
 import { PromptBubble } from "./PromptBubble";
-import { finalStates, labels, money } from "./types";
+import { finalStates, labels, money, ownerStates } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 import { SkillSteps } from "./SkillSteps";
 import { resumedFromLinks } from "./resumeLinks";
@@ -396,17 +396,56 @@ function formatDuration(ms: number) {
   const seconds = Math.round(ms / 1000);
   return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
 }
-// Time between the first and last update; nothing is shown when the times are unknown.
-function span(starts: (string | undefined)[], ends: (string | undefined)[]) {
+export type Wait = { start: number; end: number };
+// Times the mission waited for the owner: from `state` awaiting_owner (or waiting_permission) to
+// the next `state` or to the `answer`; a wait still open ends at `end` (end of the run), else now.
+export function ownerWaits(events: RunEvent[], end?: string): Wait[] {
+  const waits: Wait[] = [];
+  let open: number | null = null;
+  const close = (at: number) => {
+    if (open !== null && Number.isFinite(at) && at >= open)
+      waits.push({ start: open, end: at });
+    open = null;
+  };
+  for (const e of [...events].sort((a, b) => a.seq - b.seq)) {
+    const at = Date.parse(e.at || "");
+    if (e.type === "state") {
+      const owner = ownerStates.has(String(e.data?.state));
+      if (owner && open === null) open = Number.isFinite(at) ? at : null;
+      else if (!owner) close(at);
+    } else if (e.type === "answer") close(at);
+  }
+  if (open !== null) {
+    const last = Date.parse(end || "");
+    close(Number.isFinite(last) ? last : Date.now());
+  }
+  return waits;
+}
+// Time between the first and last update, less the owner's waits; nothing is shown when the
+// times are unknown.
+function span(
+  starts: (string | undefined)[],
+  ends: (string | undefined)[],
+  waits: Wait[] = [],
+) {
   const start = Math.min(...starts.map((t) => Date.parse(t || "")));
   const end = Math.max(...ends.map((t) => Date.parse(t || "")));
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start)
     return null;
-  return formatDuration(end - start);
+  const waited = waits.reduce(
+    (sum, w) =>
+      sum + Math.max(0, Math.min(end, w.end) - Math.max(start, w.start)),
+    0,
+  );
+  return formatDuration(end - start - waited);
 }
-export function toolDuration(tool: Tool) {
-  return span([tool.at], [tool.endAt]);
+export function toolDuration(tool: Tool, waits: Wait[] = []) {
+  return span([tool.at], [tool.endAt], waits);
 }
+// The agent's question to the owner (Claude's AskUserQuestion): its time is the owner's wait.
+const asksOwner = (tool: Tool) =>
+  tool.toolName === "AskUserQuestion" ||
+  /^Asking for your input/i.test(tool.title);
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -433,9 +472,10 @@ function toolResult(tool: Tool) {
     output ?? (tool.exitCode ? `Code de sortie ${tool.exitCode}` : undefined)
   );
 }
-function ToolLine({ tool }: { tool: Tool }) {
+function ToolLine({ tool, waits = [] }: { tool: Tool; waits?: Wait[] }) {
   const { name, summary, params } = describeTool(tool);
-  const duration = toolDuration(tool);
+  const waited = asksOwner(tool) ? toolDuration(tool) : null;
+  const duration = waited ? `attente : ${waited}` : toolDuration(tool, waits);
   const output = toolResult(tool);
   const cause = tool.status === "failed" ? failureCause(output) : undefined;
   const input =
@@ -474,7 +514,7 @@ function ToolLine({ tool }: { tool: Tool }) {
   );
 }
 // Consecutive actions fold under one line; a failure stays visible while folded.
-function ToolGroup({ tools }: { tools: Tool[] }) {
+function ToolGroup({ tools, waits }: { tools: Tool[]; waits: Wait[] }) {
   const [open, setOpen] = useState(false);
   const failed = tools.filter((t) => t.status === "failed");
   const status = tools.some((t) => active(t.status))
@@ -487,6 +527,7 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
       ? span(
           tools.map((t) => t.at),
           tools.map((t) => t.endAt),
+          waits,
         )
       : null;
   const noun = tools.every((t) => t.callKind === "execute" && !t.mcp)
@@ -526,7 +567,7 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
         <ol>
           {tools.map((t) => (
             <li key={t.id}>
-              <ToolLine tool={t} />
+              <ToolLine tool={t} waits={waits} />
             </li>
           ))}
         </ol>
@@ -535,7 +576,7 @@ function ToolGroup({ tools }: { tools: Tool[] }) {
         <ol className="tool-failures">
           {visible.map((t) => (
             <li key={t.id}>
-              <ToolLine tool={t} />
+              <ToolLine tool={t} waits={waits} />
             </li>
           ))}
         </ol>
@@ -590,6 +631,7 @@ export function AgentActivity({
       ),
     [items, final, answer],
   );
+  const waits = useMemo(() => ownerWaits(events), [events]);
   const label = running ? waitingLabel(items) : null;
   if (!shown.length) return label ? <Waiting label={label} /> : null;
   return (
@@ -603,9 +645,9 @@ export function AgentActivity({
           <li key={block.id} className={"activity-" + block.kind}>
             {block.kind === "tools" ? (
               block.tools.length === 1 ? (
-                <ToolLine tool={block.tools[0]} />
+                <ToolLine tool={block.tools[0]} waits={waits} />
               ) : (
-                <ToolGroup tools={block.tools} />
+                <ToolGroup tools={block.tools} waits={waits} />
               )
             ) : block.kind === "thought" ? (
               <Thought
@@ -958,6 +1000,21 @@ export function SessionHistory({ run, runs }: { run: Run; runs: Run[] }) {
     </div>
   );
 }
+// The last silence notice, unless the mission is over or waits for the owner, or the agent has
+// spoken (or the state, or a question, has moved) since.
+export function activeSilence(events: RunEvent[], state: string) {
+  if (finalStates.has(state) || ownerStates.has(state)) return undefined;
+  const silent = [...events]
+    .reverse()
+    .find((event) => event.type === "agent_silent" && !event.data?.stopped);
+  if (!silent) return undefined;
+  const later = events.some(
+    (event) =>
+      event.seq > silent.seq &&
+      ["agent", "state", "question"].includes(event.type),
+  );
+  return later ? undefined : silent;
+}
 export function CareerThread({
   run,
   runs,
@@ -983,9 +1040,7 @@ export function CareerThread({
   children: ReactNode;
 }) {
   const turns = sessionThread(run, runs);
-  const silent = [...events]
-    .reverse()
-    .find((event) => event.type === "agent_silent" && !event.data?.stopped);
+  const silent = activeSilence(events, run.state);
   const browserFallback = events.some(
     (event) => event.type === "browser_fallback",
   );
@@ -999,7 +1054,7 @@ export function CareerThread({
           immediatePrompt={t.id === run.id ? immediatePrompt : undefined}
         />
       ))}
-      {silent && !finalStates.has(run.state) && (
+      {silent && (
         <p className="career-warning" role="status">
           Agent silencieux depuis{" "}
           {Math.max(

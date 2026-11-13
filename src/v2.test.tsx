@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { MissionPill } from "./MissionPill";
 import { ConnectionsPanel } from "./ConnectionsPanel";
-import { AgentActivity, toolDuration } from "./Career";
+import { AgentActivity, ownerWaits, toolDuration } from "./Career";
 import {
   Tracker,
   metaLine,
@@ -145,6 +145,98 @@ describe("commandes de l'agent", () => {
     expect(
       toolDuration({ at: line.endAt, endAt: line.at } as never),
     ).toBeNull();
+  });
+  it("ownerWaits : deux attentes, réponse expirée, attente ouverte (E104)", () => {
+    const ev = (seq: number, type: string, data: object, at: string) =>
+      ({ seq, type, data, at }) as RunEvent;
+    const t = (m: number) =>
+      Date.parse(`2026-11-13T10:${String(m).padStart(2, "0")}:00Z`);
+    const iso = (m: number) => new Date(t(m)).toISOString();
+    const two = [
+      ev(1, "state", { state: "running" }, iso(0)),
+      ev(2, "state", { state: "awaiting_owner" }, iso(1)),
+      ev(3, "question", { id: "q-1" }, iso(1)),
+      ev(4, "answer", { id: "q-1", action: "accept" }, iso(4)),
+      ev(5, "state", { state: "running" }, iso(4)),
+      ev(6, "state", { state: "awaiting_owner" }, iso(10)),
+      ev(7, "state", { state: "running" }, iso(12)),
+    ];
+    expect(ownerWaits(two)).toEqual([
+      { start: t(1), end: t(4) },
+      { start: t(10), end: t(12) },
+    ]);
+    const expired = [
+      ev(1, "state", { state: "awaiting_owner" }, iso(2)),
+      ev(2, "question", { id: "q-2" }, iso(2)),
+      ev(3, "answer", { id: "q-2", action: "expired" }, iso(7)),
+    ];
+    expect(ownerWaits(expired)).toEqual([{ start: t(2), end: t(7) }]);
+    const open = [ev(1, "state", { state: "awaiting_owner" }, iso(3))];
+    expect(ownerWaits(open, iso(9))).toEqual([{ start: t(3), end: t(9) }]);
+    const now = Date.now();
+    const [live] = ownerWaits([
+      ev(
+        1,
+        "state",
+        { state: "awaiting_owner" },
+        new Date(now - 60000).toISOString(),
+      ),
+    ]);
+    expect(live.end).toBeGreaterThanOrEqual(now);
+  });
+  it("la durée d'un groupe exclut l'attente du propriétaire (E104)", () => {
+    const at = (m: number, s = 0) =>
+      `2026-11-13T10:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}Z`;
+    const call = (seq: number, id: string, title: string, t: string) =>
+      tool(
+        seq,
+        {
+          toolCallId: id,
+          sessionUpdate: "tool_call",
+          title,
+          status: "pending",
+        },
+        t,
+      );
+    const done = (seq: number, id: string, t: string) =>
+      tool(
+        seq,
+        {
+          toolCallId: id,
+          sessionUpdate: "tool_call_update",
+          status: "completed",
+        },
+        t,
+      );
+    const state = (seq: number, value: string, t: string) =>
+      ({ seq, type: "state", at: t, data: { state: value } }) as RunEvent;
+    const events: RunEvent[] = [
+      call(1, "a", "lire", at(0)),
+      done(2, "a", at(0, 30)),
+      call(3, "q1", "Asking for your input", at(0, 30)),
+      state(4, "awaiting_owner", at(0, 31)),
+      { seq: 5, type: "question", at: at(0, 31), data: { id: "q-1" } },
+      {
+        seq: 6,
+        type: "answer",
+        at: at(16, 31),
+        data: { id: "q-1", action: "accept" },
+      },
+      state(7, "running", at(16, 31)),
+      done(8, "q1", at(17)),
+      call(9, "b", "lire", at(17)),
+      done(10, "b", at(17, 20)),
+      call(11, "q2", "Asking for your input", at(17, 20)),
+      state(12, "awaiting_owner", at(17, 21)),
+      state(13, "running", at(22, 21)),
+      done(14, "q2", at(22, 57)),
+    ];
+    render(<AgentActivity events={events} />);
+    // 22 min 57 s du premier au dernier outil, dont 21 min d'attente du propriétaire.
+    expect(screen.getByText(/A exécuté 4 actions · 1 min 57 s/)).toBeTruthy();
+    expect(screen.queryByText(/22 min 57 s/)).toBeNull();
+    expect(screen.getByText("attente : 16 min 30 s")).toBeTruthy();
+    expect(screen.getByText("attente : 5 min 37 s")).toBeTruthy();
   });
   it("Copier copie les paramètres et confirme", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
