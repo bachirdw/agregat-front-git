@@ -78,7 +78,9 @@ function PermissionCard({
       <div className="card-pad">
         <small className="warning">
           {send
-            ? "Rien ne part sans votre clic · un seul envoi"
+            ? mission
+              ? "Rien ne part sans votre clic · un envoi, ou toute la mission si vous l’autorisez"
+              : "Rien ne part sans votre clic · un seul envoi"
             : "Votre accord est requis · permission ponctuelle"}
         </small>
         <h2>{p.tool.title || (send ? "Envoi" : "Autorisation agent")}</h2>
@@ -125,6 +127,7 @@ function PermissionCard({
           <>
             <button
               className="mission-grant"
+              aria-describedby={`mission-grant-note-${p.id}`}
               disabled={busy || expired}
               onClick={() =>
                 void act(`/permissions/${p.id}`, {
@@ -134,7 +137,10 @@ function PermissionCard({
             >
               {mission.name}
             </button>
-            <small className="mission-grant-note">
+            <small
+              className="mission-grant-note"
+              id={`mission-grant-note-${p.id}`}
+            >
               Un clic ici : tous les envois suivants de cette mission partiront
               sans nouvelle demande, quel que soit le site, et seront listés au
               Bilan.

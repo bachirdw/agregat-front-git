@@ -208,3 +208,33 @@ describe("accord de mission", () => {
     expect(JSON.stringify(rows)).not.toContain("etape");
   });
 });
+
+describe("accord de mission : cas limites du journal", () => {
+  const rowsOf = (data: object) =>
+    activityRows([event(1, "send_auto", data)]).map((r) => r.label);
+  it("sans cible, cible partielle, chemin sans barre, cible mal formée", () => {
+    expect(rowsOf({ grant: "mission" })).toEqual([
+      "Envoi accordé par l’accord de mission",
+    ]);
+    expect(rowsOf({ target: { host: "a.example.test" } })).toEqual([
+      "Envoi accordé par l’accord de mission : a.example.test",
+    ]);
+    expect(
+      rowsOf({ target: { host: "a.example.test", path: "x?k=FICTIF" } }),
+    ).toEqual(["Envoi accordé par l’accord de mission : a.example.test/x"]);
+    expect(rowsOf({ target: null })).toEqual([
+      "Envoi accordé par l’accord de mission",
+    ]);
+    expect(rowsOf({ target: "chaîne" })).toEqual([
+      "Envoi accordé par l’accord de mission",
+    ]);
+  });
+  it("libellé très long : conservé entier dans la ligne, sans exception", () => {
+    const label = "L".repeat(5000);
+    const rows = rowsOf({
+      target: { method: "POST", host: "h.example.test", path: "/p" },
+      label,
+    });
+    expect(rows[0]).toContain(label);
+  });
+});

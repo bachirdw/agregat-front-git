@@ -452,3 +452,85 @@ describe("accord de mission", () => {
     expect(screen.queryByText(GRANT_NOTICE)).toBeNull();
   });
 });
+
+describe("accord de mission : revue", () => {
+  const withOption = (extra: Partial<Permission> = {}): Permission => ({
+    ...sendPermission,
+    options: [...sendPermission.options, missionOption],
+    ...extra,
+  });
+  it("l'en-tête ne promet plus « un seul envoi » quand l'option est là, et la note est reliée au bouton", () => {
+    render(
+      <OwnerRequests
+        run={run({ permissions: [withOption()] })}
+        busy={false}
+        act={vi.fn(async () => {})}
+      />,
+    );
+    const card = screen.getByRole("region", { name: "Envoi à approuver" });
+    expect(card.textContent).not.toContain("un seul envoi");
+    expect(card.textContent).toContain("toute la mission si vous l’autorisez");
+    const button = screen.getByRole("button", {
+      name: "Autoriser tous les envois de cette mission",
+    });
+    expect(button.getAttribute("aria-describedby")).toBe(
+      card.querySelector(".mission-grant-note")?.id,
+    );
+  });
+  it("désactivé pendant l'envoi ; un double clic n'envoie rien tant qu'il est désactivé", () => {
+    const act = vi.fn(async () => {});
+    const { rerender } = render(
+      <OwnerRequests
+        run={run({ permissions: [withOption()] })}
+        busy={false}
+        act={act}
+      />,
+    );
+    const name = "Autoriser tous les envois de cette mission";
+    fireEvent.click(screen.getByRole("button", { name }));
+    rerender(
+      <OwnerRequests
+        run={run({ permissions: [withOption()] })}
+        busy={true}
+        act={act}
+      />,
+    );
+    const button = screen.getByRole("button", { name }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(act).toHaveBeenCalledTimes(1);
+  });
+  it("délai expiré : bouton d'accord de mission désactivé", () => {
+    render(
+      <OwnerRequests
+        run={run({ permissions: [withOption({ expiresAt: Date.now() - 1 })] })}
+        busy={false}
+        act={vi.fn(async () => {})}
+      />,
+    );
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Autoriser tous les envois de cette mission",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+  it("reprise : sans send_grant dans les événements du run affiché, aucune mention", () => {
+    render(
+      <RunView
+        run={run({
+          pack: "core",
+          state: "running",
+          resumedFrom: "r0",
+        } as never)}
+        events={[]}
+        connection=""
+        busy={false}
+        act={vi.fn(async () => {})}
+      />,
+    );
+    expect(screen.queryByText(GRANT_NOTICE)).toBeNull();
+  });
+});

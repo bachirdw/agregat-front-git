@@ -91,10 +91,14 @@ export function activityRows(events: RunEvent[], run?: Run | null) {
       info("Accord de mission donné : envois suivants sans demande", "Accordé");
     else if (event.type === "send_auto") {
       const target = (data.target ?? {}) as Record<string, unknown>;
-      const path = String(target.path ?? "").split(/[?#]/)[0];
+      const raw = String(target.path ?? "").split(/[?#]/)[0];
+      const path = raw && !raw.startsWith("/") ? "/" + raw : raw;
       info(
-        "Envoi accordé par l’accord de mission : " +
-          `${String(target.method ?? "")} ${String(target.host ?? "")}${path}`.trim() +
+        "Envoi accordé par l’accord de mission" +
+          (target.method || target.host || path
+            ? " : " +
+              `${String(target.method ?? "")} ${String(target.host ?? "")}${path}`.trim()
+            : "") +
           (data.label ? ` · « ${String(data.label)} »` : ""),
         "Accordé",
       );
