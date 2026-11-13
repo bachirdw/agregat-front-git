@@ -658,3 +658,15 @@ describe("réponse finale : champs answer et platformNotes du back", () => {
     expect(document.body.textContent).not.toContain('"simulated"');
   });
 });
+
+describe("Bilan avec accord de mission", () => {
+  const line =
+    "Envoi par la plateforme : 5 approuvé(s), dont 1 par le propriétaire et 4 par son accord de mission (cibles : POST jobs.example.test/apply, POST mail.example.test/send).";
+  it("la ligne d'envoi reste entière, en vue, hors de la réponse", () => {
+    const split = splitSummary("Réponse.\n" + line);
+    expect(split.answer).toBe("Réponse.");
+    expect(split.warnings).toEqual([line]);
+    render(<AgentAnswer text={"Réponse.\n" + line} />);
+    expect(screen.getByRole("alert").textContent).toBe(line);
+  });
+});

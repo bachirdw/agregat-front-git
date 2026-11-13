@@ -1,6 +1,10 @@
 import { AgentActivity } from "./Career";
 import { SkillSteps } from "./SkillSteps";
-import { OwnerRequests } from "./OwnerRequests";
+import {
+  MISSION_GRANT_NOTICE,
+  missionGrantActive,
+  OwnerRequests,
+} from "./OwnerRequests";
 import { useEffect, useState } from "react";
 import type { MissionRead, Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
@@ -224,6 +228,9 @@ export function RunView({
                   verificationScope
                 : dataModeLabel[run.dataMode]}
           </span>
+        )}
+        {requests && missionGrantActive(events, run.state) && (
+          <span className="badge warning">{MISSION_GRANT_NOTICE}</span>
         )}
         {session && (
           <span className="badge">

@@ -172,3 +172,39 @@ describe("mission longue", () => {
     expect(events[0].seq).toBe(20);
   });
 });
+
+describe("accord de mission", () => {
+  it("l'accord donné et chaque envoi accordé ont leur ligne, cible sans requête ni fragment", () => {
+    const rows = activityRows([
+      event(1, "send_grant", { scope: "mission" }),
+      event(2, "send_auto", {
+        capability: "browser_click",
+        target: {
+          method: "POST",
+          host: "jobs.example.test",
+          path: "/apply/42?token=FICTIF#etape",
+        },
+        label: "Envoyer la candidature",
+        grant: "mission",
+      }),
+      event(3, "send_auto", {
+        capability: "browser_click",
+        target: { method: "POST", host: "mail.example.test", path: "/send" },
+        grant: "mission",
+      }),
+    ]);
+    expect(rows.map((r) => [r.label, r.status])).toEqual([
+      [
+        "Envoi accordé par l’accord de mission : POST mail.example.test/send",
+        "Accordé",
+      ],
+      [
+        "Envoi accordé par l’accord de mission : POST jobs.example.test/apply/42 · « Envoyer la candidature »",
+        "Accordé",
+      ],
+      ["Accord de mission donné : envois suivants sans demande", "Accordé"],
+    ]);
+    expect(JSON.stringify(rows)).not.toContain("FICTIF");
+    expect(JSON.stringify(rows)).not.toContain("etape");
+  });
+});

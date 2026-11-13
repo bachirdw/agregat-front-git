@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import type { Permission, Question, QuestionField, Run } from "./types";
+import { finalStates } from "./types";
+import type {
+  Permission,
+  Question,
+  QuestionField,
+  Run,
+  RunEvent,
+} from "./types";
 
 export type Act = (
   path: string,
@@ -39,6 +46,13 @@ export function OwnerRequests({
 
 const expiring = (p: Permission) => Number.isFinite(p.expiresAt);
 
+// The owner's mission agreement (`send_grant`) holds until the mission ends; there is no route
+// to take it back, so nothing here offers to.
+export const missionGrantActive = (events: RunEvent[], state: string) =>
+  !finalStates.has(state) && events.some((e) => e.type === "send_grant");
+export const MISSION_GRANT_NOTICE =
+  "Accord de mission actif : les envois partent sans demande";
+
 function PermissionCard({
   permission: p,
   busy,
@@ -57,6 +71,8 @@ function PermissionCard({
   const send = p.actionClass === "send";
   const expired = expiring(p) && now >= (p.expiresAt as number);
   const title = send ? "Envoi à approuver" : "Permission agent";
+  // Offered by the back on some send cards: one click for every later send of this mission.
+  const mission = p.options.find((o) => o.kind === "allow_mission");
   return (
     <section className="card approval" aria-label={title}>
       <div className="card-pad">
@@ -105,6 +121,26 @@ function PermissionCard({
                 : o.name}
             </button>
           ))}
+        {mission && (
+          <>
+            <button
+              className="mission-grant"
+              disabled={busy || expired}
+              onClick={() =>
+                void act(`/permissions/${p.id}`, {
+                  optionId: mission.optionId,
+                })
+              }
+            >
+              {mission.name}
+            </button>
+            <small className="mission-grant-note">
+              Un clic ici : tous les envois suivants de cette mission partiront
+              sans nouvelle demande, quel que soit le site, et seront listés au
+              Bilan.
+            </small>
+          </>
+        )}
       </footer>
     </section>
   );

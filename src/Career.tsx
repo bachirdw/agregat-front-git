@@ -14,7 +14,11 @@ import { finalStates, labels, money, ownerStates } from "./types";
 import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
 import { SkillSteps } from "./SkillSteps";
 import { resumedFromLinks } from "./resumeLinks";
-import { OwnerRequests } from "./OwnerRequests";
+import {
+  MISSION_GRANT_NOTICE,
+  missionGrantActive,
+  OwnerRequests,
+} from "./OwnerRequests";
 import type { Act } from "./OwnerRequests";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
@@ -1072,6 +1076,11 @@ export function CareerThread({
         <p className="career-warning" role="status">
           Navigateur : Chrome isolé, non connecté à vos comptes (extension
           Playwriter indisponible).
+        </p>
+      )}
+      {missionGrantActive(events, run.state) && (
+        <p className="career-warning" role="status">
+          {MISSION_GRANT_NOTICE}
         </p>
       )}
       {act && <OwnerRequests run={run} busy={busy} act={act} />}

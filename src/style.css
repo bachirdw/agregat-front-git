@@ -1959,3 +1959,12 @@ summary {
   left: 0;
   right: auto;
 }
+/* Mission agreement: set apart from the one-off approval, never the primary action. */
+.approval footer button.mission-grant {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--orange);
+}
+.approval footer .mission-grant-note {
+  flex-basis: 100%;
+  text-align: left;
+}

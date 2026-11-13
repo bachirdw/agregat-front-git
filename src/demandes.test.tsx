@@ -329,3 +329,126 @@ describe("question de l'agent", () => {
     ).toBe("Attend ta réponse");
   });
 });
+
+// Accord de mission (13/11) : un clic vaut pour tous les envois de la mission en cours.
+const missionOption = {
+  optionId: "allow_mission",
+  name: "Autoriser tous les envois de cette mission",
+  kind: "allow_mission",
+};
+const grantEvent = {
+  seq: 7,
+  type: "send_grant",
+  data: { scope: "mission" },
+  at: "2026-11-13T08:00:00.000Z",
+};
+const GRANT_NOTICE =
+  "Accord de mission actif : les envois partent sans demande";
+
+describe("accord de mission", () => {
+  it("carte sans l'option : rendu identique à avant", () => {
+    const { container } = render(
+      <OwnerRequests
+        run={run({ permissions: [sendPermission] })}
+        busy={false}
+        act={vi.fn(async () => {})}
+      />,
+    );
+    expect(container.innerHTML).toBe(
+      '<section class="card approval" aria-label="Envoi à approuver"><div class="card-pad"><small class="warning">Rien ne part sans votre clic · un seul envoi</small><h2>Envoyer à recruteur@exemple.test : candidature FICTIVE</h2><p class="request-meta">Outil : <code>email_send</code></p><small role="timer">Sans délai : la mission attend votre décision.</small></div><footer><button class="primary">Approuver l’envoi</button><button class="">Refuser</button></footer></section>',
+    );
+  });
+
+  it("carte avec l'option : trois boutons dans l'ordre, l'accord simple reste principal", () => {
+    const act = vi.fn(async () => {});
+    render(
+      <OwnerRequests
+        run={run({
+          permissions: [
+            {
+              ...sendPermission,
+              options: [...sendPermission.options, missionOption],
+            },
+          ],
+        })}
+        busy={false}
+        act={act}
+      />,
+    );
+    const card = screen.getByRole("region", { name: "Envoi à approuver" });
+    const buttons = within(card).getAllByRole("button");
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      "Approuver l’envoi",
+      "Refuser",
+      "Autoriser tous les envois de cette mission",
+    ]);
+    expect(buttons[0].className).toBe("primary");
+    expect(buttons[2].className).not.toContain("primary");
+    expect(card.textContent).toContain(
+      "Un clic ici : tous les envois suivants de cette mission partiront sans nouvelle demande, quel que soit le site, et seront listés au Bilan.",
+    );
+    fireEvent.click(buttons[2]);
+    expect(act).toHaveBeenCalledWith("/permissions/p1", {
+      optionId: "allow_mission",
+    });
+  });
+
+  it("une sorte d'option inconnue reste ignorée", () => {
+    render(
+      <OwnerRequests
+        run={run({
+          permissions: [
+            {
+              ...sendPermission,
+              options: [
+                ...sendPermission.options,
+                { optionId: "x", name: "Autre", kind: "allow_always" },
+              ],
+            },
+          ],
+        })}
+        busy={false}
+        act={vi.fn(async () => {})}
+      />,
+    );
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.queryByText("Autre")).toBeNull();
+  });
+
+  it("mention d'accord actif après send_grant, absente une fois la mission terminée", () => {
+    const view = (state: string) => (
+      <RunView
+        run={run({ pack: "core", state })}
+        events={[grantEvent]}
+        connection=""
+        busy={false}
+        act={vi.fn(async () => {})}
+      />
+    );
+    const { rerender } = render(view("running"));
+    expect(screen.getAllByText(GRANT_NOTICE)).toHaveLength(1);
+    rerender(view("completed"));
+    expect(screen.queryByText(GRANT_NOTICE)).toBeNull();
+  });
+
+  it("fil career-ops : mention une seule fois, et rien sans send_grant", () => {
+    const thread = (state: string, events: (typeof grantEvent)[]) => (
+      <CareerThread run={run({ state })} runs={[]} events={events}>
+        <RunView
+          run={run({ state })}
+          events={events}
+          connection=""
+          busy={false}
+          act={vi.fn(async () => {})}
+          requests={false}
+        />
+      </CareerThread>
+    );
+    const { rerender } = render(thread("running", []));
+    expect(screen.queryByText(GRANT_NOTICE)).toBeNull();
+    rerender(thread("running", [grantEvent]));
+    expect(screen.getAllByText(GRANT_NOTICE)).toHaveLength(1);
+    rerender(thread("cancelled", [grantEvent]));
+    expect(screen.queryByText(GRANT_NOTICE)).toBeNull();
+  });
+});

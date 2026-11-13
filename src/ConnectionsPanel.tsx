@@ -87,7 +87,18 @@ export function activityRows(events: RunEvent[], run?: Run | null) {
       );
     } else if (event.type === "permission_auto")
       info("Accord automatique : " + toolName(data.capability), "Accordé");
-    else if (event.type === "permission") {
+    else if (event.type === "send_grant")
+      info("Accord de mission donné : envois suivants sans demande", "Accordé");
+    else if (event.type === "send_auto") {
+      const target = (data.target ?? {}) as Record<string, unknown>;
+      const path = String(target.path ?? "").split(/[?#]/)[0];
+      info(
+        "Envoi accordé par l’accord de mission : " +
+          `${String(target.method ?? "")} ${String(target.host ?? "")}${path}`.trim() +
+          (data.label ? ` · « ${String(data.label)} »` : ""),
+        "Accordé",
+      );
+    } else if (event.type === "permission") {
       const tool = data.tool as { title?: unknown } | undefined;
       open.set(
         "permission:" + data.id,
