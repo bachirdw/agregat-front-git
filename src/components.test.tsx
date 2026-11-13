@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import { Markdown } from "./Markdown";
 import { Composer } from "./Composer";
-import { RunView } from "./Mission";
+import { extraReads, RunView } from "./Mission";
 import {
   activity,
   AgentActivity,
@@ -1225,6 +1225,121 @@ describe("barre latérale", () => {
       ["c", 3],
       ["x", 1],
       ["y2", 2],
+    ]);
+  });
+});
+
+describe("autres pages lues (missionProof.reads)", () => {
+  const at = "2026-01-02T03:04:05.000Z";
+  const nav = (url: string, sourceId = "n-" + url) => ({
+    capability: "browser.navigate",
+    url,
+    sourceId,
+    readable: false,
+    observedAt: at,
+  });
+  const snap = (url: string, sourceId = "s-" + url, readable = true) => ({
+    capability: "browser.snapshot",
+    url,
+    sourceId,
+    readable,
+    observedAt: at,
+  });
+  const base = {
+    id: "r-proof",
+    state: "completed",
+    mode: "agent",
+    agent: "codex",
+    model: "",
+    browser: "playwriter",
+    pack: "core",
+    simulated: false,
+    plan: { steps: [] },
+  };
+  const evidence = [
+    nav("https://example.test/a", "id-a"),
+    snap("https://example.test/a", "id-a"),
+    nav("https://example.test/b", "id-b"),
+    snap("https://example.test/b", "id-b"),
+  ];
+  const withReads = (reads: unknown[] | undefined) =>
+    ({
+      ...base,
+      result: { simulated: false, summary: "Réponse FICTIVE", evidence },
+      ...(reads ? { missionProof: { reads, sourceRead: false } } : {}),
+    }) as unknown as Run;
+  const show = (run: Run) =>
+    render(
+      <RunView
+        run={run}
+        events={[]}
+        connection=""
+        busy={false}
+        act={vi.fn()}
+      />,
+    );
+  it("sans missionProof : rendu identique, aucun intitulé à part", () => {
+    const { container } = show(withReads(undefined));
+    const html = container.innerHTML;
+    cleanup();
+    const again = show(withReads([]));
+    expect(again.container.innerHTML).toBe(html);
+    expect(screen.getByText("Éléments de preuve · 4")).toBeTruthy();
+    expect(screen.queryByText(/Autres pages lues/)).toBeNull();
+  });
+  it("quatre lectures dont deux déjà en preuve : les deux autres à part, hôte et chemin", () => {
+    show(
+      withReads([
+        ...evidence,
+        nav("https://example.test/c", "id-c"),
+        snap("https://www.example.test/c/", "id-c2"),
+        nav("https://example.test/d", "id-d"),
+        snap("https://example.test/d/canon", "id-d2"),
+      ]),
+    );
+    expect(screen.getByText("Éléments de preuve · 4")).toBeTruthy();
+    expect(screen.getByText("Autres pages lues · 2")).toBeTruthy();
+    expect(screen.getByText("www.example.test/c/")).toBeTruthy();
+    expect(screen.getByText("example.test/d/canon")).toBeTruthy();
+    expect(
+      screen.getAllByText(/Page lue, adresse redirigée après la navigation/),
+    ).toHaveLength(2);
+  });
+  it("lecture illisible ou simple navigation : non listée", () => {
+    show(
+      withReads([
+        ...evidence,
+        nav("https://example.test/e", "id-e"),
+        snap("https://example.test/f", "id-f", false),
+      ]),
+    );
+    expect(screen.queryByText(/Autres pages lues/)).toBeNull();
+    expect(screen.queryByText("example.test/e")).toBeNull();
+    expect(screen.queryByText("example.test/f")).toBeNull();
+  });
+  it("extraReads : doublons, adresse absente, liste vide", () => {
+    expect(extraReads(withReads(undefined))).toEqual([]);
+    expect(extraReads(withReads([]))).toEqual([]);
+    const extra = snap("https://example.test/x", "id-x");
+    const reads = extraReads(
+      withReads([
+        ...evidence,
+        // même adresse qu'une preuve, autre source : déjà représentée
+        snap("https://example.test/a", "other"),
+        // même source qu'une preuve, adresse différente : déjà représentée
+        snap("https://example.test/z", "id-b"),
+        { capability: "browser.snapshot", readable: true, sourceId: "q" },
+        {
+          capability: "browser.extract",
+          url: "pas une adresse",
+          readable: true,
+        },
+        extra,
+        { ...extra, capability: "browser.extract" },
+      ]),
+    );
+    expect(reads.map((r) => [r.host + r.path, r.reason])).toEqual([
+      ["example.test/x", "Page lue sans navigation correspondante"],
     ]);
   });
 });

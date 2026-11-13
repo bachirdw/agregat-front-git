@@ -235,6 +235,19 @@ export interface Run {
     }[];
   };
   ledger?: { ok: boolean; brokenAt?: number };
+  // Browser reads kept for the mission (back: missionReads, at most 400): navigations and
+  // readable captures, origin + path only. No per-read marker says a read came from a previous run.
+  missionProof?: { reads?: MissionRead[]; sourceRead?: boolean } | null;
+}
+export interface MissionRead {
+  capability: string;
+  url?: string;
+  requestedUrl?: string;
+  sourceId?: string;
+  provider?: string;
+  loading?: boolean;
+  readable?: boolean;
+  observedAt?: string;
 }
 export interface RunEvent {
   seq: number;

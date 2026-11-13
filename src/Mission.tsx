@@ -2,7 +2,7 @@ import { AgentActivity } from "./Career";
 import { SkillSteps } from "./SkillSteps";
 import { OwnerRequests } from "./OwnerRequests";
 import { useEffect, useState } from "react";
-import type { Run, RunEvent } from "./types";
+import type { MissionRead, Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
 import { Markdown, safeLink } from "./Markdown";
 import { AgentAnswer } from "./Bilan";
@@ -66,6 +66,53 @@ function showOutput(value: unknown) {
     return String(value.summary);
   return JSON.stringify(value, null, 2);
 }
+const captures = ["browser.snapshot", "browser.extract"];
+// Readable pages of run.missionProof.reads that result.evidence does not show (the back keeps there
+// only a navigation and a capture of the same address: a redirected page is left out).
+export function extraReads(run: Run) {
+  const reads = run.missionProof?.reads ?? [];
+  const urls = new Set<string>();
+  const ids = new Set<string>();
+  for (const e of run.result?.evidence ?? []) {
+    if (!e || typeof e !== "object") continue;
+    const { url, sourceId } = e as { url?: unknown; sourceId?: unknown };
+    if (typeof url === "string") urls.add(url);
+    if (typeof sourceId === "string") ids.add(sourceId);
+  }
+  const extra: { host: string; path: string; at?: string; reason: string }[] =
+    [];
+  let navigation: MissionRead | null = null;
+  for (const read of reads) {
+    if (read?.capability === "browser.navigate") navigation = read;
+    if (!captures.includes(read?.capability) || read.readable !== true)
+      continue;
+    // The navigation this capture answers; a later capture without a new navigation answers none.
+    const asked = navigation;
+    navigation = null;
+    let page: URL;
+    try {
+      page = new URL(read.url ?? "");
+    } catch {
+      continue;
+    }
+    if (urls.has(read.url!) || (read.sourceId && ids.has(read.sourceId)))
+      continue;
+    urls.add(read.url!);
+    if (read.sourceId) ids.add(read.sourceId);
+    extra.push({
+      host: page.host,
+      path: page.pathname,
+      at: read.observedAt,
+      reason:
+        read.requestedUrl || (asked && asked.url !== read.url)
+          ? "Page lue, adresse redirigée après la navigation"
+          : asked
+            ? "Page lue, hors des couples navigation et capture vérifiés"
+            : "Page lue sans navigation correspondante",
+    });
+  }
+  return extra;
+}
 export function RunView({
   run,
   events,
@@ -90,6 +137,7 @@ export function RunView({
     setTimelineOpen(!finalStates.has(run.state));
   }, [run.id, run.state]);
   const definitions = run.plan.workflow?.steps || [];
+  const extra = extraReads(run);
   const done = run.steps?.filter((s) => s.state === "succeeded").length || 0;
   const verification = [...events]
     .reverse()
@@ -520,6 +568,28 @@ export function RunView({
               {run.result.evidence.map((e, i) => (
                 <pre key={i}>{showOutput(e)}</pre>
               ))}
+            </details>
+          )}
+          {!!extra.length && (
+            <details className="card card-pad">
+              <summary>Autres pages lues · {extra.length}</summary>
+              <ul>
+                {extra.map((r, i) => (
+                  <li key={i}>
+                    <code>{r.host + r.path}</code>
+                    <small>
+                      {[
+                        "",
+                        r.at && new Date(r.at).toLocaleString("fr-FR"),
+                        r.reason,
+                        "hors des preuves vérifiées",
+                      ]
+                        .filter((part, j) => j === 0 || part)
+                        .join(" · ")}
+                    </small>
+                  </li>
+                ))}
+              </ul>
             </details>
           )}
         </section>
