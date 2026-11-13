@@ -437,6 +437,10 @@ function span(
       sum + Math.max(0, Math.min(end, w.end) - Math.max(start, w.start)),
     0,
   );
+  // Entirely spent waiting for the owner (e.g. a click held behind the send card): say so rather
+  // than a misleading "< 0,1 s".
+  if (waited > 0 && end - start - waited < 100)
+    return `attente : ${formatDuration(waited)}`;
   return formatDuration(end - start - waited);
 }
 export function toolDuration(tool: Tool, waits: Wait[] = []) {

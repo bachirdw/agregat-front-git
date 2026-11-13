@@ -184,6 +184,39 @@ describe("commandes de l'agent", () => {
     ]);
     expect(live.end).toBeGreaterThanOrEqual(now);
   });
+  it("ownerWaits : états consécutifs, réponse avant l'état, ordre quelconque, sans heure (E104)", () => {
+    const ev = (seq: number, type: string, data: object, at?: string) =>
+      ({ seq, type, data, at }) as RunEvent;
+    const t = (m: number) =>
+      Date.parse(`2026-11-13T10:${String(m).padStart(2, "0")}:00Z`);
+    const iso = (m: number) => new Date(t(m)).toISOString();
+    const events = [
+      ev(5, "state", { state: "running" }, iso(8)),
+      ev(1, "state", { state: "running" }, iso(0)),
+      ev(3, "state", { state: "waiting_permission" }, iso(3)),
+      ev(2, "state", { state: "awaiting_owner" }, iso(1)),
+      ev(4, "answer", { id: "q", action: "accept" }, iso(8)),
+    ];
+    expect(ownerWaits(events)).toEqual([{ start: t(1), end: t(8) }]);
+    expect(
+      ownerWaits([
+        ev(1, "state", { state: "awaiting_owner" }),
+        ev(2, "state", { state: "running" }, iso(5)),
+      ]),
+    ).toEqual([]);
+  });
+  it("un outil entièrement couvert par une attente n'affiche pas « < 0,1 s » (E104)", () => {
+    const at = (s: number) =>
+      new Date(Date.parse("2026-11-13T10:00:00Z") + s * 1000).toISOString();
+    const start = Date.parse(at(10));
+    const click = { id: "c", at: at(10), endAt: at(70) } as never;
+    expect(toolDuration(click, [{ start, end: Date.parse(at(70)) }])).toBe(
+      "attente : 1 min 0 s",
+    );
+    expect(
+      toolDuration(click, [{ start: start - 5000, end: start + 20000 }]),
+    ).toBe("40,0 s");
+  });
   it("la durée d'un groupe exclut l'attente du propriétaire (E104)", () => {
     const at = (m: number, s = 0) =>
       `2026-11-13T10:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}Z`;
