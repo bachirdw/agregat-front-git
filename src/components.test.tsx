@@ -1292,7 +1292,10 @@ describe("autres pages lues (missionProof.reads)", () => {
       withReads([
         ...evidence,
         nav("https://example.test/c", "id-c"),
-        snap("https://www.example.test/c/", "id-c2"),
+        {
+          ...snap("https://www.example.test/c/", "id-c2"),
+          requestedUrl: "https://example.test/c",
+        },
         nav("https://example.test/d", "id-d"),
         snap("https://example.test/d/canon", "id-d2"),
       ]),
@@ -1303,7 +1306,13 @@ describe("autres pages lues (missionProof.reads)", () => {
     expect(screen.getByText("example.test/d/canon")).toBeTruthy();
     expect(
       screen.getAllByText(/Page lue, adresse redirigée après la navigation/),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByText(
+        /Page lue, hors des couples navigation et capture vérifiés/,
+      ),
+    ).toHaveLength(1);
+    expect(screen.getAllByText(/hors des preuves vérifiées/)).toHaveLength(2);
   });
   it("lecture illisible ou simple navigation : non listée", () => {
     show(
@@ -1341,5 +1350,104 @@ describe("autres pages lues (missionProof.reads)", () => {
     expect(reads.map((r) => [r.host + r.path, r.reason])).toEqual([
       ["example.test/x", "Page lue sans navigation correspondante"],
     ]);
+  });
+  const one = (reads: unknown[], extra: object = {}) =>
+    extraReads({ ...withReads(reads), ...extra } as Run).map((r) => [
+      r.host + r.path,
+      r.reason,
+    ]);
+  it("redirection affirmée seulement si le back l'atteste", () => {
+    // deux navigations puis une capture, sans requestedUrl : rien n'est affirmé
+    expect(
+      one([
+        nav("https://example.test/p"),
+        nav("https://example.test/q"),
+        snap("https://example.test/r"),
+      ]),
+    ).toEqual([
+      [
+        "example.test/r",
+        "Page lue, hors des couples navigation et capture vérifiés",
+      ],
+    ]);
+    // capture sans navigation (page ouverte par un clic), puis seconde capture sans navigation neuve
+    expect(
+      one([
+        nav("https://example.test/p"),
+        snap("https://example.test/p2"),
+        snap("https://example.test/p3"),
+      ]).map((r) => r[1]),
+    ).toEqual([
+      "Page lue, hors des couples navigation et capture vérifiés",
+      "Page lue sans navigation correspondante",
+    ]);
+  });
+  it("lectures héritées d'une reprise : repérées par l'heure, sans deviner sinon", () => {
+    const old = { observedAt: "2026-01-01T00:00:00.000Z" };
+    const fresh = { observedAt: "2026-01-02T03:04:05.000Z" };
+    const noTime = { observedAt: undefined };
+    const out = one(
+      [
+        { ...nav("https://example.test/h1"), ...old },
+        { ...snap("https://example.test/h2"), ...old },
+        { ...nav("https://example.test/n1"), ...fresh },
+        { ...snap("https://example.test/n2", "s-n2"), ...fresh },
+        { ...snap("https://example.test/t"), ...noTime },
+        { ...snap("https://example.test/bad"), observedAt: "pas une date" },
+      ],
+      { createdAt: "2026-01-02T00:00:00.000Z" },
+    );
+    expect(out.map((r) => r[1])).toEqual([
+      "lue avant le début de cette mission (reprise)",
+      "Page lue, hors des couples navigation et capture vérifiés",
+      "Page lue sans navigation correspondante",
+      "Page lue sans navigation correspondante",
+    ]);
+    // une navigation héritée ne s'apparie pas à une capture de cette mission
+    expect(
+      one(
+        [
+          { ...nav("https://example.test/h1"), ...old },
+          { ...snap("https://example.test/h2"), ...fresh },
+        ],
+        { createdAt: "2026-01-02T00:00:00.000Z" },
+      )[0][1],
+    ).toBe("Page lue sans navigation correspondante");
+  });
+  it("robustesse : reads ou evidence non tableaux, entrées nulles, comparaison d'adresses", () => {
+    const run = withReads([]);
+    for (const reads of [{}, "x", 3, null])
+      expect(
+        extraReads({ ...run, missionProof: { reads } } as unknown as Run),
+      ).toEqual([]);
+    expect(
+      extraReads({
+        ...withReads([snap("https://example.test/m")]),
+        result: { simulated: false, summary: "", evidence: "x" },
+      } as unknown as Run),
+    ).toHaveLength(1);
+    // barre finale, fragment, casse de l'hôte : même page que la preuve
+    expect(
+      one([
+        null,
+        7,
+        snap("https://EXAMPLE.test/a/#top", "other"),
+        snap("https://example.test/a/", "other2"),
+        snap("/relative", "rel"),
+      ]),
+    ).toEqual([]);
+  });
+  it("adresse affichée sans requête ni fragment ; beaucoup de lectures repliées", () => {
+    const many = Array.from({ length: 400 }, (_, i) =>
+      snap(`https://example.test/p${i}?to=secret&obj=x#frag`, `m${i}`),
+    );
+    const { container } = show(withReads(many));
+    expect(screen.getByText("Autres pages lues · 400")).toBeTruthy();
+    const html = container.innerHTML;
+    expect(html).not.toMatch(/secret|frag|\?to=/);
+    const details = [...container.querySelectorAll("details")].find((d) =>
+      d.textContent?.startsWith("Autres pages lues"),
+    );
+    expect(details?.hasAttribute("open")).toBe(false);
   });
 });

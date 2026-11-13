@@ -67,25 +67,49 @@ function showOutput(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 const captures = ["browser.snapshot", "browser.extract"];
+// Same page for the reader: host in lower case, no fragment, no trailing slash.
+function pageKey(value: unknown) {
+  try {
+    const u = new URL(String(value));
+    return u.origin + (u.pathname.replace(/\/+$/, "") || "");
+  } catch {
+    return null;
+  }
+}
+const time = (value: unknown) => {
+  const t = typeof value === "string" ? Date.parse(value) : NaN;
+  return Number.isNaN(t) ? null : t;
+};
 // Readable pages of run.missionProof.reads that result.evidence does not show (the back keeps there
 // only a navigation and a capture of the same address: a redirected page is left out).
+// A reprise is a new run that receives all the reads of the previous one, with no marker: a read
+// older than this run's creation was made before it began.
 export function extraReads(run: Run) {
-  const reads = run.missionProof?.reads ?? [];
+  const raw = run.missionProof?.reads;
+  const reads = Array.isArray(raw) ? raw : [];
+  const evidence = Array.isArray(run.result?.evidence)
+    ? run.result.evidence
+    : [];
+  const started = time(run.createdAt);
   const urls = new Set<string>();
   const ids = new Set<string>();
-  for (const e of run.result?.evidence ?? []) {
+  for (const e of evidence) {
     if (!e || typeof e !== "object") continue;
     const { url, sourceId } = e as { url?: unknown; sourceId?: unknown };
-    if (typeof url === "string") urls.add(url);
+    const key = pageKey(url);
+    if (key) urls.add(key);
     if (typeof sourceId === "string") ids.add(sourceId);
   }
   const extra: { host: string; path: string; at?: string; reason: string }[] =
     [];
   let navigation: MissionRead | null = null;
   for (const read of reads) {
-    if (read?.capability === "browser.navigate") navigation = read;
-    if (!captures.includes(read?.capability) || read.readable !== true)
-      continue;
+    if (!read || typeof read !== "object") continue;
+    const before = time(read.observedAt);
+    const earlier = started !== null && before !== null && before < started;
+    if (read.capability === "browser.navigate")
+      navigation = earlier ? null : read;
+    if (!captures.includes(read.capability) || read.readable !== true) continue;
     // The navigation this capture answers; a later capture without a new navigation answers none.
     const asked = navigation;
     navigation = null;
@@ -95,16 +119,23 @@ export function extraReads(run: Run) {
     } catch {
       continue;
     }
-    if (urls.has(read.url!) || (read.sourceId && ids.has(read.sourceId)))
+    const key = pageKey(read.url);
+    if (
+      (key && urls.has(key)) ||
+      (typeof read.sourceId === "string" && ids.has(read.sourceId))
+    )
       continue;
-    urls.add(read.url!);
-    if (read.sourceId) ids.add(read.sourceId);
+    if (key) urls.add(key);
+    if (typeof read.sourceId === "string") ids.add(read.sourceId);
     extra.push({
       host: page.host,
       path: page.pathname,
-      at: read.observedAt,
-      reason:
-        read.requestedUrl || (asked && asked.url !== read.url)
+      at: before === null ? undefined : read.observedAt,
+      // "Redirected" only when the back says so (the capture's own requestedUrl); a mere
+      // difference with the last navigation is not proof of a redirection.
+      reason: earlier
+        ? "lue avant le début de cette mission (reprise)"
+        : read.requestedUrl
           ? "Page lue, adresse redirigée après la navigation"
           : asked
             ? "Page lue, hors des couples navigation et capture vérifiés"
