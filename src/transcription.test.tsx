@@ -697,3 +697,26 @@ describe("Bilan avec accord de mission", () => {
     expect(screen.getByRole("alert").textContent).toBe(line);
   });
 });
+
+describe("review-libelles-14-11 : nouvelles lignes du Bilan", () => {
+  it("« E-mail : hors du parcours » reste dans le Bilan replié, « aucun demandé » sans alerte", () => {
+    const text = [
+      "Réponse FICTIVE.",
+      "Bilan",
+      "- Actions réussies : aucune observée.",
+      "- Actions échouées : aucune observée.",
+      "- Résultats mixtes : aucun.",
+      "- Non exécuté : aucune action demandée identifiable comme manquante.",
+      "- E-mail : hors du parcours suivi par cette mission ; email_send non appelé (texte éventuel dans la réponse).",
+      "Envoi par la plateforme : aucun demandé.",
+    ].join("\n");
+    const split = splitSummary(text);
+    expect(split.answer).toBe("Réponse FICTIVE.");
+    expect(split.warnings).toEqual([]);
+    expect(split.details).toContain(
+      "- E-mail : hors du parcours suivi par cette mission ; email_send non appelé (texte éventuel dans la réponse).",
+    );
+    render(<AgentAnswer text={text} />);
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+  });
+});

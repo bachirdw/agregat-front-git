@@ -264,3 +264,31 @@ describe("libelles-14-11 : écritures réseau de la page", () => {
     );
   });
 });
+
+describe("review-libelles-14-11 : écritures réseau, cas limites", () => {
+  it("hôte vide ou non textuel jamais affiché ; nom d'outil préfixé reconnu ; autre capacité inchangée", () => {
+    const rows = activityRows([
+      event(1, "permission_auto", { capability: "browser.send", host: "" }),
+      event(2, "permission_auto", {
+        capability: "browser.send",
+        host: { url: "https://x.example.test/?q=FICTIF" },
+      }),
+      event(3, "permission_auto", {
+        capability: "mcp__platform__browser.send",
+        host: "jobs.example.test",
+      }),
+      event(4, "permission_auto", {
+        capability: "browser.click",
+        host: "ignore.example.test",
+      }),
+    ]);
+    const labels = rows.map((r) => r.label);
+    expect(
+      labels.filter((l) => l === "Écriture réseau de la page"),
+    ).toHaveLength(2);
+    expect(labels).toContain("Écriture réseau de la page : jobs.example.test");
+    expect(labels).toContain("Accord automatique : browser.click");
+    expect(JSON.stringify(rows)).not.toContain("FICTIF");
+    expect(JSON.stringify(rows)).not.toContain("ignore.example.test");
+  });
+});
