@@ -125,6 +125,40 @@ export function toApiInput(input: MissionInput) {
     ? { ...payload, attachments: attachments.map((a) => a.id) }
     : payload;
 }
+// Owner message to the running agent. "sent": the back took it (202). "fallback": the mission can
+// no longer receive it (409), the route is missing (404, older back) or the answer is not the
+// contract's; the caller keeps the text for a resume. Other errors are thrown (network, 400…).
+export type OwnerSend =
+  | { outcome: "sent"; id: string; state: "pending" | "delivered" }
+  | { outcome: "fallback"; reason: "ended" | "unsupported" };
+export async function sendOwnerMessage(
+  runId: string,
+  text: string,
+  request: typeof api = api,
+): Promise<OwnerSend> {
+  let response: unknown;
+  try {
+    response = await request<unknown>(
+      `/runs/${encodeURIComponent(runId)}/message`,
+      { text },
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409)
+      return { outcome: "fallback", reason: "ended" };
+    if (error instanceof ApiError && error.status === 404)
+      return { outcome: "fallback", reason: "unsupported" };
+    throw error;
+  }
+  const answer = response as { id?: unknown; state?: unknown } | null;
+  if (
+    answer &&
+    typeof answer.id === "string" &&
+    answer.id &&
+    (answer.state === "pending" || answer.state === "delivered")
+  )
+    return { outcome: "sent", id: answer.id, state: answer.state };
+  return { outcome: "fallback", reason: "unsupported" };
+}
 // EventSource carries Last-Event-ID on native reconnect. The explicit cursor also permits reopening.
 export function watchRun(
   id: string,

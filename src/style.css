@@ -1968,3 +1968,30 @@ summary {
   flex-basis: 100%;
   text-align: left;
 }
+/* Owner message sent during the mission: the prompt bubble, its author line and delivery state. */
+.owner-message {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+.owner-message .prompt-bubble {
+  font-size: 14px;
+}
+.owner-message-head,
+.owner-message-state {
+  color: var(--muted);
+  font-size: 11.5px;
+  text-align: right;
+}
+.owner-message.undelivered .prompt-bubble {
+  opacity: 0.7;
+}
+.owner-message-reuse {
+  padding: 0;
+  color: var(--accentText);
+  background: transparent;
+  font-size: inherit;
+}
+.mission-queue .mission-queue-error {
+  color: var(--red);
+}

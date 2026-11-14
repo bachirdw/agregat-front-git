@@ -7,7 +7,15 @@ import {
 } from "react";
 import type { Catalog, MissionInput, Run, RunEvent } from "./types";
 import { finalStates, labels, ownerStates } from "./types";
-import { api, ApiError, appendEvent, toApiInput, watchRun } from "./api";
+import {
+  api,
+  ApiError,
+  appendEvent,
+  sendOwnerMessage,
+  toApiInput,
+  watchRun,
+} from "./api";
+import { OWNER_DRAFT_EVENT, rememberOwnerText } from "./ownerMessages";
 import { Icon } from "./Icon";
 import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
@@ -21,6 +29,8 @@ import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
 import { RunView } from "./Mission";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
+const ENDED_NOTICE =
+  "La mission est terminée : votre message sera envoyé dans une reprise";
 type Page =
   | "home"
   | "agents"
@@ -97,6 +107,17 @@ export default function App() {
   // Instructions typed during a run, sent as a follow-up once it has completed.
   const [queued, setQueued] = useState<{ runId: string; text: string }[]>([]);
   const draining = useRef(false);
+  // « Reprendre le texte » of an undelivered message: back into the composer.
+  useEffect(() => {
+    const reuse = (e: Event) => {
+      const text = (e as CustomEvent<unknown>).detail;
+      if (typeof text !== "string" || !text) return;
+      setInput((old) => ({ ...old, prompt: text }));
+      document.getElementById("prompt")?.focus();
+    };
+    window.addEventListener(OWNER_DRAFT_EVENT, reuse);
+    return () => window.removeEventListener(OWNER_DRAFT_EVENT, reuse);
+  }, []);
   const launching = useRef<AbortController | null>(null);
   const [trackerOpen, setTrackerOpen] = useState(false),
     [trackerDetails, setTrackerDetails] = useState(false),
@@ -542,6 +563,7 @@ export default function App() {
       })
       .finally(() => {
         draining.current = false;
+        setNotice((old) => (old.startsWith(ENDED_NOTICE) ? "" : old));
       });
   }, [runId, runState, busy, queued]);
   const change = (next: MissionInput) => {
@@ -986,6 +1008,23 @@ export default function App() {
             queue={(text) =>
               setQueued((old) => [...old, { runId: run.id, text }])
             }
+            waiting={ownerStates.has(run.state) || !!run.pendingQuestion}
+            send={async (text) => {
+              const id = run.id;
+              const sent = await sendOwnerMessage(id, text, api);
+              if (sent.outcome === "sent") {
+                rememberOwnerText(sent.id, text);
+                return null;
+              }
+              // Mission over in the meantime, or older back: the text waits for a resume.
+              setQueued((old) => [...old, { runId: id, text }]);
+              const line =
+                sent.reason === "ended"
+                  ? ENDED_NOTICE
+                  : "Envoi en direct indisponible sur ce serveur : votre message sera envoyé dans une reprise, à la fin de la mission";
+              if (sent.reason === "ended") setNotice(line);
+              return line;
+            }}
           />
         )}
         {(page === "home" || page === "mission") && (

@@ -255,6 +255,16 @@ export interface RunEvent {
   data: Record<string, unknown>;
   at?: string;
 }
+// Owner message typed while the mission runs (`POST /api/runs/:id/message`), re-sent on every state
+// change as the `owner_message` event. `text` is absent for a private mission.
+export interface OwnerMessage {
+  id: string;
+  at: string;
+  state: "pending" | "delivered" | "undelivered";
+  via: "steering" | "turn_end" | "with_answer" | null;
+  deliveredAt: string | null;
+  text?: string;
+}
 export const finalStates = new Set([
   "completed",
   "failed",

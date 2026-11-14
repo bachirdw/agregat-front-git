@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { api, appendEvent, watchRun } from "./api";
 import { Markdown } from "./Markdown";
@@ -11,7 +11,19 @@ export {
 } from "./envelope";
 import { PromptBubble } from "./PromptBubble";
 import { finalStates, labels, money, ownerStates } from "./types";
-import type { CareerOffer, CareerResult, Run, RunEvent } from "./types";
+import type {
+  CareerOffer,
+  CareerResult,
+  OwnerMessage,
+  Run,
+  RunEvent,
+} from "./types";
+import {
+  ownerText,
+  ownerTextsVersion,
+  reuseOwnerText,
+  subscribeOwnerTexts,
+} from "./ownerMessages";
 import { SkillSteps } from "./SkillSteps";
 import { resumedFromLinks } from "./resumeLinks";
 import {
@@ -45,8 +57,20 @@ type Tool = {
   at?: string;
   endAt?: string;
 };
+// Message the owner sent while the mission ran (`owner_message`): one item per message id.
+type Owner = {
+  kind: "owner";
+  id: string;
+  messageId: string;
+  at?: string;
+  state: OwnerMessage["state"];
+  via: OwnerMessage["via"];
+  deliveredAt: string | null;
+  text?: string;
+};
 type Item =
   | Tool
+  | Owner
   | { kind: "text"; id: string; text: string; at?: string }
   | { kind: "thought"; id: string; text: string; at?: string };
 // A JSON text is shown indented; any other text as sent.
@@ -108,7 +132,38 @@ function toolOutput(u: Record<string, unknown>): string | undefined {
 export function activity(events: RunEvent[]): Item[] {
   const items: Item[] = [];
   const tools = new Map<string, Tool>();
+  const owners = new Map<string, Owner>();
   for (const e of events) {
+    // The first event of a message places it (emitted at reception); later ones update it.
+    if (e.type === "owner_message" && e.data && typeof e.data === "object") {
+      const m = e.data as Partial<OwnerMessage>;
+      if (typeof m.id !== "string" || !m.id) continue;
+      let owner = owners.get(m.id);
+      if (!owner) {
+        owner = {
+          kind: "owner",
+          id: `owner-${m.id}`,
+          messageId: m.id,
+          state: "pending",
+          via: null,
+          deliveredAt: null,
+        };
+        owners.set(m.id, owner);
+        items.push(owner);
+      }
+      if (typeof m.at === "string") owner.at = m.at;
+      if (
+        m.state === "pending" ||
+        m.state === "delivered" ||
+        m.state === "undelivered"
+      )
+        owner.state = m.state;
+      owner.via = m.via ?? null;
+      owner.deliveredAt =
+        typeof m.deliveredAt === "string" ? m.deliveredAt : null;
+      if (typeof m.text === "string" && m.text) owner.text = m.text;
+      continue;
+    }
     if (e.type !== "agent" || !e.data || typeof e.data !== "object") continue;
     const u = e.data as Record<string, unknown>;
     const update = u.sessionUpdate as string | undefined;
@@ -603,6 +658,60 @@ function blocks(items: Item[]): Block[] {
   }
   return out;
 }
+const clock = (iso: string | null) => {
+  const date = iso ? new Date(iso) : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    : "";
+};
+export function ownerStatus(message: {
+  state: OwnerMessage["state"];
+  via: OwnerMessage["via"];
+  deliveredAt: string | null;
+}) {
+  if (message.state === "undelivered")
+    return "Non remis : la mission s’est terminée avant";
+  if (message.state === "pending")
+    return "En attente : l’agent le recevra à la prochaine occasion";
+  const when = message.via
+    ? {
+        steering: " pendant son tour",
+        turn_end: " à la fin de son tour",
+        with_answer: " avec votre réponse",
+      }[message.via]
+    : "";
+  const at = clock(message.deliveredAt);
+  return `Remis à l’agent${when ?? ""}${at ? ` · ${at}` : ""}`;
+}
+// The owner's message in the feed: its text (from the event, else the one this page sent) and state.
+function OwnerBubble({ message }: { message: Owner }) {
+  const text = message.text ?? ownerText(message.messageId);
+  return (
+    <div className={"owner-message " + message.state}>
+      <small className="owner-message-head">Vous, pendant la mission</small>
+      <div className="prompt-bubble">
+        <span className="prompt-bubble-text">
+          {text ?? "Message envoyé pendant la mission (texte non conservé)"}
+        </span>
+      </div>
+      <small className="owner-message-state">
+        {ownerStatus(message)}
+        {message.state === "undelivered" && text && (
+          <>
+            {" · "}
+            <button
+              type="button"
+              className="owner-message-reuse"
+              onClick={() => reuseOwnerText(text)}
+            >
+              Reprendre le texte
+            </button>
+          </>
+        )}
+      </small>
+    </div>
+  );
+}
 // `final`: the run is over and its answer is shown apart: only the text absent from `answer` remains.
 export function AgentActivity({
   events,
@@ -640,6 +749,8 @@ export function AgentActivity({
     [items, final, answer],
   );
   const waits = useMemo(() => ownerWaits(events), [events]);
+  // Re-render when this page learns the text of a message it sent (private mission).
+  useSyncExternalStore(subscribeOwnerTexts, ownerTextsVersion);
   const label = running ? waitingLabel(items) : null;
   if (!shown.length) return label ? <Waiting label={label} /> : null;
   return (
@@ -657,6 +768,8 @@ export function AgentActivity({
               ) : (
                 <ToolGroup tools={block.tools} waits={waits} />
               )
+            ) : block.kind === "owner" ? (
+              <OwnerBubble message={block} />
             ) : block.kind === "thought" ? (
               <Thought
                 text={block.text}
