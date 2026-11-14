@@ -8,7 +8,9 @@ const platformLine = [
   /^Affirmations de l[’']agent : /,
   /^Capture : texte attendu non apparu/,
   /^Envoi par la plateforme : /,
+  // Before libelles-14-11 the owner-mode page writes were « Requêtes réseau d'envoi : ».
   /^Requêtes réseau d['’]envoi : /,
+  /^Écritures réseau de la page \(hors envoi final\) : /,
   /^Questions : \d+ posée\(s\), \d+ répondue\(s\)\.$/,
   /^Actions natives de l[’']agent /,
   /^Action\(s\) échouée\(s\) : /,
@@ -24,6 +26,7 @@ const isPlatform = (line: string) => platformLine.some((re) => re.test(line));
 // Lines that must stay in sight: a send not made or unsure, a failed or incomplete mission, an
 // action left undone, a question left unanswered.
 export function isWarning(line: string) {
+  // « aucun demandé » (libelles-14-11) : no send card shown, none ordered — nothing to warn about.
   if (/^Envoi par la plateforme : /.test(line))
     return /aucun approuvé|, dont /.test(line);
   const questions = line.match(/^Questions : (\d+) posée\(s\), (\d+) répondue/);

@@ -85,7 +85,18 @@ export function activityRows(events: RunEvent[], run?: Run | null) {
         },
         key,
       );
-    } else if (event.type === "permission_auto")
+    } else if (
+      event.type === "permission_auto" &&
+      toolName(data.capability) === "browser.send"
+    )
+      // libelles-14-11 : an owner-mode network write of the page outside a final send click
+      // (tracker, telemetry, intermediate step), with its host when the back recorded it.
+      info(
+        "Écriture réseau de la page" +
+          (typeof data.host === "string" && data.host ? " : " + data.host : ""),
+        "Accordé",
+      );
+    else if (event.type === "permission_auto")
       info("Accord automatique : " + toolName(data.capability), "Accordé");
     else if (event.type === "send_grant")
       info("Accord de mission donné : envois suivants sans demande", "Accordé");

@@ -238,3 +238,29 @@ describe("accord de mission : cas limites du journal", () => {
     expect(rows[0]).toContain(label);
   });
 });
+
+describe("libelles-14-11 : écritures réseau de la page", () => {
+  it("browser.send accordé automatiquement : écriture réseau avec l'hôte ; les autres gardent leur libellé", () => {
+    const rows = activityRows([
+      event(1, "permission_auto", {
+        capability: "browser.send",
+        host: "collector.example.test",
+      }),
+      event(2, "permission_auto", { capability: "browser.send" }),
+      event(3, "permission_auto", { capability: "browser.navigate" }),
+    ]);
+    const labels = rows.map((r) => [r.label, r.status]);
+    expect(labels).toContainEqual([
+      "Écriture réseau de la page : collector.example.test",
+      "Accordé",
+    ]);
+    expect(labels).toContainEqual(["Écriture réseau de la page", "Accordé"]);
+    expect(labels).toContainEqual([
+      "Accord automatique : browser.navigate",
+      "Accordé",
+    ]);
+    expect(JSON.stringify(rows)).not.toContain(
+      "Accord automatique : browser.send",
+    );
+  });
+});

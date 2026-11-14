@@ -296,6 +296,33 @@ describe("réponse finale : Bilan replié", () => {
       container.querySelector("details.action-details summary")!.textContent,
     ).toBe("Détails des actions");
   });
+  it("libelles-14-11 : « aucun demandé » replié, « aucun approuvé » visible ; écritures réseau, ancien et nouveau libellé, reconnues", () => {
+    const none = splitSummary(
+      [
+        "Réponse FICTIVE.",
+        "Envoi par la plateforme : aucun demandé.",
+        "Écritures réseau de la page (hors envoi final) : 17 accordées automatiquement (mode propriétaire) ; sites : collector.example.test (10), jobs.example.test (7).",
+      ].join("\n"),
+    );
+    expect(none.answer).toBe("Réponse FICTIVE.");
+    expect(none.warnings).toEqual([]);
+    expect(none.details).toEqual([
+      "Envoi par la plateforme : aucun demandé.",
+      "Écritures réseau de la page (hors envoi final) : 17 accordées automatiquement (mode propriétaire) ; sites : collector.example.test (10), jobs.example.test (7).",
+    ]);
+    const old = splitSummary(
+      [
+        "Réponse FICTIVE.",
+        "Envoi par la plateforme : aucun approuvé.",
+        "Requêtes réseau d'envoi : 5 accordées automatiquement (mode propriétaire).",
+      ].join("\n"),
+    );
+    expect(old.answer).toBe("Réponse FICTIVE.");
+    expect(old.warnings).toEqual(["Envoi par la plateforme : aucun approuvé."]);
+    expect(old.details).toEqual([
+      "Requêtes réseau d'envoi : 5 accordées automatiquement (mode propriétaire).",
+    ]);
+  });
   it("envoi approuvé mais sans effet : visible ; envoi approuvé simple : replié", () => {
     const sent = splitSummary(
       "Réponse.\nEnvoi par la plateforme : 1 approuvé(s) par le propriétaire.",
