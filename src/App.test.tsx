@@ -616,7 +616,9 @@ it("annule l'envoi d'un fichier en quittant la mission et ignore son erreur tard
   expect(screen.queryByText(/Ancienne mission indisponible/)).toBeNull();
 });
 
-describe("instruction mise en file pendant une mission", () => {
+// review-orienter-14-11 : the queue is the fallback of a back without the message route (404). A
+// back that follows the contract (202) takes the message at once: nothing is queued nor resumed.
+describe("instruction mise en file pendant une mission (repli : back sans la route message)", () => {
   const running = {
     id: "r1",
     prompt: "Mission fictive",
@@ -631,6 +633,9 @@ describe("instruction mise en file pendant une mission", () => {
     vi.mocked(api).mockImplementation((path) => {
       if (path === "/catalog") return Promise.resolve(catalog) as never;
       if (path === "/runs") return Promise.resolve([current]) as never;
+      // Older back: the route does not exist.
+      if (String(path).endsWith("/message"))
+        return Promise.reject(new ApiError("Not found", 404)) as never;
       if (String(path).endsWith("/resume"))
         return Promise.resolve({ ...running, id: "r2" }) as never;
       if (path === "/runs/r2")
@@ -645,6 +650,7 @@ describe("instruction mise en file pendant une mission", () => {
     const field = screen.getByLabelText(/Ajouter une instruction pour/);
     fireEvent.change(field, { target: { value: "Aussi en remote" } });
     fireEvent.keyDown(field, { key: "Enter" });
+    await screen.findByText("1 en file d’attente");
     expect(
       vi
         .mocked(api)
@@ -682,6 +688,53 @@ describe("instruction mise en file pendant une mission", () => {
         .value,
     ).toBe("Aussi en remote");
   });
+});
+it("message pendant une mission, back conforme (202) : envoyé tout de suite, rien en file ni en reprise", async () => {
+  const running = {
+    id: "r1",
+    prompt: "Mission fictive",
+    state: "running",
+    mode: "agent",
+    agent: "fixture",
+    pack: "core",
+    plan: {},
+  } as unknown as Run;
+  let current: Run = running;
+  vi.mocked(api).mockImplementation((path) => {
+    if (path === "/catalog") return Promise.resolve(catalog) as never;
+    if (path === "/runs") return Promise.resolve([current]) as never;
+    if (String(path).endsWith("/message"))
+      return Promise.resolve({ id: "m1", state: "pending" }) as never;
+    if (String(path).endsWith("/resume"))
+      return Promise.resolve({ ...running, id: "r2" }) as never;
+    return Promise.resolve(current) as never;
+  });
+  render(<App />);
+  fireEvent.click(await screen.findByText("Mission fictive"));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Ajouter une instruction" }),
+  );
+  const field = screen.getByLabelText(
+    /Ajouter une instruction pour/,
+  ) as HTMLTextAreaElement;
+  fireEvent.change(field, { target: { value: "Aussi en remote" } });
+  fireEvent.keyDown(field, { key: "Enter" });
+  await waitFor(() =>
+    expect(api).toHaveBeenCalledWith("/runs/r1/message", {
+      text: "Aussi en remote",
+    }),
+  );
+  await waitFor(() => expect(field.value).toBe(""));
+  expect(screen.queryByText(/en file d’attente/)).toBeNull();
+  current = { ...running, state: "completed", resumable: true } as Run;
+  act(() => vi.mocked(watchRun).mock.lastCall![1].end?.());
+  await screen.findAllByText("Mission fictive");
+  await new Promise((r) => setTimeout(r, 50));
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.some(([path]) => String(path).endsWith("/resume")),
+  ).toBe(false);
 });
 it("après une réponse, le tour précédent reste dans le fil même si le back ouvre une nouvelle session", async () => {
   localStorage.clear();
