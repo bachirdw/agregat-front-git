@@ -24,6 +24,24 @@ const toolTones: Record<string, [string, ActivityRow["tone"]]> = {
   failed: ["Échec", "failed"],
 };
 
+// sous-agents-19-11 : events of a mother (back docs/api-delegation.md §5).
+const delegationVia: Record<string, string> = {
+  bouton: "case cochée",
+  prompt: "demande dans le prompt",
+  carte: "carte d’accord",
+  api: "requête",
+};
+const heldStates: Record<string, string> = {
+  en_file: "En file",
+  attend_accord: "Attend ton accord",
+};
+const childTone = (state: string): ActivityRow["tone"] =>
+  state === "completed"
+    ? "completed"
+    : ["failed", "cancelled", "interrupted"].includes(state)
+      ? "failed"
+      : "running";
+
 // Turns the run's raw events into one line per thing the agent did; updates close their line.
 export function activityRows(events: RunEvent[], run?: Run | null) {
   const rows: ActivityRow[] = [];
@@ -170,6 +188,50 @@ export function activityRows(events: RunEvent[], run?: Run | null) {
       );
     else if (event.type === "verification")
       info(String(data.scope || "Résultat vérifié"), "Vérifié");
+    else if (event.type === "delegation_accepted")
+      info(
+        `Sous-agents autorisés (${delegationVia[String(data.via)] ?? "accord"})` +
+          (Number.isFinite(data.total) && Number.isFinite(data.parallel)
+            ? ` : ${data.total} au plus, ${data.parallel} en même temps`
+            : ""),
+        "Accordé",
+      );
+    else if (event.type === "delegation_declined")
+      info("Sous-agents refusés : un seul agent mène la mission", "Refusé");
+    else if (event.type === "child_launched")
+      open.set(
+        "child:" + String(data.childId),
+        add(
+          {
+            at: event.at,
+            label: "Sous-agent lancé : " + String(data.titre || "sans titre"),
+            status: "Lancé",
+            tone: "running",
+          },
+          key,
+        ),
+      );
+    else if (event.type === "child_state" || event.type === "child_done") {
+      const row = open.get("child:" + String(data.childId));
+      const state = typeof data.state === "string" ? data.state : "";
+      if (row && state) {
+        row.status = heldStates[state] ?? labels[state] ?? state;
+        row.tone = childTone(state);
+      }
+    } else if (event.type === "delegation_envelope_reached")
+      info("Enveloppe des sous-agents atteinte", "Signalé");
+    else if (event.type === "delegation_extended")
+      info("Enveloppe des sous-agents étendue", "Accordé");
+    else if (event.type === "family_waiting")
+      add(
+        {
+          at: event.at,
+          label: "La mission attend la fin de ses sous-agents",
+          status: "Attente",
+          tone: "running",
+        },
+        key,
+      );
   }
   if (run?.error)
     rows.push({

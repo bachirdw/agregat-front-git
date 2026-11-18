@@ -473,7 +473,13 @@ export default function App() {
           setImmediatePrompt({ id: next.id, text: candidate.prompt });
         await openRun(next.id);
         if (viewVersion.current === version + 1 && current.current === next.id)
-          setInput((old) => ({ ...old, prompt: "", attachments: [] }));
+          // sous-agents-19-11 : the agreement is per mission; the box is unchecked for the next one.
+          setInput((old) => ({
+            ...old,
+            prompt: "",
+            attachments: [],
+            delegation: undefined,
+          }));
       }
       await history();
     } catch (e) {
@@ -562,6 +568,20 @@ export default function App() {
     />
   );
   const summaryLine = page === "mission" && run ? metaLine(run, events) : "";
+  // sous-agents-19-11 : line of voie 2 written by the back (delegation_accepted.message).
+  const delegationNote =
+    page === "mission"
+      ? String(
+          [...events]
+            .reverse()
+            .find(
+              (event) =>
+                event.type === "delegation_accepted" &&
+                event.data?.via === "prompt" &&
+                typeof event.data.message === "string",
+            )?.data.message ?? "",
+        )
+      : "";
   const runId = run?.id;
   const runState = run?.state;
   useEffect(() => {
@@ -731,6 +751,9 @@ export default function App() {
                 )}
                 {turns > 1 && <small className="turns">{turns} tours</small>}
                 {r.simulated && <small>fictif</small>}
+                {r.famille && (
+                  <small className="subagent-tag">sous-agent</small>
+                )}
               </button>
             ))}
             {!runs.length && (
@@ -951,9 +974,12 @@ export default function App() {
                   />
                 </>
               )}
-              {/* activity-panel-03 : seulement si le back fournit des sous-agents ; ouvre le panneau. */}
+              {delegationNote && (
+                <p className="delegation-note">{delegationNote}</p>
+              )}
+              {/* sous-agents-19-11 : seulement si le back fournit la famille ; ouvre le panneau. */}
               <SubagentsLine
-                subagents={run.subagents}
+                family={run.family}
                 onOpen={() => showPanel(true)}
               />
               {summaryLine && (
@@ -1100,6 +1126,9 @@ export default function App() {
           }}
           details={stepDetails}
           setDetails={setStepDetails}
+          onOpenRun={(id) => void openRun(id)}
+          onCancelRun={(id) => void action(`/runs/${id}/cancel`, {})}
+          busy={busy}
         />
       )}
     </div>

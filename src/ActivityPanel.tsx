@@ -16,10 +16,10 @@ import type {
   Agent,
   AgendaItem,
   Catalog,
+  FamilyMember,
   Run,
   RunEvent,
   Schedule,
-  Subagent,
 } from "./types";
 import { finalStates, labels } from "./types";
 
@@ -143,41 +143,83 @@ export function funnelCells(run: Run): [string, number][] {
   );
 }
 
-// Sous-agents.
-const finished = new Set(["completed", "failed", "cancelled"]);
-const subagentStates: Record<Subagent["state"], string> = {
-  queued: "En file",
-  running: "En cours",
-  completed: "Terminé",
-  failed: "Échec",
-  cancelled: "Arrêté",
+// Sous-agents : la famille du back (GET /api/runs/:id `family`, docs/api-delegation.md), complétée
+// par les événements de la mère (modèle, heures de lancement et de fin, envois vus par la plateforme).
+const heldLabels: Record<string, string> = {
+  en_file: "En file",
+  attend_accord: "Attend ton accord",
 };
-export function subagentsSummary(list: Subagent[]) {
-  const running = list.filter((agent) => agent.state === "running").length;
-  const done = list.filter((agent) => finished.has(agent.state)).length;
+const waitLabels: Record<NonNullable<FamilyMember["attend"]>, string> = {
+  question: "Attend ta réponse",
+  carte_envoi: "Un envoi attend ton clic",
+  accord: "Attend ton accord des sous-agents",
+  place: "En file : attend une place",
+};
+const memberStatus = (member: FamilyMember) =>
+  (member.attend && waitLabels[member.attend]) ||
+  heldLabels[member.state] ||
+  labels[member.state] ||
+  member.state;
+const memberTone = (state: string) =>
+  state === "running"
+    ? "running"
+    : state === "completed"
+      ? "completed"
+      : ["failed", "cancelled", "interrupted"].includes(state)
+        ? "failed"
+        : ["awaiting_owner", "waiting_permission"].includes(state)
+          ? "waiting"
+          : "queued";
+const waitsForOwner = (member: FamilyMember) =>
+  member.attend === "question" || member.attend === "carte_envoi";
+export function familySummary(family: FamilyMember[]) {
+  const running = family.filter((member) => member.state === "running").length;
+  const done = family.filter((member) => finalStates.has(member.state)).length;
+  const waiting = family.filter(waitsForOwner).length;
   const head = running
     ? `${running} sous-agent${running > 1 ? "s" : ""} en cours`
-    : `${list.length} sous-agent${list.length > 1 ? "s" : ""}`;
-  return `${head} · ${done}/${list.length} terminés`;
+    : `${family.length} sous-agent${family.length > 1 ? "s" : ""}`;
+  return (
+    `${head} · ${done}/${family.length} terminés` +
+    (waiting ? ` · ${waiting} attend${waiting > 1 ? "ent" : ""} ta réponse` : "")
+  );
 }
-const subStepMark = (state: string): Mark =>
-  ["completed", "succeeded", "done"].includes(state)
-    ? "done"
-    : ["failed", "cancelled", "error"].includes(state)
-      ? "failed"
-      : ["running", "in_progress"].includes(state)
-        ? "running"
-        : ["waiting", "waiting_approval", "awaiting_owner"].includes(state)
-          ? "waiting"
-          : "pending";
-const tileTone = (state: Subagent["state"]) =>
-  state === "cancelled" ? "failed" : state;
-const tileDuration = (agent: Subagent) =>
-  agent.finishedAt
-    ? duration(agent.startedAt, agent.finishedAt)
-    : agent.state === "running"
-      ? duration(agent.startedAt, Date.now())
-      : "";
+const activityLine = ({ agents, awaitingOwner }: { agents: number; awaitingOwner: number }) =>
+  `${agents} agent${agents > 1 ? "s" : ""} en activité (missions et sous-agents)` +
+  (awaitingOwner ? `, dont ${awaitingOwner} en attente de toi` : "");
+type ChildTrace = {
+  modele?: string;
+  launchedAt?: string;
+  doneAt?: string;
+  envois?: string;
+};
+function childTraces(events: RunEvent[]) {
+  const traces = new Map<string, ChildTrace>();
+  for (const event of events) {
+    const data = event.data ?? {};
+    const id = typeof data.childId === "string" ? data.childId : "";
+    if (!id) continue;
+    const trace = traces.get(id) ?? {};
+    if (event.type === "child_launched") {
+      trace.launchedAt = event.at;
+      if (typeof data.modele === "string" && data.modele) trace.modele = data.modele;
+    } else if (event.type === "child_done") {
+      trace.doneAt = event.at;
+      const line = (data.envois as { ligne?: unknown } | null | undefined)?.ligne;
+      if (typeof line === "string" && line) trace.envois = line;
+    }
+    traces.set(id, trace);
+  }
+  return traces;
+}
+const memberDuration = (member: FamilyMember, trace?: ChildTrace) =>
+  !trace?.launchedAt
+    ? ""
+    : trace.doneAt
+      ? duration(trace.launchedAt, trace.doneAt)
+      : member.state === "running"
+        ? duration(trace.launchedAt, Date.now())
+        : "";
 
 function Section({
   title,
@@ -259,18 +301,29 @@ function StepList({
     </ol>
   );
 }
-function SubagentTile({ agent }: { agent: Subagent }) {
+function FamilyTile({
+  member,
+  trace,
+  busy,
+  onOpen,
+  onCancel,
+}: {
+  member: FamilyMember;
+  trace?: ChildTrace;
+  busy?: boolean;
+  onOpen?: (id: string) => void;
+  onCancel?: (id: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [tech, setTech] = useState(false);
-  const lines = (agent.lines ?? [])
-    .filter((line) => typeof line === "string" && line.trim())
-    .slice(-3);
-  const time = tileDuration(agent);
-  const tone = tileTone(agent.state);
-  const techRows: DetailRow[] =
-    agent.agent || agent.model
-      ? [["Agent", `${agent.agent || "non précisé"} · ${agent.model || "défaut"}`]]
-      : [];
+  const tone = memberTone(member.state);
+  const time = memberDuration(member, trace);
+  const question = member.pendingQuestion?.message?.split("\n")[0];
+  const techRows: DetailRow[] = [
+    ["Agent", `${member.agent || "non précisé"} · ${trace?.modele || "défaut"}`],
+    ["Identifiant", member.id],
+  ];
+  if (trace?.envois) techRows.push(["Envois", trace.envois]);
   return (
     <div
       className={"subagent-tile " + tone}
@@ -284,57 +337,42 @@ function SubagentTile({ agent }: { agent: Subagent }) {
       >
         <span className="subagent-title">
           <i className={"subagent-dot " + tone} aria-hidden="true" />
-          <strong>{agent.name}</strong>
-          <span className="sr-only">
-            {subagentStates[agent.state] ?? agent.state}
-          </span>
+          <strong>{member.titre}</strong>
           {time && <small>{time}</small>}
         </span>
-        {lines.length > 0 && (
-          <span className="subagent-lines">
-            {lines.map((line, index) => (
-              <span
-                key={index}
-                className={index === lines.length - 1 ? "last" : undefined}
-              >
-                {line}
-              </span>
-            ))}
-          </span>
-        )}
+        <span className="subagent-status">{memberStatus(member)}</span>
       </button>
       {open && (
         <div className="subagent-body">
-          {agent.task && <p className="subagent-task">{agent.task}</p>}
-          {!!agent.steps?.length && (
-            <StepList
-              label="Étapes"
-              steps={agent.steps.map((step, index) => ({
-                key: String(index),
-                title: step.title,
-                mark: subStepMark(step.state),
-              }))}
-            />
+          {question && <p className="subagent-task">Question : {question}</p>}
+          {member.pendingPermission && (
+            <p className="subagent-task">
+              Un envoi attend ton clic dans la sous-mission.
+            </p>
           )}
-          {techRows.length > 0 && (
-            <TechDetails
-              open={tech}
-              onToggle={() => setTech(!tech)}
-              rows={techRows}
-            />
-          )}
-          {(agent.state === "running" || agent.state === "queued") && (
-            <div className="subagent-actions">
+          <div className="subagent-actions">
+            <button
+              type="button"
+              disabled={!onOpen}
+              onClick={() => onOpen?.(member.id)}
+            >
+              Ouvrir la sous-mission
+            </button>
+            {!finalStates.has(member.state) && (
               <button
                 type="button"
-                disabled
-                title="Arrêt d’un sous-agent : bientôt disponible"
+                disabled={busy || !onCancel}
+                onClick={() => onCancel?.(member.id)}
               >
                 Arrêter
               </button>
-              <small>bientôt</small>
-            </div>
-          )}
+            )}
+          </div>
+          <TechDetails
+            open={tech}
+            onToggle={() => setTech(!tech)}
+            rows={techRows}
+          />
         </div>
       )}
     </div>
@@ -369,15 +407,15 @@ const nextRun = (at?: string) => {
       });
 };
 
-// Ligne discrète du fil : n'existe que si le back a fourni des sous-agents.
+// Ligne discrète du fil : n'existe que si le back a fourni la famille de la mission.
 export function SubagentsLine({
-  subagents,
+  family,
   onOpen,
 }: {
-  subagents?: Subagent[];
+  family?: FamilyMember[];
   onOpen: () => void;
 }) {
-  if (!subagents?.length) return null;
+  if (!family?.length) return null;
   return (
     <button
       type="button"
@@ -386,7 +424,7 @@ export function SubagentsLine({
       onClick={onOpen}
     >
       <Icon name="grid" />
-      <span>{subagentsSummary(subagents)}</span>
+      <span>{familySummary(family)}</span>
       <b className="chevron" aria-hidden="true">
         ›
       </b>
@@ -403,6 +441,9 @@ export function ActivityPanel({
   setDetails,
   agenda,
   schedules,
+  onOpenRun,
+  onCancelRun,
+  busy,
 }: {
   catalog: Catalog | null;
   run: Run | null;
@@ -413,6 +454,10 @@ export function ActivityPanel({
   setDetails?: (open: boolean) => void;
   agenda?: AgendaItem[];
   schedules?: Schedule[];
+  // sous-agents-19-11 : open a sub-mission (or the main mission) and cancel a sub-mission.
+  onOpenRun?: (id: string) => void;
+  onCancelRun?: (id: string) => void;
+  busy?: boolean;
 }) {
   const [connectors, setConnectors] = useState(false);
   const [ownDetails, setOwnDetails] = useState(false);
@@ -438,7 +483,8 @@ export function ActivityPanel({
         ? "completed"
         : "failed";
   const cells = run ? funnelCells(run) : [];
-  const subagents = run?.subagents ?? [];
+  const family = run?.family ?? [];
+  const traces = childTraces(events);
   const documents = run?.documents ?? [];
   const domains = run?.browserDomains ?? [];
   return (
@@ -455,6 +501,14 @@ export function ActivityPanel({
         </button>
       </header>
       <div className="activity-body">
+        {run?.famille && onOpenRun && (
+          <div className="activity-parent">
+            <span>Sous-agent d’une autre mission</span>
+            <button type="button" onClick={() => onOpenRun(run.famille!.mere)}>
+              Revenir à la mission principale
+            </button>
+          </div>
+        )}
         <section className="activity-section activity-connectors">
           <h3 className="activity-section-head">
             <button
@@ -554,16 +608,26 @@ export function ActivityPanel({
             </div>
           )}
         </section>
-        {subagents.length > 0 && (
+        {family.length > 0 && (
           <Section
             title="Sous-agents"
-            summary={`${subagents.filter((agent) => finished.has(agent.state)).length}/${subagents.length} terminés`}
+            summary={`${family.filter((member) => finalStates.has(member.state)).length}/${family.length} terminés`}
           >
             <div className="subagent-grid">
-              {subagents.map((agent) => (
-                <SubagentTile key={agent.id} agent={agent} />
+              {family.map((member) => (
+                <FamilyTile
+                  key={member.id}
+                  member={member}
+                  trace={traces.get(member.id)}
+                  busy={busy}
+                  onOpen={onOpenRun}
+                  onCancel={onCancelRun}
+                />
               ))}
             </div>
+            {run?.activity && (
+              <p className="activity-note">{activityLine(run.activity)}</p>
+            )}
           </Section>
         )}
         {run && cells.length > 0 && (

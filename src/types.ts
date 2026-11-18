@@ -82,6 +82,9 @@ export interface MissionInput {
   mode: "agent" | "workflow";
   workflow: string;
   attachments?: Attachment[];
+  // sous-agents-19-11 : « Autoriser les sous-agents » checked before sending (voie 1 of the back's
+  // docs/api-delegation.md). Absent when unchecked: the field is then not sent at all.
+  delegation?: { accepted: true; via: "bouton"; total: number; parallel: number };
 }
 // A file uploaded to POST /api/files; only its id is sent with a plan or run.
 export interface Attachment {
@@ -240,22 +243,40 @@ export interface Run {
   missionProof?: { reads?: MissionRead[]; sourceRead?: boolean } | null;
   // activity-panel-03 : fields the back does not send yet. Each panel section stays hidden while
   // its field is absent; nothing is ever filled with an example.
-  subagents?: Subagent[];
   funnel?: RunFunnel;
   documents?: RunDocument[];
+  // sous-agents-19-11 (back docs/api-delegation.md, contacts-13-11). On a mission that launched
+  // sub-missions: `family` and `activity` (both absent otherwise), `estMere`, the owner's `delegation`.
+  family?: FamilyMember[];
+  activity?: { agents: number; awaitingOwner: number };
+  estMere?: boolean;
+  delegation?: {
+    accepted: boolean;
+    via?: "bouton" | "prompt" | "carte" | "api";
+    total?: number;
+    parallel?: number;
+    acceptedAt?: string;
+  };
+  // On a sub-mission: its root mission, the mission that launched it, and its title.
+  famille?: { racine: string; mere: string; titre: string };
 }
-// activity-panel-03 : one helper agent working for the mission (contract proposed by the front brief).
-export interface Subagent {
+// One sub-mission of a mother (GET /api/runs/:id `family`, back delegation.js view()).
+export interface FamilyMember {
   id: string;
-  name: string;
-  state: "queued" | "running" | "completed" | "failed" | "cancelled";
-  task?: string;
-  startedAt?: string;
-  finishedAt?: string;
-  lines?: string[];
-  steps?: { title: string; state: string }[];
-  agent?: string;
-  model?: string;
+  titre: string;
+  agent: string;
+  // The sub-mission's state, or "en_file" / "attend_accord" while the platform holds it.
+  state: string;
+  attend: "place" | "accord" | "question" | "carte_envoi" | null;
+  pendingQuestion: Question | null;
+  pendingPermission: {
+    id: string;
+    capability?: string;
+    actionClass?: string;
+    toolCallId?: string | null;
+    askedAt?: string;
+    preview?: string;
+  } | null;
 }
 // Application counters of the mission; each one is shown only when the back reports it.
 export interface RunFunnel {

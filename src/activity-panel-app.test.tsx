@@ -214,6 +214,9 @@ describe("panneau Activité dans l'application", () => {
     const { container } = render(<App />);
     await openMission();
     expect(container.querySelector(".subagents-line")).toBeNull();
-    expect(screen.queryByText(/sous-agent/)).toBeNull();
+    // sous-agents-19-11 : le composeur dit « Autoriser les sous-agents » ; seul le fil doit en être vide.
+    expect(container.querySelector(".thread")!.textContent).not.toMatch(
+      /sous-agent/,
+    );
   });
 });
