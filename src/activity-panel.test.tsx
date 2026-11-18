@@ -85,7 +85,9 @@ describe("panneau Activité : structure", () => {
     const { props } = panel();
     const aside = screen.getByRole("complementary", { name: "Activité" });
     expect(aside.className).toContain("activity-panel");
-    expect(within(aside).getByRole("heading", { name: "Activité" })).toBeTruthy();
+    expect(
+      within(aside).getByRole("heading", { name: "Activité" }),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Fermer le panneau" }));
     expect(props.onClose).toHaveBeenCalledOnce();
   });
@@ -148,7 +150,10 @@ describe("Connecteurs", () => {
               capability: "browser.navigate",
               url: "https://jobs.example.test/a?x=FICTIF",
             },
-            { capability: "browser.snapshot", url: "https://jobs.example.test/b" },
+            {
+              capability: "browser.snapshot",
+              url: "https://jobs.example.test/b",
+            },
             {
               capability: "browser.snapshot",
               url: "https://careers.example.test/c",
@@ -297,7 +302,9 @@ describe("Étapes de la mission", () => {
     const { container } = panel({ run });
     expect(container.textContent).not.toMatch(/1,25|Coût|Registre/);
     fireEvent.click(screen.getByRole("button", { name: "Détails techniques" }));
-    const tech = container.querySelector<HTMLElement>(".activity-steps .activity-tech")!;
+    const tech = container.querySelector<HTMLElement>(
+      ".activity-steps .activity-tech",
+    )!;
     expect(within(tech).getByText(/1,25.*fictif/)).toBeTruthy();
     expect(within(tech).getByText("Registre altéré")).toBeTruthy();
     cleanup();
@@ -381,7 +388,9 @@ describe("Documents, Agenda, Tâches planifiées", () => {
     expect(heading("Documents")).toBeTruthy();
     const link = screen.getByRole("link", { name: /Lettre · Doctolib/ });
     expect(link.getAttribute("href")).toBe("/api/files/d1");
-    expect(screen.queryByRole("link", { name: /CV · version courte/ })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: /CV · version courte/ }),
+    ).toBeNull();
     expect(screen.getByText("CV · version courte")).toBeTruthy();
     expect(screen.getByText("Notes · Alan")).toBeTruthy();
   });
@@ -406,12 +415,19 @@ describe("Documents, Agenda, Tâches planifiées", () => {
   it("tâches planifiées : unique ou récurrente, arrêt inactif tant que l'API manque", () => {
     const { container } = panel({
       schedules: [
-        { id: "t1", name: "Veille FICTIVE", recurring: true, next: "2026-11-20T08:00:00.000Z" },
+        {
+          id: "t1",
+          name: "Veille FICTIVE",
+          recurring: true,
+          next: "2026-11-20T08:00:00.000Z",
+        },
         { id: "t2", name: "Relance FICTIVE", recurring: false },
       ],
     });
     expect(heading("Tâches planifiées")).toBeTruthy();
-    expect(container.querySelectorAll(".schedule-icon.recurring")).toHaveLength(1);
+    expect(container.querySelectorAll(".schedule-icon.recurring")).toHaveLength(
+      1,
+    );
     expect(container.querySelectorAll(".schedule-icon.once")).toHaveLength(1);
     const stop = screen.getByRole("button", {
       name: "Arrêter la tâche « Veille FICTIVE »",
@@ -423,7 +439,10 @@ describe("Documents, Agenda, Tâches planifiées", () => {
 describe("Sites autorisés", () => {
   it("domaines demandés pour la mission, en lecture seule", () => {
     const { container } = panel({
-      run: { ...running, browserDomains: ["jobs.example.test", "mail.example.test"] },
+      run: {
+        ...running,
+        browserDomains: ["jobs.example.test", "mail.example.test"],
+      },
     });
     const section = heading(/^Sites autorisés/)!.closest("section")!;
     expect(within(section).getByText("jobs.example.test")).toBeTruthy();
@@ -464,16 +483,22 @@ describe("vocabulaire : le panneau sert à postuler", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Connecteurs/ }));
     fireEvent.click(screen.getByRole("button", { name: /Recherche Doctolib/ }));
     const tile = container.querySelector(".subagent-tile")!;
-    fireEvent.click(within(tile as HTMLElement).getByRole("button", { name: "Détails techniques" }));
+    fireEvent.click(
+      within(tile as HTMLElement).getByRole("button", {
+        name: "Détails techniques",
+      }),
+    );
     // Les détails techniques existent et contiennent bien le vocabulaire technique…
     expect(container.querySelectorAll(".activity-tech")).toHaveLength(2);
-    expect(container.querySelector(".activity-steps .activity-tech")!.textContent).toContain(
-      "Session",
-    );
+    expect(
+      container.querySelector(".activity-steps .activity-tech")!.textContent,
+    ).toContain("Session");
     // … et rien d'autre n'en contient.
     const outside = container.cloneNode(true) as HTMLElement;
     outside.querySelectorAll(".activity-tech").forEach((node) => node.remove());
-    expect(outside.textContent).not.toMatch(/Modifications|fichiers|Dossier|Session/i);
+    expect(outside.textContent).not.toMatch(
+      /Modifications|fichiers|Dossier|Session/i,
+    );
   });
 });
 
@@ -481,7 +506,9 @@ describe("feuille : panneau Activité", () => {
   const v2 = readFileSync(resolve("src/v2.css"), "utf8");
   const base = readFileSync(resolve("src/style.css"), "utf8");
   const block = (css: string, selector: string) =>
-    css.match(new RegExp(selector.replace(/[.*]/g, "\\$&") + " \\{([^}]*)\\}"))?.[1] ?? "";
+    css.match(
+      new RegExp(selector.replace(/[.*]/g, "\\$&") + " \\{([^}]*)\\}"),
+    )?.[1] ?? "";
   it("carte flottante de 344px à côté du fil, style de la barre latérale", () => {
     const rules = block(v2, ".activity-panel");
     expect(rules).toMatch(/width: 344px/);
@@ -502,8 +529,12 @@ describe("feuille : panneau Activité", () => {
   });
   it("plus aucune règle .tracker, .connections-panel, .panel-cost ni décalage du fil", () => {
     for (const css of [v2, base]) {
-      expect(css).not.toMatch(/\.tracker|\.connections-panel|\.panel-cost|\.panel-card/);
-      expect(css).not.toMatch(/\.with-panel \.scroll-content|\.with-panel \.composer-dock/);
+      expect(css).not.toMatch(
+        /\.tracker|\.connections-panel|\.panel-cost|\.panel-card/,
+      );
+      expect(css).not.toMatch(
+        /\.with-panel \.scroll-content|\.with-panel \.composer-dock/,
+      );
     }
   });
 });

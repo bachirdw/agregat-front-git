@@ -90,7 +90,12 @@ const motherEvents = [
   ev(
     2,
     "child_launched",
-    { childId: "c1", titre: family[0].titre, agent: "codex", modele: "gpt-fictif" },
+    {
+      childId: "c1",
+      titre: family[0].titre,
+      agent: "codex",
+      modele: "gpt-fictif",
+    },
     1,
   ),
   ev(
@@ -145,10 +150,12 @@ describe("Sous-agents : la famille du back", () => {
       .getByRole("heading", { name: "Sous-agents" })
       .closest("section")!;
     expect(section.querySelectorAll(".subagent-tile")).toHaveLength(4);
-    expect(section.querySelector(".activity-section-head")!.textContent).toContain(
-      "1/4 terminés",
-    );
-    expect(within(tileOf("Offres FICTIVES sur SEEK")).getByText("En cours")).toBeTruthy();
+    expect(
+      section.querySelector(".activity-section-head")!.textContent,
+    ).toContain("1/4 terminés");
+    expect(
+      within(tileOf("Offres FICTIVES sur SEEK")).getByText("En cours"),
+    ).toBeTruthy();
     expect(
       tileOf("Offres FICTIVES sur SEEK").querySelector(".subagent-dot.running"),
     ).toBeTruthy();
@@ -195,7 +202,9 @@ describe("Sous-agents : la famille du back", () => {
     panel();
     const tile = tileOf("Offres FICTIVES sur LinkedIn");
     fireEvent.click(
-      within(tile).getByRole("button", { name: /Offres FICTIVES sur LinkedIn/ }),
+      within(tile).getByRole("button", {
+        name: /Offres FICTIVES sur LinkedIn/,
+      }),
     );
     expect(within(tile).queryByRole("button", { name: "Arrêter" })).toBeNull();
     fireEvent.click(
@@ -224,12 +233,17 @@ describe("Sous-agents : la famille du back", () => {
       within(tile).getByRole("button", { name: /Offres FICTIVES sur SEEK/ }),
     );
     expect(
-      (within(tile).getByRole("button", { name: "Arrêter" }) as HTMLButtonElement)
-        .disabled,
+      (
+        within(tile).getByRole("button", {
+          name: "Arrêter",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
   it("sans family : ni section ni ligne dans le fil", () => {
-    panel({ run: { ...mother, family: undefined, activity: undefined } as Run });
+    panel({
+      run: { ...mother, family: undefined, activity: undefined } as Run,
+    });
     expect(screen.queryByRole("heading", { name: "Sous-agents" })).toBeNull();
     const { container } = render(
       <SubagentsLine family={undefined} onOpen={() => {}} />,
@@ -385,7 +399,9 @@ describe("case « Autoriser les sous-agents » (voie 1)", () => {
       ...input,
       delegation: { accepted: true, via: "bouton", total: 6, parallel: 3 },
     });
-    expect(screen.getByText(/menée par un agent, pas par un workflow/)).toBeTruthy();
+    expect(
+      screen.getByText(/menée par un agent, pas par un workflow/),
+    ).toBeTruthy();
   });
   it("requête : le champ part avec l'heure de l'accord, et n'existe pas sans la case", () => {
     const sent = toApiInput({

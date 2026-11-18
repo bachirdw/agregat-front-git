@@ -835,7 +835,9 @@ test(
     await finished(page);
     await tracker.getByText(/Mission terminée/).waitFor();
     assert.match(
-      await tracker.locator(".activity-steps .activity-section-head").innerText(),
+      await tracker
+        .locator(".activity-steps .activity-section-head")
+        .innerText(),
       /\d+\/\d+/,
     );
     await page.locator(".meta-line").click();
@@ -844,7 +846,10 @@ test(
       /Agent[\s\S]*Registre/,
     );
     const card = await tracker.boundingBox();
-    const value = await tracker.locator(".activity-tech dd").first().boundingBox();
+    const value = await tracker
+      .locator(".activity-tech dd")
+      .first()
+      .boundingBox();
     assert.ok(
       value.x + value.width <= card.x + card.width,
       "valeur dans la carte",

@@ -1060,8 +1060,15 @@ table.activity-log {
 /* Case « Autoriser les sous-agents » du composeur : texte du back lisible dans la fenêtre. */
 .delegation-text {
   display: block;
-  max-width: 300px;
   line-height: 1.45;
+}
+.delegation-envelope {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.delegation-envelope input {
+  width: 100%;
 }
 /* Ligne du fil : n'existe que si le back fournit la famille ; ouvre le panneau. */
 .subagents-line {

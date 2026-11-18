@@ -51,7 +51,9 @@ const serve = (run: Run) =>
   });
 const openMission = async () => {
   fireEvent.click(await screen.findByText("Mission FICTIVE"));
-  await screen.findByRole("button", { name: /Afficher l’activité|Masquer l’activité/ });
+  await screen.findByRole("button", {
+    name: /Afficher l’activité|Masquer l’activité/,
+  });
   await waitFor(() => expect(watchRun).toHaveBeenCalled());
 };
 const panel = () => screen.queryByRole("complementary", { name: "Activité" });
@@ -126,7 +128,9 @@ describe("panneau Activité dans l'application", () => {
     expect(container.querySelector(".activity-panel")).toBeTruthy();
     expect(container.querySelector(".tracker")).toBeNull();
     expect(container.querySelector(".connections-panel")).toBeNull();
-    expect(screen.queryByRole("region", { name: "Suivi de la mission" })).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Suivi de la mission" }),
+    ).toBeNull();
     expect(
       screen.getByRole("heading", { name: /^Étapes de la mission/ }),
     ).toBeTruthy();
@@ -149,7 +153,9 @@ describe("panneau Activité dans l'application", () => {
     expect(panel()).toBeTruthy();
     const more = screen.getByRole("button", { name: "Détails techniques" });
     expect(more.getAttribute("aria-expanded")).toBe("true");
-    expect(document.querySelector(".activity-steps .activity-tech dl")).toBeTruthy();
+    expect(
+      document.querySelector(".activity-steps .activity-tech dl"),
+    ).toBeTruthy();
   });
   it("sous 1180px : ouvrir le panneau masque la barre latérale, la rouvrir ferme le panneau", async () => {
     serve(base);

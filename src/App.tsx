@@ -734,7 +734,10 @@ export default function App() {
                 onClick={() => void openRun(r.id)}
               >
                 <i className={"dot " + r.state} />
-                <span title={r.prompt}>{r.title || r.prompt}</span>
+                <span title={r.prompt}>
+                  {/* sous-agents-19-11 : une sous-mission porte le titre que son chef lui a donné. */}
+                  {r.famille?.titre || r.title || r.prompt}
+                </span>
                 <small
                   className={
                     finalStates.has(r.state) || ownerStates.has(r.state)
@@ -1121,7 +1124,9 @@ export default function App() {
           onClose={() => {
             setPanel(false);
             requestAnimationFrame(() =>
-              document.querySelector<HTMLButtonElement>(".panel-toggle")?.focus(),
+              document
+                .querySelector<HTMLButtonElement>(".panel-toggle")
+                ?.focus(),
             );
           }}
           details={stepDetails}

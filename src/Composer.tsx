@@ -657,45 +657,49 @@ export function Composer({
                   L’agent de ta mission pourra, s’il le juge utile, confier des
                   parties du travail à d’autres agents qui travaillent en même
                   temps. Chacun consomme ton abonnement comme une mission
-                  ordinaire : avec plusieurs agents à la fois, ta limite
-                  d’usage peut être atteinte plus vite. Autoriser n’oblige pas
-                  : pour une demande simple, un seul agent travaillera. Au plus{" "}
+                  ordinaire : avec plusieurs agents à la fois, ta limite d’usage
+                  peut être atteinte plus vite. Autoriser n’oblige pas : pour
+                  une demande simple, un seul agent travaillera. Au plus{" "}
                   {delegationTotal} sous-agents pour cette mission,{" "}
                   {delegationParallel} en même temps (modifiables). Les envois
                   restent à ton clic.
                 </small>
-                <label>
-                  Au plus
-                  <input
-                    type="number"
-                    aria-label="Sous-agents au plus"
-                    min="1"
-                    max="200"
-                    step="1"
-                    value={drafts.total ?? String(delegationTotal)}
-                    disabled={disabled}
-                    onChange={(e) => changeEnvelope("total", e.target.value)}
-                    onBlur={() =>
-                      setDrafts((old) => ({ ...old, total: undefined }))
-                    }
-                  />
-                </label>
-                <label>
-                  En même temps
-                  <input
-                    type="number"
-                    aria-label="Sous-agents en même temps"
-                    min="1"
-                    max="8"
-                    step="1"
-                    value={drafts.parallel ?? String(delegationParallel)}
-                    disabled={disabled}
-                    onChange={(e) => changeEnvelope("parallel", e.target.value)}
-                    onBlur={() =>
-                      setDrafts((old) => ({ ...old, parallel: undefined }))
-                    }
-                  />
-                </label>
+                <div className="delegation-envelope">
+                  <label>
+                    Au plus
+                    <input
+                      type="number"
+                      aria-label="Sous-agents au plus"
+                      min="1"
+                      max="200"
+                      step="1"
+                      value={drafts.total ?? String(delegationTotal)}
+                      disabled={disabled}
+                      onChange={(e) => changeEnvelope("total", e.target.value)}
+                      onBlur={() =>
+                        setDrafts((old) => ({ ...old, total: undefined }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    En même temps
+                    <input
+                      type="number"
+                      aria-label="Sous-agents en même temps"
+                      min="1"
+                      max="8"
+                      step="1"
+                      value={drafts.parallel ?? String(delegationParallel)}
+                      disabled={disabled}
+                      onChange={(e) =>
+                        changeEnvelope("parallel", e.target.value)
+                      }
+                      onBlur={() =>
+                        setDrafts((old) => ({ ...old, parallel: undefined }))
+                      }
+                    />
+                  </label>
+                </div>
                 {input.delegation && input.mode === "workflow" && (
                   <small>
                     La mission sera menée par un agent, pas par un workflow DAG.

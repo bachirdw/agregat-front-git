@@ -122,10 +122,15 @@ export function toApiInput(input: MissionInput) {
   // sous-agents-19-11 : the owner's agreement leaves with the hour it was given (ISO, UTC);
   // unchecked, no field at all (back docs/api-delegation.md §2.1).
   const agreed = delegation
-    ? { ...rest, delegation: { ...delegation, acceptedAt: new Date().toISOString() } }
+    ? {
+        ...rest,
+        delegation: { ...delegation, acceptedAt: new Date().toISOString() },
+      }
     : rest;
   const payload =
-    browserDomains === undefined ? agreed : { ...agreed, browserDomains: domains };
+    browserDomains === undefined
+      ? agreed
+      : { ...agreed, browserDomains: domains };
   return attachments?.length
     ? { ...payload, attachments: attachments.map((a) => a.id) }
     : payload;

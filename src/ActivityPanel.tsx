@@ -44,7 +44,8 @@ export function duration(start?: string, end?: string | number) {
   if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) return "";
   const seconds = Math.round((to - from) / 1000);
   if (seconds < 60) return `${seconds} s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+  if (seconds < 3600)
+    return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
   return `${Math.floor(seconds / 3600)} h ${Math.floor((seconds % 3600) / 60)} min`;
 }
 const clock = (at?: string, seconds = false) => {
@@ -90,9 +91,7 @@ export function connectorsSummary(catalog: Catalog | null) {
   if (broken) return `${broken} à reconnecter`;
   const ready = agents.filter(isReady).length;
   if (ready === agents.length) return "Tous connectés";
-  return ready
-    ? `${ready} connecté${ready > 1 ? "s" : ""}`
-    : "Aucun connecté";
+  return ready ? `${ready} connecté${ready > 1 ? "s" : ""}` : "Aucun connecté";
 }
 // Hôtes distincts lus pendant la mission (origine seulement : ni chemin ni requête).
 export function visitedHosts(run: Run | null) {
@@ -181,10 +180,18 @@ export function familySummary(family: FamilyMember[]) {
     : `${family.length} sous-agent${family.length > 1 ? "s" : ""}`;
   return (
     `${head} · ${done}/${family.length} terminés` +
-    (waiting ? ` · ${waiting} attend${waiting > 1 ? "ent" : ""} ta réponse` : "")
+    (waiting
+      ? ` · ${waiting} attend${waiting > 1 ? "ent" : ""} ta réponse`
+      : "")
   );
 }
-const activityLine = ({ agents, awaitingOwner }: { agents: number; awaitingOwner: number }) =>
+const activityLine = ({
+  agents,
+  awaitingOwner,
+}: {
+  agents: number;
+  awaitingOwner: number;
+}) =>
   `${agents} agent${agents > 1 ? "s" : ""} en activité (missions et sous-agents)` +
   (awaitingOwner ? `, dont ${awaitingOwner} en attente de toi` : "");
 type ChildTrace = {
@@ -202,10 +209,12 @@ function childTraces(events: RunEvent[]) {
     const trace = traces.get(id) ?? {};
     if (event.type === "child_launched") {
       trace.launchedAt = event.at;
-      if (typeof data.modele === "string" && data.modele) trace.modele = data.modele;
+      if (typeof data.modele === "string" && data.modele)
+        trace.modele = data.modele;
     } else if (event.type === "child_done") {
       trace.doneAt = event.at;
-      const line = (data.envois as { ligne?: unknown } | null | undefined)?.ligne;
+      const line = (data.envois as { ligne?: unknown } | null | undefined)
+        ?.ligne;
       if (typeof line === "string" && line) trace.envois = line;
     }
     traces.set(id, trace);
@@ -233,7 +242,9 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className={"activity-section" + (className ? " " + className : "")}>
+    <section
+      className={"activity-section" + (className ? " " + className : "")}
+    >
       <div className="activity-section-head">
         <h3>{title}</h3>
         {summary && <small>{summary}</small>}
@@ -320,7 +331,10 @@ function FamilyTile({
   const time = memberDuration(member, trace);
   const question = member.pendingQuestion?.message?.split("\n")[0];
   const techRows: DetailRow[] = [
-    ["Agent", `${member.agent || "non précisé"} · ${trace?.modele || "défaut"}`],
+    [
+      "Agent",
+      `${member.agent || "non précisé"} · ${trace?.modele || "défaut"}`,
+    ],
     ["Identifiant", member.id],
   ];
   if (trace?.envois) techRows.push(["Envois", trace.envois]);
@@ -531,7 +545,11 @@ export function ActivityPanel({
                     const state = connector(agent);
                     const last = since(agent.probe?.at);
                     return (
-                      <li className="connector" key={agent.id} title={state.why}>
+                      <li
+                        className="connector"
+                        key={agent.id}
+                        title={state.why}
+                      >
                         <i
                           className={"state-dot " + state.tone}
                           aria-hidden="true"
@@ -590,7 +608,11 @@ export function ActivityPanel({
                         <tr key={row.key}>
                           <td title={clock(row.at, true)}>{clock(row.at)}</td>
                           <td>{plainLabel(row, bySeq.get(row.key), tools)}</td>
-                          <td className={row.tone ? "tone-" + row.tone : undefined}>
+                          <td
+                            className={
+                              row.tone ? "tone-" + row.tone : undefined
+                            }
+                          >
                             {row.status}
                           </td>
                         </tr>
@@ -633,7 +655,9 @@ export function ActivityPanel({
         {run && cells.length > 0 && (
           <Section
             title="Candidatures"
-            summary={run.simulated || run.result?.simulated ? "fictif" : undefined}
+            summary={
+              run.simulated || run.result?.simulated ? "fictif" : undefined
+            }
           >
             <div className="funnel">
               {cells.map(([label, count]) => (
@@ -739,7 +763,8 @@ export function ActivityPanel({
                   <li className="schedule-row" key={task.id}>
                     <span
                       className={
-                        "schedule-icon " + (task.recurring ? "recurring" : "once")
+                        "schedule-icon " +
+                        (task.recurring ? "recurring" : "once")
                       }
                       title={task.recurring ? "Récurrente" : "Unique"}
                     >

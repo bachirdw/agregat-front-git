@@ -132,14 +132,20 @@ describe("sous-agents dans l'application", () => {
   it("une tuile ouvre sa sous-mission et Arrêter annule cette sous-mission seulement", async () => {
     serve([mother, child]);
     render(<App />);
-    fireEvent.click(await screen.findByText("Mission FICTIVE à trois portails"));
-    const aside = await screen.findByRole("complementary", { name: "Activité" });
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
+    const aside = await screen.findByRole("complementary", {
+      name: "Activité",
+    });
     const tile = await within(aside).findByRole("button", {
       name: /Offres FICTIVES sur SEEK/,
     });
     fireEvent.click(tile);
     fireEvent.click(within(aside).getByRole("button", { name: "Arrêter" }));
-    await waitFor(() => expect(api).toHaveBeenCalledWith("/runs/c1/cancel", {}));
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("/runs/c1/cancel", {}),
+    );
     expect(api).not.toHaveBeenCalledWith("/runs/m1/cancel", {});
     fireEvent.click(
       within(aside).getByRole("button", { name: "Ouvrir la sous-mission" }),
@@ -152,8 +158,9 @@ describe("sous-agents dans l'application", () => {
   it("barre latérale : une sous-mission est marquée « sous-agent »", async () => {
     serve([mother, child]);
     render(<App />);
-    const entry = (await screen.findByTitle("Consigne FICTIVE de la sous-mission"))
-      .closest("button")!;
+    const entry = (
+      await screen.findByTitle("Consigne FICTIVE de la sous-mission")
+    ).closest("button")!;
     expect(within(entry).getByText("sous-agent")).toBeTruthy();
     const main = screen
       .getByTitle("Mission FICTIVE à trois portails")
@@ -163,7 +170,9 @@ describe("sous-agents dans l'application", () => {
   it("voie 2 : la ligne du back « Sous-agents lancés à ta demande » s'affiche dans le fil", async () => {
     serve([mother]);
     render(<App />);
-    fireEvent.click(await screen.findByText("Mission FICTIVE à trois portails"));
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
     await waitFor(() => expect(watchRun).toHaveBeenCalled());
     const stream = vi.mocked(watchRun).mock.lastCall![1];
     const message =
@@ -177,9 +186,9 @@ describe("sous-agents dans l'application", () => {
     );
     // Le « Journal en direct » brut du fil contient déjà le JSON de l'événement : on vise la ligne dédiée.
     await waitFor(() =>
-      expect(document.querySelector(".thread .delegation-note")?.textContent).toBe(
-        message,
-      ),
+      expect(
+        document.querySelector(".thread .delegation-note")?.textContent,
+      ).toBe(message),
     );
   });
 });

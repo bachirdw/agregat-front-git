@@ -84,7 +84,12 @@ export interface MissionInput {
   attachments?: Attachment[];
   // sous-agents-19-11 : « Autoriser les sous-agents » checked before sending (voie 1 of the back's
   // docs/api-delegation.md). Absent when unchecked: the field is then not sent at all.
-  delegation?: { accepted: true; via: "bouton"; total: number; parallel: number };
+  delegation?: {
+    accepted: true;
+    via: "bouton";
+    total: number;
+    parallel: number;
+  };
 }
 // A file uploaded to POST /api/files; only its id is sent with a plan or run.
 export interface Attachment {
