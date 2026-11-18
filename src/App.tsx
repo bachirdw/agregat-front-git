@@ -22,7 +22,7 @@ import { PromptBubble } from "./PromptBubble";
 import { agentWarning } from "./agentStatus";
 import { rememberResume } from "./resumeLinks";
 import { CareerThread, SessionHistory, conversations } from "./Career";
-import { ActivityPanel } from "./ActivityPanel";
+import { ActivityPanel, SubagentsLine } from "./ActivityPanel";
 import { MissionPill } from "./MissionPill";
 import { metaLine } from "./Tracker";
 import { Settings, storedName } from "./Settings";
@@ -944,6 +944,11 @@ export default function App() {
                   />
                 </>
               )}
+              {/* activity-panel-03 : seulement si le back fournit des sous-agents ; ouvre le panneau. */}
+              <SubagentsLine
+                subagents={run.subagents}
+                onOpen={() => showPanel(true)}
+              />
               {summaryLine && (
                 <button
                   className="meta-line"
