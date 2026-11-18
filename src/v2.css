@@ -723,10 +723,14 @@ table.activity-log {
 }
 .steps-phrase {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin: 0 0 2px;
   font-size: 13px;
+}
+/* Phrase sur deux lignes : le point reste sur la première. */
+.steps-phrase .state-dot {
+  margin-top: 6px;
 }
 .steps-list {
   margin: 0;

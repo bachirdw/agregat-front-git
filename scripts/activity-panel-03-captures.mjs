@@ -157,6 +157,15 @@ try {
         const name = `${label}-${state}-${width}-${theme}`;
         await page.screenshot({ path: join(out, name + ".png") });
         shots.push(name);
+        // Après : à 1440 px, une vue de plus avec les Connecteurs dépliés (journal de la mission).
+        if (label === "apres" && width === 1440) {
+          const connectors = page.getByRole("button", { name: /^Connecteurs/ });
+          await connectors.click();
+          await page.waitForTimeout(300);
+          await page.screenshot({ path: join(out, name + "-connecteurs.png") });
+          shots.push(name + "-connecteurs");
+          await connectors.click();
+        }
         // À 924 px le panneau est fermé par défaut : capture aussi panneau ouvert.
         if (width === 924) {
           await toggle(page).click();
