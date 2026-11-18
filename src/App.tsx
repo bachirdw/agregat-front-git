@@ -243,6 +243,13 @@ export default function App() {
   const showPanel = (open: boolean) => {
     setPanel(open);
     if (open && innerWidth <= 1180) setSide(false);
+    // Under 760px the panel covers the toolbar button that opened it: focus moves to its close button.
+    if (open && innerWidth <= 760)
+      requestAnimationFrame(() =>
+        document
+          .querySelector<HTMLButtonElement>(".activity-header .icon-button")
+          ?.focus(),
+      );
   };
   const showSide = () => {
     setSide(true);

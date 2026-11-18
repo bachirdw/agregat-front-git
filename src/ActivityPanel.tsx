@@ -500,7 +500,7 @@ export function ActivityPanel({
                 <p className="activity-empty">
                   {catalog
                     ? "Aucun agent détecté sur cet ordinateur."
-                    : "Connexion au backend local…"}
+                    : "Chargement des agents…"}
                 </p>
               )}
               {hosts.length > 0 && (
