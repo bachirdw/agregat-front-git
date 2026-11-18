@@ -22,9 +22,9 @@ import { PromptBubble } from "./PromptBubble";
 import { agentWarning } from "./agentStatus";
 import { rememberResume } from "./resumeLinks";
 import { CareerThread, SessionHistory, conversations } from "./Career";
-import { ConnectionsPanel } from "./ConnectionsPanel";
+import { ActivityPanel } from "./ActivityPanel";
 import { MissionPill } from "./MissionPill";
-import { metaLine, Tracker } from "./Tracker";
+import { metaLine } from "./Tracker";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
 import { RunView } from "./Mission";
@@ -77,8 +77,14 @@ export default function App() {
     [events, setEvents] = useState<RunEvent[]>([]),
     [connection, setConnection] = useState("Connexion…"),
     [streamKey, setStreamKey] = useState(0);
+  // Activité panel: open by default above 1100px. Up to 1180px the thread keeps at least 560px,
+  // so the sidebar and the panel are never open together there.
   const [panel, setPanel] = useState(() => window.innerWidth > 1100),
-    [side, setSide] = useState(() => window.innerWidth > 760),
+    [side, setSide] = useState(
+      () =>
+        window.innerWidth > 760 &&
+        !(window.innerWidth > 1100 && window.innerWidth <= 1180),
+    ),
     [theme, setTheme] = useState(() => {
       try {
         return (
@@ -119,8 +125,8 @@ export default function App() {
     return () => window.removeEventListener(OWNER_DRAFT_EVENT, reuse);
   }, []);
   const launching = useRef<AbortController | null>(null);
-  const [trackerOpen, setTrackerOpen] = useState(false),
-    [trackerDetails, setTrackerDetails] = useState(false),
+  // « Détails techniques » of the mission steps, in the Activité panel.
+  const [stepDetails, setStepDetails] = useState(false),
     [profileName, setProfileName] = useState(storedName);
   const settingsReturn = useRef<Page>("home");
   const {
@@ -233,6 +239,28 @@ export default function App() {
     observer.observe(dock);
     return () => observer.disconnect();
   }, [page, starting, run?.id]);
+  // The Activité panel opens only on a click (toolbar, summary line, sub-agents line), never on its own.
+  const showPanel = (open: boolean) => {
+    setPanel(open);
+    if (open && innerWidth <= 1180) setSide(false);
+  };
+  const showSide = () => {
+    setSide(true);
+    if (innerWidth <= 1180) setPanel(false);
+    requestAnimationFrame(() =>
+      navRef.current?.querySelector("button")?.focus(),
+    );
+  };
+  // Window narrowed with both open: the sidebar gives way so the thread keeps its width.
+  useEffect(() => {
+    if (!panel || !side) return;
+    const fit = () => {
+      if (innerWidth <= 1180) setSide(false);
+    };
+    fit();
+    addEventListener("resize", fit);
+    return () => removeEventListener("resize", fit);
+  }, [panel, side]);
   const go = (next: Page) => {
     viewVersion.current++;
     setPage(next);
@@ -256,7 +284,11 @@ export default function App() {
         e.preventDefault();
         newMission();
       }
-      if (e.key === "Escape" && innerWidth <= 760) setSide(false);
+      if (e.key === "Escape" && innerWidth <= 760) {
+        setSide(false);
+        // Under 760px the panel covers the thread: Escape closes it like the sidebar.
+        setPanel(false);
+      }
       if (e.key === "Tab" && side && innerWidth <= 760) {
         const nodes = navRef.current?.querySelectorAll<HTMLButtonElement>(
           "button:not(:disabled)",
@@ -741,12 +773,7 @@ export default function App() {
             <button
               className="icon-button"
               aria-label="Afficher la barre latérale"
-              onClick={() => {
-                setSide(true);
-                requestAnimationFrame(() =>
-                  navRef.current?.querySelector("button")?.focus(),
-                );
-              }}
+              onClick={showSide}
             >
               <Icon name="side" />
             </button>
@@ -760,15 +787,11 @@ export default function App() {
           )}
           <button
             className="icon-button panel-toggle"
-            aria-label={
-              panel
-                ? "Masquer les connexions locales"
-                : "Afficher les connexions locales"
-            }
+            aria-label={panel ? "Masquer l’activité" : "Afficher l’activité"}
             aria-pressed={panel}
-            onClick={() => setPanel(!panel)}
+            onClick={() => showPanel(!panel)}
           >
-            <Icon name="side" />
+            <Icon name="panel" />
           </button>
           <button
             className="icon-button theme-toggle"
@@ -778,13 +801,6 @@ export default function App() {
             <Icon name="theme" />
           </button>
         </header>
-        {panel && (
-          <ConnectionsPanel
-            catalog={catalog}
-            events={page === "mission" ? events : []}
-            run={page === "mission" ? run : null}
-          />
-        )}
         <div
           className="scroll-content"
           ref={scroll}
@@ -931,10 +947,15 @@ export default function App() {
               {summaryLine && (
                 <button
                   className="meta-line"
-                  title="Voir le détail dans le suivi"
+                  title="Voir le détail dans le panneau Activité"
                   onClick={() => {
-                    setTrackerOpen(true);
-                    setTrackerDetails(true);
+                    showPanel(true);
+                    setStepDetails(true);
+                    requestAnimationFrame(() =>
+                      document
+                        .querySelector(".activity-steps .tech-toggle")
+                        ?.scrollIntoView?.({ block: "nearest" }),
+                    );
                   }}
                 >
                   {summaryLine}
@@ -987,16 +1008,6 @@ export default function App() {
           >
             <span aria-hidden="true">↓</span> Revenir en bas
           </button>
-        )}
-        {page === "mission" && run && (
-          <Tracker
-            run={run}
-            events={events}
-            open={trackerOpen}
-            details={trackerDetails}
-            setOpen={setTrackerOpen}
-            setDetails={setTrackerDetails}
-          />
         )}
         {runActive && run && (
           <MissionPill
@@ -1064,6 +1075,21 @@ export default function App() {
           />
         )}
       </main>
+      {panel && (
+        <ActivityPanel
+          catalog={catalog}
+          run={page === "mission" ? run : null}
+          events={page === "mission" ? events : []}
+          onClose={() => {
+            setPanel(false);
+            requestAnimationFrame(() =>
+              document.querySelector<HTMLButtonElement>(".panel-toggle")?.focus(),
+            );
+          }}
+          details={stepDetails}
+          setDetails={setStepDetails}
+        />
+      )}
     </div>
   );
 }
