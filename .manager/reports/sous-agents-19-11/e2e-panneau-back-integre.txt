@@ -1,0 +1,11 @@
+✔ visuel v2 : barre flottante, panneau, pastille à la place de la saisie, retour en fin de mission (31793.268167ms)
+✔ visuel v2 mobile : barre masquée, pas de débordement horizontal (19273.959417ms)
+✔ maquette v3 : suivi de mission, résumé sous le résultat et paramètres réels (41803.009791ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 97573.909375

@@ -1,0 +1,17 @@
+
+> agre-agent-frontend@0.1.0 test
+> vitest run --maxWorkers=2 --color=false
+
+
+ RUN  v5.0.5 /Users/diaw/Downloads/agregat-front/.claude/worktrees/bold-goldstine-171eb9
+
+
+ Test Files  19 passed (19)
+      Tests  281 passed (281)
+   Start at  07:21:07
+   Duration  33.69s (environment 40%, tests 39%, import 18%, transform 2%)
+
+Environment  jsdom was created 19 times · 25.10s total, 40% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

@@ -1,0 +1,9 @@
+✓ voie 1 acceptée par le schéma réel : {"accepted":true,"via":"bouton","total":4,"parallel":2,"acceptedAt":"2026-11-18T20:22:03.130Z"} ; mode agent
+✓ la case est décochée pour la mission suivante
+✓ GET /api/runs/:id du back : family = [{"titre":"Offres FICTIVES sur SEEK","state":"running","attend":null},{"titre":"Offres FICTIVES sur LinkedIn","state":"completed","attend":null},{"titre":"Offres FICTIVES sur Indeed","state":"awaiting_owner","attend":"question"}] ; activity = {"agents":1,"awaitingOwner":0}
+✓ tuiles du panneau : ["En cours","Terminée","Attend ta réponse"]
+✓ ligne du fil : « 1 sous-agent en cours · 1/3 terminés · 1 attend ta réponse »
+✓ barre latérale : les 3 sous-missions sont marquées « sous-agent »
+✓ changement en direct suivi : la ligne passe à 2/3 terminés, la tuile à « Terminée »
+✓ sous-mission ouverte depuis sa tuile, puis retour à la mission principale
+✓ aucune erreur de page
