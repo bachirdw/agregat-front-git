@@ -10,6 +10,13 @@ export function Icon({ name }: { name: string }) {
     plus: "M5 12h14 M12 5v14",
     arrow: "M12 19V5 M5 12l7-7 7 7",
     close: "m6 6 12 12 M6 18 18 6",
+    // Panneau Activité : colonne à droite, sous-agents, document, tâche unique ou récurrente.
+    panel: "M3 3h18v18H3z M15 3v18",
+    grid: "M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z",
+    doc: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13h6 M9 17h4",
+    clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2",
+    repeat:
+      "M17 2l4 4-4 4 M3 11V9a3 3 0 0 1 3-3h15 M7 22l-4-4 4-4 M21 13v2a3 3 0 0 1-3 3H3",
     settings:
       "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19 12l2-1-2-4-2 1-2-1-1-3h-4l-1 3-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 3h4l1-3 2-1 2 1 2-4-2-1z",
   };

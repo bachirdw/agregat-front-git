@@ -2,16 +2,17 @@ import { activity, describeTool } from "./Career";
 import type { Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
 
-type Mark = "done" | "failed" | "running" | "pending" | "waiting";
+export type Mark = "done" | "failed" | "running" | "pending" | "waiting";
 export type TrackerItem = { id: string; title: string; mark: Mark };
-const marks: Record<Mark, string> = {
+// Shown in the « Étapes de la mission » section of the Activité panel.
+export const trackerMarks: Record<Mark, string> = {
   done: "✓",
   failed: "✕",
   running: "•",
   pending: "○",
   waiting: "!",
 };
-const stepMark = (state?: string): Mark =>
+export const stepMark = (state?: string): Mark =>
   state === "succeeded"
     ? "done"
     : state === "failed"
@@ -103,84 +104,4 @@ export function trackerDetails(run: Run, events: RunEvent[]) {
       run.ledger.ok ? "success" : "danger",
     ]);
   return rows;
-}
-export function Tracker({
-  run,
-  events,
-  open,
-  details,
-  setOpen,
-  setDetails,
-}: {
-  run: Run;
-  events: RunEvent[];
-  open: boolean;
-  details: boolean;
-  setOpen: (open: boolean) => void;
-  setDetails: (details: boolean) => void;
-}) {
-  const items = trackerItems(run, events);
-  const done = items.filter((item) => item.mark === "done").length;
-  const live = !finalStates.has(run.state);
-  const tone = live
-    ? "running"
-    : run.state === "completed"
-      ? "completed"
-      : "failed";
-  return (
-    <section className="tracker" aria-label="Suivi de la mission">
-      <button
-        type="button"
-        className="tracker-head"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        <i className={"tracker-dot " + tone} />
-        <span title={labels[run.state] || run.state}>
-          {trackerPhrase(run, items)}
-        </span>
-        {items.length > 0 && (
-          <small>
-            {done}/{items.length}
-          </small>
-        )}
-        <b className="tracker-chevron" aria-hidden="true">
-          ›
-        </b>
-      </button>
-      {open && (
-        <div className="tracker-body">
-          {items.map((item) => (
-            <div className={"tracker-item " + item.mark} key={item.id}>
-              <span aria-hidden="true">{marks[item.mark]}</span>
-              <span title={item.title}>{item.title}</span>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="tracker-more"
-            aria-expanded={details}
-            onClick={() => setDetails(!details)}
-          >
-            <b className="tracker-chevron" aria-hidden="true">
-              ›
-            </b>
-            Détails techniques
-          </button>
-          {details && (
-            <dl>
-              {trackerDetails(run, events).map(([key, value, tone]) => (
-                <div key={key}>
-                  <dt>{key}</dt>
-                  <dd className={tone} title={value}>
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </div>
-      )}
-    </section>
-  );
 }
