@@ -1,0 +1,20 @@
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > fermé par défaut sous 1100px ; le bouton de la barre haute l'ouvre, la croix le ferme 1199ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > aucune ouverture automatique pendant une mission (états, outils, question) 1066ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > au-dessus de 1100px : ouvert, sans .tracker ni .connections-panel, avec les étapes de la mission 1045ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > le résumé sous le résultat ouvre le panneau et déplie les détails techniques 175ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > sous 1180px : ouvrir le panneau masque la barre latérale, la rouvrir ferme le panneau 1073ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > au-dessus de 1180px : le panneau et la barre latérale restent côte à côte 1053ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > la ligne des sous-agents du fil ouvre le panneau 1055ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > sans sous-agents, aucune ligne dans le fil 1029ms
+ FAIL  src/activity-panel.test.tsx [ src/activity-panel.test.tsx ]
+Error: Failed to resolve import "./ActivityPanel" from "src/activity-panel.test.tsx". Does the file exist?
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > fermé par défaut sous 1100px ; le bouton de la barre haute l'ouvre, la croix le ferme
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > aucune ouverture automatique pendant une mission (états, outils, question)
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > au-dessus de 1100px : ouvert, sans .tracker ni .connections-panel, avec les étapes de la mission
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > le résumé sous le résultat ouvre le panneau et déplie les détails techniques
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > sous 1180px : ouvrir le panneau masque la barre latérale, la rouvrir ferme le panneau
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > au-dessus de 1180px : le panneau et la barre latérale restent côte à côte
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > la ligne des sous-agents du fil ouvre le panneau
+ FAIL  src/activity-panel-app.test.tsx > panneau Activité dans l'application > sans sous-agents, aucune ligne dans le fil
+ Test Files  2 failed | 15 passed (17)
+      Tests  8 failed | 232 passed (240)

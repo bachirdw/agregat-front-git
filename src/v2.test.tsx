@@ -1,18 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { MissionPill } from "./MissionPill";
-import { ConnectionsPanel } from "./ConnectionsPanel";
 import { AgentActivity, ownerWaits, toolDuration } from "./Career";
 import {
-  Tracker,
   metaLine,
   trackerDetails,
   trackerItems,
@@ -97,42 +89,6 @@ const catalog = {
   ],
 } as unknown as Catalog;
 const baseRun = { id: "r", agent: "codex", state: "completed" } as Run;
-
-describe("panneau v2", () => {
-  it("compte les agents réellement prêts, jamais le fictif", () => {
-    render(<ConnectionsPanel catalog={catalog} events={[]} run={null} />);
-    expect(screen.getByText("1 prêt")).toBeTruthy();
-    expect(screen.queryByText("Fictif")).toBeNull();
-  });
-  it("le titre replie le contenu", () => {
-    render(<ConnectionsPanel catalog={catalog} events={[]} run={null} />);
-    fireEvent.click(screen.getByRole("button", { name: /Connexions locales/ }));
-    expect(screen.queryByText("Codex")).toBeNull();
-  });
-  it("aucun coût sans mission, aucun chiffre inventé sans mesure", () => {
-    const { rerender, container } = render(
-      <ConnectionsPanel catalog={catalog} events={[]} run={null} />,
-    );
-    expect(container.querySelector(".panel-cost")).toBeNull();
-    rerender(<ConnectionsPanel catalog={catalog} events={[]} run={baseRun} />);
-    const cost = within(container.querySelector<HTMLElement>(".panel-cost")!);
-    expect(cost.getByText("Non mesuré")).toBeTruthy();
-    expect(cost.getByText("Non disponible")).toBeTruthy();
-    expect(cost.getByText("codex · BYOA")).toBeTruthy();
-  });
-  it("affiche le coût mesuré, le registre altéré et un agent fictif", () => {
-    const run = {
-      ...baseRun,
-      simulated: true,
-      usage: { platformCents: 125, currency: "EUR", byDimension: [] },
-      ledger: { ok: false },
-    } as unknown as Run;
-    render(<ConnectionsPanel catalog={catalog} events={[]} run={run} />);
-    expect(screen.getByText(/1,25/)).toBeTruthy();
-    expect(screen.getByText("Registre altéré")).toBeTruthy();
-    expect(screen.getByText("codex · fictif")).toBeTruthy();
-  });
-});
 
 const tool = (seq: number, data: object, at?: string) =>
   ({ seq, type: "agent", at, data: { toolCallId: "t", ...data } }) as RunEvent;
@@ -302,9 +258,6 @@ describe("feuille v2", () => {
     expect(css).toMatch(/:root\[data-theme="dark"\]/);
     expect(css).toMatch(/prefers-reduced-motion: reduce/);
   });
-  it("corrige la collision entre le tableau et la liste .activity", () => {
-    expect(css).toMatch(/table\.activity\s*\{\s*display: table/);
-  });
   it("s'importe après style.css pour surcharger sans le modifier", () => {
     const main = readFileSync(resolve("src/main.tsx"), "utf8");
     expect(main.indexOf("style.css")).toBeLessThan(main.indexOf("v2.css"));
@@ -352,20 +305,6 @@ describe("suivi de mission v3", () => {
       tool(1, { sessionUpdate: "tool_call", title: "lire", status: "pending" }),
     ]);
     expect(items[0].mark).toBe("pending");
-  });
-  it("sans outil ni étape, aucun compteur inventé", () => {
-    render(
-      <Tracker
-        run={{ ...baseRun, state: "running" }}
-        events={[]}
-        open={false}
-        details={false}
-        setOpen={() => {}}
-        setDetails={() => {}}
-      />,
-    );
-    expect(screen.getByText("Réfléchit à la suite")).toBeTruthy();
-    expect(screen.queryByText(/\/\d/)).toBeNull();
   });
   it("la mission annulée ne se dit jamais terminée", () => {
     expect(trackerPhrase({ ...baseRun, state: "cancelled" }, [])).toBe(
@@ -417,19 +356,5 @@ describe("paramètres v3", () => {
     expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.getAllByText("Réglage bientôt")).toHaveLength(4);
     expect(screen.queryByText("Fictif")).toBeNull();
-  });
-});
-
-describe("mise en page v3", () => {
-  const css = readFileSync(resolve("src/v2.css"), "utf8");
-  it("les valeurs des détails ne sortent pas de la carte de suivi", () => {
-    expect(css).toMatch(
-      /\.tracker dl \{\s*grid-template-columns: minmax\(0, 1fr\)/,
-    );
-  });
-  it("le suivi ne couvre pas le fil quand le panneau est ouvert", () => {
-    expect(css).toMatch(
-      /\.main\.with-panel \.tracker \{\s*right: 12px;[^}]*width: 276px/,
-    );
   });
 });
