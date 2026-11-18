@@ -157,18 +157,22 @@ describe("Sous-agents : la famille du back", () => {
       within(tileOf("Offres FICTIVES sur SEEK")).getByText("En cours"),
     ).toBeTruthy();
     expect(
-      tileOf("Offres FICTIVES sur SEEK").querySelector(".subagent-dot.running"),
+      tileOf("Offres FICTIVES sur SEEK").querySelector(
+        ".subagent-dot.tone-running",
+      ),
     ).toBeTruthy();
     const linkedin = tileOf("Offres FICTIVES sur LinkedIn");
     expect(within(linkedin).getByText("Terminée")).toBeTruthy();
     expect(linkedin.textContent).toContain("1 min 5 s");
-    expect(linkedin.querySelector(".subagent-dot.completed")).toBeTruthy();
+    expect(linkedin.querySelector(".subagent-dot.tone-completed")).toBeTruthy();
     const indeed = tileOf("Offres FICTIVES sur Indeed");
     expect(within(indeed).getByText("Attend ta réponse")).toBeTruthy();
-    expect(indeed.querySelector(".subagent-dot.waiting")).toBeTruthy();
+    expect(indeed.querySelector(".subagent-dot.tone-waiting")).toBeTruthy();
+    // style.css a une règle globale `.waiting` (phrase d'attente du fil) : jamais ce nom nu sur la tuile.
+    expect(indeed.classList.contains("waiting")).toBe(false);
     const queued = tileOf("Relecture FICTIVE");
     expect(within(queued).getByText("En file : attend une place")).toBeTruthy();
-    expect(queued.querySelector(".subagent-dot.queued")).toBeTruthy();
+    expect(queued.querySelector(".subagent-dot.tone-queued")).toBeTruthy();
     expect(
       within(section).getByText(
         "3 agents en activité (missions et sous-agents), dont 1 en attente de toi",

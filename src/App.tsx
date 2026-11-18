@@ -755,7 +755,14 @@ export default function App() {
                 {turns > 1 && <small className="turns">{turns} tours</small>}
                 {r.simulated && <small>fictif</small>}
                 {r.famille && (
-                  <small className="subagent-tag">sous-agent</small>
+                  // Icône des sous-agents (comme la ligne du fil) : le titre garde la place.
+                  <small
+                    className="subagent-tag"
+                    title="Sous-agent d’une autre mission"
+                  >
+                    <Icon name="grid" />
+                    <span className="sr-only">sous-agent</span>
+                  </small>
                 )}
               </button>
             ))}
@@ -813,7 +820,9 @@ export default function App() {
           )}
           {!side && waitingBadge}
           <strong>
-            {page === "mission" ? run?.title || run?.prompt : titles[page]}
+            {page === "mission"
+              ? run?.famille?.titre || run?.title || run?.prompt
+              : titles[page]}
           </strong>
           {run && page === "mission" && (
             <span className="badge">{labels[run.state] || run.state}</span>

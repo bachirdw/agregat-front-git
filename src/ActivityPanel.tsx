@@ -192,7 +192,9 @@ const activityLine = ({
   agents: number;
   awaitingOwner: number;
 }) =>
-  `${agents} agent${agents > 1 ? "s" : ""} en activité (missions et sous-agents)` +
+  (agents
+    ? `${agents} agent${agents > 1 ? "s" : ""} en activité (missions et sous-agents)`
+    : "Aucun agent en activité (missions et sous-agents)") +
   (awaitingOwner ? `, dont ${awaitingOwner} en attente de toi` : "");
 type ChildTrace = {
   modele?: string;
@@ -340,7 +342,8 @@ function FamilyTile({
   if (trace?.envois) techRows.push(["Envois", trace.envois]);
   return (
     <div
-      className={"subagent-tile " + tone}
+      // Préfixe : style.css a une règle globale `.waiting` (phrase d'attente du fil).
+      className={"subagent-tile tone-" + tone}
       style={open ? { gridColumn: "1 / -1" } : undefined}
     >
       <button
@@ -350,7 +353,7 @@ function FamilyTile({
         onClick={() => setOpen(!open)}
       >
         <span className="subagent-title">
-          <i className={"subagent-dot " + tone} aria-hidden="true" />
+          <i className={"subagent-dot tone-" + tone} aria-hidden="true" />
           <strong>{member.titre}</strong>
           {time && <small>{time}</small>}
         </span>

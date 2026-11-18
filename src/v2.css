@@ -872,7 +872,7 @@ table.activity-log {
   font-size: 11.5px;
   color: var(--muted);
 }
-.subagent-tile.waiting .subagent-status {
+.subagent-tile.tone-waiting .subagent-status {
   color: var(--orange);
 }
 .subagent-dot {
@@ -882,20 +882,20 @@ table.activity-log {
   border-radius: 50%;
   background: var(--muted);
 }
-.subagent-dot.queued {
+.subagent-dot.tone-queued {
   opacity: 0.5;
 }
-.subagent-dot.running {
+.subagent-dot.tone-running {
   background: var(--orange);
   animation: owner-pulse 1.6s ease-in-out infinite;
 }
-.subagent-dot.waiting {
+.subagent-dot.tone-waiting {
   background: var(--orange);
 }
-.subagent-dot.completed {
+.subagent-dot.tone-completed {
   background: var(--green);
 }
-.subagent-dot.failed {
+.subagent-dot.tone-failed {
   background: var(--red);
 }
 .subagent-body {
@@ -1042,11 +1042,16 @@ table.activity-log {
   font-size: 12.5px;
   color: var(--muted);
 }
+.activity-parent span {
+  min-width: 0;
+}
 .activity-parent button {
+  flex: none;
   height: 26px;
   padding: 0 12px;
   border-radius: 13px;
   font-size: 12px;
+  white-space: nowrap;
 }
 /* Ligne de la voie 2 écrite par le back, et sous-mission marquée dans la barre latérale. */
 .delegation-note {
@@ -1055,7 +1060,12 @@ table.activity-log {
   color: var(--muted);
 }
 .mission-link small.subagent-tag {
+  display: inline-flex;
   color: var(--muted);
+}
+.mission-link .subagent-tag svg {
+  width: 12px;
+  height: 12px;
 }
 /* Case « Autoriser les sous-agents » du composeur : texte du back lisible dans la fenêtre. */
 .delegation-text {
@@ -1110,7 +1120,7 @@ table.activity-log {
 }
 @media (prefers-reduced-motion: reduce) {
   .activity-panel,
-  .subagent-dot.running {
+  .subagent-dot.tone-running {
     animation: none;
   }
   .activity-panel .chevron,
