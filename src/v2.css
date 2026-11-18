@@ -868,22 +868,12 @@ table.activity-log {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.subagent-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  font-size: 11px;
-  line-height: 1.35;
+.subagent-status {
+  font-size: 11.5px;
   color: var(--muted);
 }
-.subagent-lines span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.subagent-lines .last {
-  color: var(--label);
+.subagent-tile.waiting .subagent-status {
+  color: var(--orange);
 }
 .subagent-dot {
   flex: none;
@@ -898,6 +888,9 @@ table.activity-log {
 .subagent-dot.running {
   background: var(--orange);
   animation: owner-pulse 1.6s ease-in-out infinite;
+}
+.subagent-dot.waiting {
+  background: var(--orange);
 }
 .subagent-dot.completed {
   background: var(--green);
@@ -928,10 +921,6 @@ table.activity-log {
   padding: 0 12px;
   border-radius: 13px;
   font-size: 12px;
-}
-.subagent-actions small {
-  font-size: 11px;
-  color: var(--muted);
 }
 .funnel {
   display: grid;
@@ -1042,7 +1031,39 @@ table.activity-log {
   border-radius: 2px;
   background: currentColor;
 }
-/* Ligne du fil : n'existe que si le back fournit des sous-agents ; ouvre le panneau. */
+/* sous-agents-19-11 : sous-mission ouverte, retour à sa mission principale. */
+.activity-parent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px 10px 22px;
+  box-shadow: inset 0 -0.5px 0 var(--sep);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.activity-parent button {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+/* Ligne de la voie 2 écrite par le back, et sous-mission marquée dans la barre latérale. */
+.delegation-note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.mission-link small.subagent-tag {
+  color: var(--muted);
+}
+/* Case « Autoriser les sous-agents » du composeur : texte du back lisible dans la fenêtre. */
+.delegation-text {
+  display: block;
+  max-width: 300px;
+  line-height: 1.45;
+}
+/* Ligne du fil : n'existe que si le back fournit la famille ; ouvre le panneau. */
 .subagents-line {
   align-self: flex-start;
   display: inline-flex;
