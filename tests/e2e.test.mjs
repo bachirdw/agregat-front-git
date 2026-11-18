@@ -765,10 +765,11 @@ test(
     assert.equal(box.width, 216);
     assert.equal(box.x, 10);
     await page.getByRole("heading", { name: "Que dois-je faire ?" }).waitFor();
-    const panel = await page.locator(".connections-panel").boundingBox();
-    assert.equal(panel.width, 276);
+    // activity-panel-03 : colonne « Activité » de 344px à côté du fil, jamais par-dessus.
+    const panel = await page.locator(".activity-panel").boundingBox();
+    assert.equal(panel.width, 344);
     const dock = await page.locator(".composer-dock").boundingBox();
-    assert.ok(dock.x + dock.width <= panel.x, "saisie sous le panneau");
+    assert.ok(dock.x + dock.width <= panel.x, "saisie à gauche du panneau");
     await launch(page, "application-draft");
     await page
       .getByRole("button", { name: "Approuver", exact: true })
@@ -789,7 +790,10 @@ test(
         .isVisible(),
       false,
     );
-    assert.match(await page.locator(".panel-cost").innerText(), /Coût/);
+    // Le coût ne vit plus que dans les détails techniques des étapes.
+    const activity = page.getByRole("complementary", { name: "Activité" });
+    await activity.getByRole("button", { name: "Détails techniques" }).click();
+    assert.match(await activity.locator(".activity-tech").innerText(), /Coût/);
     await shot(page, "v2-mission-active");
     await page.getByRole("button", { name: "Arrêter", exact: true }).click();
     await page
@@ -825,18 +829,22 @@ test(
   async (t) => {
     const { page, errors } = await open(t);
     await launch(page);
-    const tracker = page.getByRole("region", { name: "Suivi de la mission" });
+    // activity-panel-03 : le suivi vit dans la colonne « Activité » (section Étapes de la mission).
+    const tracker = page.getByRole("complementary", { name: "Activité" });
     await tracker.waitFor();
     await finished(page);
     await tracker.getByText(/Mission terminée/).waitFor();
-    assert.match(await tracker.innerText(), /\d+\/\d+/);
+    assert.match(
+      await tracker.locator(".activity-steps .activity-section-head").innerText(),
+      /\d+\/\d+/,
+    );
     await page.locator(".meta-line").click();
     assert.match(
-      await tracker.locator("dl").innerText(),
+      await tracker.locator(".activity-tech dl").innerText(),
       /Agent[\s\S]*Registre/,
     );
     const card = await tracker.boundingBox();
-    const value = await tracker.locator("dd").first().boundingBox();
+    const value = await tracker.locator(".activity-tech dd").first().boundingBox();
     assert.ok(
       value.x + value.width <= card.x + card.width,
       "valeur dans la carte",
