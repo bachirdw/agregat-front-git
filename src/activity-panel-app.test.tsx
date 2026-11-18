@@ -175,9 +175,27 @@ describe("panneau Activité dans l'application", () => {
   it("la ligne des sous-agents du fil ouvre le panneau", async () => {
     serve({
       ...base,
-      subagents: [
-        { id: "s1", name: "Recherche FICTIVE", state: "running" },
-        { id: "s2", name: "Lettre FICTIVE", state: "completed" },
+      // sous-agents-19-11 : forme du back (`family`).
+      estMere: true,
+      family: [
+        {
+          id: "s1",
+          titre: "Recherche FICTIVE",
+          agent: "fixture",
+          state: "running",
+          attend: null,
+          pendingQuestion: null,
+          pendingPermission: null,
+        },
+        {
+          id: "s2",
+          titre: "Lettre FICTIVE",
+          agent: "fixture",
+          state: "completed",
+          attend: null,
+          pendingQuestion: null,
+          pendingPermission: null,
+        },
       ],
     } as unknown as Run);
     render(<App />);

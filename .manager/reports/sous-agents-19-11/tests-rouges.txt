@@ -1,0 +1,20 @@
+ × src/sous-agents-app.test.tsx > sous-agents dans l'application > la case cochée part avec la requête de lancement, puis se décoche pour la mission suivante 416ms
+ × src/activity-panel-app.test.tsx > panneau Activité dans l'application > la ligne des sous-agents du fil ouvre le panneau 368ms
+ × src/sous-agents-app.test.tsx > sous-agents dans l'application > une tuile ouvre sa sous-mission et Arrêter annule cette sous-mission seulement 1045ms
+ × src/sous-agents-app.test.tsx > sous-agents dans l'application > barre latérale : une sous-mission est marquée « sous-agent » 17ms
+ × src/activity-panel.test.tsx > vocabulaire : le panneau sert à postuler > aucun mot de code hors Détails techniques 123ms
+ × src/sous-agents-app.test.tsx > sous-agents dans l'application > voie 2 : la ligne du back « Sous-agents lancés à ta demande » s'affiche dans le fil 1058ms
+ × src/sous-agents.test.tsx > Sous-agents : la famille du back > une tuile par sous-mission, avec son état, son attente et le compteur d'agents 102ms
+ × src/sous-agents.test.tsx > Sous-agents : la famille du back > clic sur une tuile : pleine largeur, Ouvrir et Arrêter réels, détails techniques 3ms
+ × src/sous-agents.test.tsx > Sous-agents : la famille du back > une sous-mission finie ne propose pas Arrêter ; la ligne d'envoi de son Bilan est dans les détails 2ms
+ × src/sous-agents.test.tsx > Sous-agents : la famille du back > question d'une sous-mission : visible dans la tuile, réponse dans la sous-mission 2ms
+ × src/sous-agents.test.tsx > Sous-agents : la famille du back > Arrêter est inactif pendant une action en cours 2ms
+ × src/sous-agents.test.tsx > Sous-agents : la famille du back > ligne du fil : en cours, terminés et en attente du propriétaire ; le clic ouvre le panneau 2ms
+ × src/sous-agents.test.tsx > Sous-agents : la famille du back > sous-mission ouverte : lien vers la mission principale 25ms
+ × src/sous-agents.test.tsx > journal de la mission : événements de la famille > accord, lancement suivi jusqu'à la fin, refus, file et attente de la mère 3ms
+ × src/sous-agents.test.tsx > case « Autoriser les sous-agents » (voie 1) > non cochée par défaut ; le texte du back avec l'enveloppe ; cochée : accord par bouton 6 et 3 171ms
+ × src/sous-agents.test.tsx > case « Autoriser les sous-agents » (voie 1) > enveloppe modifiable dans les bornes du back (1 à 200, 1 à 8), décocher retire l'accord 10ms
+ × src/sous-agents.test.tsx > case « Autoriser les sous-agents » (voie 1) > en mode workflow, la case dit que la mission sera menée par un agent 7ms
+ × src/sous-agents.test.tsx > case « Autoriser les sous-agents » (voie 1) > requête : le champ part avec l'heure de l'accord, et n'existe pas sans la case 1ms
+ Test Files  4 failed | 15 passed (19)
+      Tests  18 failed | 263 passed (281)

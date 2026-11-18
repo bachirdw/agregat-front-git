@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ActivityPanel, SubagentsLine } from "./ActivityPanel";
 import { trackerDetails } from "./Tracker";
-import type { Catalog, Run, RunEvent, Subagent } from "./types";
+import type { Catalog, FamilyMember, Run, RunEvent } from "./types";
 
 afterEach(cleanup);
 
@@ -306,87 +306,19 @@ describe("Étapes de la mission", () => {
   });
 });
 
-const subagents: Subagent[] = [
+// sous-agents-19-11 : forme du back (`family` de GET /api/runs/:id) ; les tuiles sont testées dans
+// sous-agents.test.tsx.
+const family: FamilyMember[] = [
   {
-    id: "s1",
-    name: "Recherche Doctolib",
-    state: "running",
-    task: "Trouver les offres FICTIVES",
-    startedAt: ago(2 * 60000),
-    lines: ["ligne 1", "ligne 2", "ligne 3", "ligne 4"],
-    steps: [
-      { title: "Lire les offres", state: "completed" },
-      { title: "Classer", state: "running" },
-      { title: "Relire", state: "pending" },
-    ],
+    id: "c1",
+    titre: "Recherche Doctolib",
     agent: "codex",
-    model: "gpt-fictif",
-  },
-  {
-    id: "s2",
-    name: "Lettre Alan",
-    state: "completed",
-    startedAt: "2026-11-18T10:00:00.000Z",
-    finishedAt: "2026-11-18T10:01:05.000Z",
-    lines: ["Lettre prête"],
+    state: "running",
+    attend: null,
+    pendingQuestion: null,
+    pendingPermission: null,
   },
 ];
-
-describe("Sous-agents", () => {
-  it("deux sous-agents dont un en cours : deux tuiles, les trois dernières lignes", () => {
-    const { container } = panel({ run: { ...running, subagents } });
-    expect(heading("Sous-agents")).toBeTruthy();
-    const tiles = container.querySelectorAll<HTMLElement>(".subagent-tile");
-    expect(tiles).toHaveLength(2);
-    expect(tiles[0].textContent).toContain("Recherche Doctolib");
-    expect(tiles[0].textContent).not.toContain("ligne 1");
-    for (const line of ["ligne 2", "ligne 3", "ligne 4"])
-      expect(tiles[0].textContent).toContain(line);
-    expect(tiles[0].querySelector(".subagent-dot.running")).toBeTruthy();
-    expect(tiles[1].querySelector(".subagent-dot.completed")).toBeTruthy();
-    expect(tiles[1].textContent).toContain("1 min 5 s");
-  });
-  it("clic sur une tuile : pleine largeur, tâche, étapes, détails repliés et Arrêter inactif (bientôt)", () => {
-    const { container } = panel({ run: { ...running, subagents } });
-    const tile = container.querySelector<HTMLElement>(".subagent-tile")!;
-    expect(tile.style.gridColumn).toBe("");
-    expect(within(tile).queryByRole("button", { name: "Arrêter" })).toBeNull();
-    fireEvent.click(within(tile).getByRole("button", { name: /Recherche Doctolib/ }));
-    expect(tile.style.gridColumn).toBe("1 / -1");
-    expect(within(tile).getByText("Trouver les offres FICTIVES")).toBeTruthy();
-    const steps = within(tile).getByRole("list", { name: "Étapes" });
-    expect(steps.textContent).toMatch(/✓\s*Lire les offres/);
-    expect(steps.textContent).toMatch(/•\s*Classer/);
-    expect(steps.textContent).toMatch(/○\s*Relire/);
-    const stop = within(tile).getByRole("button", { name: "Arrêter" });
-    expect((stop as HTMLButtonElement).disabled).toBe(true);
-    expect(tile.textContent).toContain("bientôt");
-    expect(tile.textContent).not.toContain("gpt-fictif");
-    fireEvent.click(within(tile).getByRole("button", { name: "Détails techniques" }));
-    expect(tile.querySelector(".activity-tech")!.textContent).toContain(
-      "codex · gpt-fictif",
-    );
-  });
-  it("ligne du fil : « 1 sous-agent en cours · 1/2 terminés », le clic ouvre le panneau", () => {
-    const onOpen = vi.fn();
-    render(<SubagentsLine subagents={subagents} onOpen={onOpen} />);
-    const line = screen.getByRole("button", {
-      name: /1 sous-agent en cours · 1\/2 terminés/,
-    });
-    fireEvent.click(line);
-    expect(onOpen).toHaveBeenCalledOnce();
-  });
-  it("aucun sous-agent : ni section ni ligne dans le fil", () => {
-    const { container } = render(
-      <SubagentsLine subagents={undefined} onOpen={() => {}} />,
-    );
-    expect(container.innerHTML).toBe("");
-    render(<SubagentsLine subagents={[]} onOpen={() => {}} />);
-    expect(container.innerHTML).toBe("");
-    panel({ run: { ...running, subagents: [] } });
-    expect(heading("Sous-agents")).toBeNull();
-  });
-});
 
 describe("Candidatures", () => {
   it("seulement les compteurs fournis : offres trouvées depuis le résultat", () => {
@@ -512,7 +444,8 @@ describe("vocabulaire : le panneau sert à postuler", () => {
     const { container } = panel({
       run: {
         ...running,
-        subagents,
+        family,
+        activity: { agents: 2, awaitingOwner: 0 },
         documents: [{ id: "d", name: "Lettre · Doctolib" }],
         usage: { platformCents: 0, currency: "EUR", byDimension: [] },
       },
