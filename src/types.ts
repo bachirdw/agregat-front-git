@@ -238,6 +238,49 @@ export interface Run {
   // Browser reads kept for the mission (back: missionReads, at most 400): navigations and
   // readable captures, origin + path only. No per-read marker says a read came from a previous run.
   missionProof?: { reads?: MissionRead[]; sourceRead?: boolean } | null;
+  // activity-panel-03 : fields the back does not send yet. Each panel section stays hidden while
+  // its field is absent; nothing is ever filled with an example.
+  subagents?: Subagent[];
+  funnel?: RunFunnel;
+  documents?: RunDocument[];
+}
+// activity-panel-03 : one helper agent working for the mission (contract proposed by the front brief).
+export interface Subagent {
+  id: string;
+  name: string;
+  state: "queued" | "running" | "completed" | "failed" | "cancelled";
+  task?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  lines?: string[];
+  steps?: { title: string; state: string }[];
+  agent?: string;
+  model?: string;
+}
+// Application counters of the mission; each one is shown only when the back reports it.
+export interface RunFunnel {
+  found?: number;
+  kept?: number;
+  letters?: number;
+  sent?: number;
+}
+export interface RunDocument {
+  id: string;
+  name: string;
+  url?: string;
+}
+// Outside the run: no endpoint yet (agenda, scheduled tasks).
+export interface AgendaItem {
+  id: string;
+  at: string;
+  title: string;
+  detail?: string;
+}
+export interface Schedule {
+  id: string;
+  name: string;
+  recurring: boolean;
+  next?: string;
 }
 export interface MissionRead {
   capability: string;
