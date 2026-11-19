@@ -119,8 +119,20 @@ export function toApiInput(input: MissionInput) {
     .split(",")
     .map((domain) => domain.trim().toLowerCase())
     .filter(Boolean);
-  const payload =
-    browserDomains === undefined ? rest : { ...rest, browserDomains: domains };
+  const { team, ...settings } = rest;
+  const base =
+    browserDomains === undefined
+      ? settings
+      : { ...settings, browserDomains: domains };
+  // Switch on: the switch is the owner's consent (way 1), with the platform's default envelope.
+  // Off: nothing added, the request stays the one sent before the team existed.
+  const payload = team
+    ? {
+        ...base,
+        multiAgent: true,
+        delegation: { accepted: true, via: "bouton" },
+      }
+    : base;
   return attachments?.length
     ? { ...payload, attachments: attachments.map((a) => a.id) }
     : payload;

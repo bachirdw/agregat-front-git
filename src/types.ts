@@ -82,6 +82,40 @@ export interface MissionInput {
   mode: "agent" | "workflow";
   workflow: string;
   attachments?: Attachment[];
+  // « Équipe d’agents » switch, interface only: toApiInput turns it into `multiAgent` + `delegation`.
+  team?: boolean;
+}
+// Team of a mother mission (`GET /api/runs/:id`, back docs/api-delegation.md 3.1, 5, 7 bis). Every
+// field may be missing; texts are data, rendered as text only.
+export interface TeamVerdict {
+  valeur?: string;
+  bloquants?: { ou?: string; pourquoi?: string }[];
+  remarques?: string[];
+  source?: string;
+}
+export interface FamilyMember {
+  id: string;
+  titre?: string;
+  agent?: string;
+  // Not sent by the back's view at c1fb352: read only if a later back adds them.
+  modele?: string;
+  continue?: string;
+  // A run state, or a state held by the platform: en_file, attend_accord, attend_prerequis.
+  state?: string;
+  attend?: string | null;
+  pendingQuestion?: unknown;
+  pendingPermission?: unknown;
+  role?: string;
+  relit?: string[];
+  verdict?: TeamVerdict;
+}
+export interface CarnetNote {
+  n?: number;
+  auteur?: string;
+  role?: string;
+  categorie?: string;
+  texte?: string;
+  a?: string;
 }
 // A file uploaded to POST /api/files; only its id is sent with a plan or run.
 export interface Attachment {
@@ -238,6 +272,12 @@ export interface Run {
   // Browser reads kept for the mission (back: missionReads, at most 400): navigations and
   // readable captures, origin + path only. No per-read marker says a read came from a previous run.
   missionProof?: { reads?: MissionRead[]; sourceRead?: boolean } | null;
+  // Multi-agent mother: its sub-missions and the team notebook, absent otherwise.
+  multiAgent?: boolean;
+  family?: FamilyMember[];
+  activity?: { agents?: number; awaitingOwner?: number };
+  // Private space: `total` only.
+  carnet?: { total?: number; notes?: CarnetNote[] };
 }
 export interface MissionRead {
   capability: string;

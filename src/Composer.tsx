@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type { Attachment, Catalog, MissionInput } from "./types";
 import { ATTACHMENT_MAX_COUNT, uploadFile } from "./api";
@@ -137,6 +137,7 @@ export function Composer({
   };
   agentWarning?: string | null;
 }) {
+  const teamHelp = useId();
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const measureRef = useRef<() => void>(() => {});
   measureRef.current = () => {
@@ -556,6 +557,26 @@ export function Composer({
                 </label>
                 <small>
                   {pack?.description || "Le plan expliquera le pack retenu."}
+                </small>
+              </Filter>
+              <Filter name="Équipe" value={input.team ? "Allumée" : "Éteinte"}>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Équipe d’agents"
+                    aria-describedby={teamHelp}
+                    checked={!!input.team}
+                    aria-checked={!!input.team}
+                    disabled={disabled}
+                    onChange={(e) => set({ team: e.target.checked })}
+                  />
+                  <span>Équipe d’agents</span>
+                </label>
+                <small id={teamHelp}>
+                  L’agent chef peut confier des parties du travail à d’autres
+                  agents qui travaillent en même temps. Chacun consomme ton
+                  abonnement comme une mission. Les envois restent à ton clic.
                 </small>
               </Filter>
               <Filter

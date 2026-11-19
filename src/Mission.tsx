@@ -10,6 +10,7 @@ import type { MissionRead, Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
 import { Markdown, safeLink } from "./Markdown";
 import { AgentAnswer } from "./Bilan";
+import { CarnetBlock, TeamBlock } from "./Team";
 const dataModeLabel = {
   fixture: "Sources fictives · démonstration",
   live: "Sources réelles · provenance à vérifier",
@@ -156,6 +157,7 @@ export function RunView({
   act,
   requests = true,
   transcript = true,
+  openRun,
 }: {
   run: Run;
   events: RunEvent[];
@@ -166,6 +168,8 @@ export function RunView({
   requests?: boolean;
   // false when the career-ops thread already shows the agent's activity.
   transcript?: boolean;
+  // Opens a mission by its id (a team member); absent: members are not clickable.
+  openRun?: (id: string) => void;
 }) {
   const [timelineOpen, setTimelineOpen] = useState(!finalStates.has(run.state));
   useEffect(() => {
@@ -445,6 +449,8 @@ export function RunView({
             </footer>
           </section>
         ))}
+      <TeamBlock run={run} openRun={openRun} />
+      <CarnetBlock run={run} />
       {requests && <OwnerRequests run={run} busy={busy} act={act} />}
       <div className="actions">
         {!finalStates.has(run.state) && (

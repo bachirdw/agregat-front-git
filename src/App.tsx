@@ -913,6 +913,7 @@ export default function App() {
                     act={action}
                     requests={false}
                     transcript={false}
+                    openRun={(id) => void openRun(id)}
                   />
                 </CareerThread>
               ) : (
@@ -925,6 +926,7 @@ export default function App() {
                     connection={connection}
                     busy={busy}
                     act={action}
+                    openRun={(id) => void openRun(id)}
                   />
                 </>
               )}
