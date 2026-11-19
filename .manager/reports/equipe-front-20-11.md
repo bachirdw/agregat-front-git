@@ -77,3 +77,42 @@ Branche `equipe-front-20-11`, tête de départ `7b2716c`. Contrat lu : `agregat-
 
 - Côté back : ajouter `modele` et `continue` à la vue `family` si le propriétaire veut les voir.
 - Enveloppe modifiable (`total`, `parallel`) : non proposée, le brief demande l'enveloppe par défaut.
+
+## Relecture
+
+Trois défauts rendus par un relecteur indépendant sans exécution ; chacun écrit d'abord en test (bloc « relecture :
+accord, workflow et compteur » de `src/equipe.test.tsx`), lancé sur `ed9d66d` sans rien changer.
+
+- 09:00 — Sur `ed9d66d` : **6 échecs** sur les 8 tests neufs (les 2 verts sont les contrôles négatifs : aucun
+  avertissement avec workflow auto ou équipe éteinte ; un membre `running` compté « en cours »). Les trois défauts sont
+  **confirmés** ; aucun réfuté.
+- **Accord sans le texte du contrat, mode et accord fondus** (confirmé, corrigé) : le filtre « Équipe » montre
+  désormais le texte de la section 6 du contrat, avec l'enveloppe par défaut (« Au plus 6 sous-missions Relay pour
+  cette mission, 3 en même temps »), la limite d'usage atteinte plus vite, « Autoriser n'oblige pas », les deux
+  reprises hors limite et les sous-agents internes hors limite. Une case « Autoriser les sous-agents » (nouveau champ
+  d'interface `teamConsent`) est distincte de l'interrupteur : allumer l'interrupteur la coche (un seul geste, comme
+  avant) ; la décocher envoie `multiAgent: true` **sans** clé `delegation`, et la plateforme demande l'accord par sa
+  carte au premier lancement (voie 3). Éteindre l'interrupteur retire les deux. Contrôle négatif : accord coché →
+  `delegation` présent ; accord sans mode → corps d'avant le lot.
+- **Workflow choisi abandonné en silence** (confirmé, corrigé au plus étroit) : alerte (`role="alert"`, même classe que
+  l'avertissement d'agent existant) « L’équipe remplace le workflow choisi… » quand l'équipe est allumée et qu'un
+  workflow précis (≠ `auto`) est choisi. Le corps envoyé n'est pas modifié : le back reste celui qui décide.
+  Contrôle négatif : workflow `auto` (réglage par défaut) ou équipe éteinte → aucune alerte.
+- **Compteur « en cours » faux** (confirmé, corrigé) : les membres en file (`en_file` / `attend: place`) ou qui
+  attendent un prérequis (`attend_prerequis` / `attend: prerequis`) sont comptés à part, « x en attente d’une place
+  ou d’un prérequis », affiché seulement s'il y en a. Le test « compteur en tête », qui figeait la mauvaise valeur,
+  attend maintenant « 7 membres · 0 en cours · 2 en attente d’une place ou d’un prérequis · 2 finies · 3 en attente
+  de toi ». L'état ordinaire `queued` reste compté « en cours » (non signalé, inchangé).
+- Résultats réels après correction : `npx vitest run src/equipe.test.tsx` 28 verts ; suite complète **16 fichiers,
+  270 tests verts** ; `npx tsc --noEmit` OK ; `npx prettier --check src` OK ; `npm run build` OK (avertissement
+  habituel de taille de bloc). `tests/e2e.test.mjs` non lancé (il demande un serveur, ports réservés aux essais).
+- Commit : `03246d6`.
+
+### À décider par le manager
+
+- **Case d'accord cochée d'office en allumant l'interrupteur** : choix gardé pour ne pas changer le geste prévu par
+  le brief. Le contrat (voie 1) parle d'une case que le propriétaire coche ; la laisser décochée par défaut ferait
+  passer par la carte (voie 3) à chaque mission.
+- **Enveloppe modifiable** (`total`, `parallel`) : le texte dit « 6 / 3 », valeurs par défaut de la plateforme ; si le
+  back change ses défauts, le texte du front devra suivre (aucune lecture de l'enveloppe par l'API aujourd'hui).
+- **Rien vu à l'écran** : la case, le texte plus long et l'alerte n'ont été vérifiés que par jsdom.
