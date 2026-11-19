@@ -13,6 +13,7 @@ import {
 } from "@testing-library/react";
 import App from "./App";
 import { api, toApiInput } from "./api";
+import { Composer } from "./Composer";
 import { RunView } from "./Mission";
 import type { Catalog, MissionInput, Run } from "./types";
 
@@ -83,7 +84,7 @@ describe("requête de création", () => {
     );
   });
   it("interrupteur allumé : multiAgent et accord par le bouton, enveloppe par défaut", () => {
-    const body = toApiInput({ ...input, team: true });
+    const body = toApiInput({ ...input, team: true, teamConsent: true });
     expect(body).toEqual({
       ...todayBody,
       multiAgent: true,
@@ -315,7 +316,9 @@ describe("bloc « Équipe » d'une mission", () => {
     const block = screen.getByRole("region", { name: "Équipe" });
     const counter = within(block).getByRole("status");
     expect(counter.textContent).toBe(
-      "7 membres · 2 en cours · 2 finies · 3 en attente de toi",
+      // Relecture : en file et attente d'un prérequis ne sont pas « en cours » (aucun membre ne travaille ici
+      // sans attendre le propriétaire).
+      "7 membres · 0 en cours · 2 en attente d’une place ou d’un prérequis · 2 finies · 3 en attente de toi",
     );
   });
   it("vérificateur : verdict, ce qu'il relit, points bloquants dépliables", () => {
@@ -498,5 +501,109 @@ describe("mission sans équipe", () => {
       carnet: { total: 0, notes: [] },
     } as never).container.innerHTML;
     expect(empty).toBe(plain);
+  });
+});
+
+// Relecture (review of ed9d66d): three claims of an independent reviewer, each written as a test first.
+describe("relecture : accord, workflow et compteur", () => {
+  const renderComposer = (patch: Partial<MissionInput>) => {
+    const onChange = vi.fn();
+    render(
+      <Composer
+        catalog={catalog}
+        input={{ ...input, ...patch }}
+        onChange={onChange}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+    return onChange;
+  };
+  it("le texte d'accord du contrat (section 6) est montré avec l'enveloppe par défaut", () => {
+    renderComposer({ team: true, teamConsent: true });
+    const sw = screen.getByRole("switch", { name: "Équipe d’agents" });
+    const help = document.getElementById(
+      sw.getAttribute("aria-describedby")!,
+    )!.textContent!;
+    expect(help).toMatch(
+      /Au plus 6 sous-missions Relay pour cette mission, 3 en même temps/,
+    );
+    expect(help).toMatch(/limite d['’]usage peut être atteinte plus vite/);
+    expect(help).toMatch(/Autoriser n['’]oblige pas/);
+    expect(help).toMatch(/repris(e)? deux fois hors de cette limite/);
+    expect(help).toMatch(/sous-agents internes/);
+    expect(help).toMatch(/envois restent à ton clic/);
+  });
+  it("mode allumé sans accord : multiAgent seul, l'accord viendra par la carte (voie 3)", () => {
+    expect(toApiInput({ ...input, team: true, teamConsent: false })).toEqual({
+      ...todayBody,
+      multiAgent: true,
+    });
+    // Contrôle négatif : accord coché → la clé delegation est bien là.
+    expect(toApiInput({ ...input, team: true, teamConsent: true })).toEqual({
+      ...todayBody,
+      multiAgent: true,
+      delegation: { accepted: true, via: "bouton" },
+    });
+    // Accord sans le mode : rien n'est ajouté (le contrat dit que l'accord seul n'a aucun effet).
+    expect(toApiInput({ ...input, team: false, teamConsent: true })).toEqual(
+      todayBody,
+    );
+  });
+  it("la case « Autoriser les sous-agents » se décoche séparément du mode", () => {
+    const onChange = renderComposer({ team: true, teamConsent: true });
+    const consent = screen.getByRole("checkbox", {
+      name: "Autoriser les sous-agents",
+    }) as HTMLInputElement;
+    expect(consent.checked).toBe(true);
+    fireEvent.click(consent);
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ team: true, teamConsent: false }),
+    );
+  });
+  it("allumer le mode coche l'accord (un geste, comme avant) ; l'éteindre le retire", () => {
+    const onChange = renderComposer({});
+    expect(
+      screen.queryByRole("checkbox", { name: "Autoriser les sous-agents" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("switch", { name: "Équipe d’agents" }));
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ team: true, teamConsent: true }),
+    );
+  });
+  it("équipe allumée et workflow choisi : l'interface prévient que l'équipe remplace le workflow", () => {
+    renderComposer({ mode: "workflow", workflow: "wf-fictif", team: true });
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /équipe remplace le workflow/i,
+    );
+  });
+  it("contrôle négatif : workflow auto, ou équipe éteinte, aucun avertissement", () => {
+    renderComposer({ mode: "workflow", workflow: "auto", team: true });
+    expect(screen.queryByText(/équipe remplace le workflow/i)).toBeNull();
+    cleanup();
+    renderComposer({ mode: "workflow", workflow: "wf-fictif", team: false });
+    expect(screen.queryByText(/équipe remplace le workflow/i)).toBeNull();
+  });
+  it("compteur : les membres en file ou qui attendent un prérequis ne sont pas « en cours »", () => {
+    view({
+      family: [
+        member(ids.a, "A FICTIF", "en_file", "place"),
+        member(ids.b, "B FICTIF", "en_file", "place"),
+        member(ids.c, "C FICTIF", "attend_prerequis", "prerequis"),
+      ],
+    } as never);
+    const counter = within(
+      screen.getByRole("region", { name: "Équipe" }),
+    ).getByRole("status");
+    expect(counter.textContent).toBe(
+      "3 membres · 0 en cours · 3 en attente d’une place ou d’un prérequis · 0 finie · 0 en attente de toi",
+    );
+  });
+  it("compteur : un membre qui travaille est « en cours »", () => {
+    view({ family: [member(ids.a, "A FICTIF", "running", null)] } as never);
+    expect(
+      within(screen.getByRole("region", { name: "Équipe" })).getByRole("status")
+        .textContent,
+    ).toBe("1 membre · 1 en cours · 0 finie · 0 en attente de toi");
   });
 });

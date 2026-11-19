@@ -16,6 +16,8 @@ const waitLabels: Record<string, string> = {
   question: "attend ta réponse",
   carte_envoi: "attend ton clic sur une carte d’envoi",
 };
+const heldStates = new Set(["en_file", "attend_prerequis"]);
+const heldWaits = new Set(["place", "prerequis"]);
 // What the owner has to do himself.
 const ownerWaits = new Set(["accord", "question", "carte_envoi"]);
 const roleLabels: Record<string, string> = {
@@ -125,13 +127,21 @@ export function TeamBlock({
   const waiting = family.filter(
     (m) => !finalStates.has(text(m.state)) && waitsForOwner(m),
   ).length;
-  const working = family.length - done - waiting;
+  // Held by the platform before starting (a free place or a prerequisite): not working yet.
+  const held = family.filter(
+    (m) =>
+      !finalStates.has(text(m.state)) &&
+      !waitsForOwner(m) &&
+      (heldStates.has(text(m.state)) || heldWaits.has(text(m.attend))),
+  ).length;
+  const working = family.length - done - waiting - held;
   return (
     <section className="card card-pad team" aria-label="Équipe">
       <div className="spread">
         <strong>Équipe</strong>
         <small role="status">
           {plural(family.length, "membre", "membres")} · {working} en cours ·{" "}
+          {held > 0 && `${held} en attente d’une place ou d’un prérequis · `}
           {plural(done, "finie", "finies")} · {waiting} en attente de toi
         </small>
       </div>

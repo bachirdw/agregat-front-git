@@ -119,19 +119,22 @@ export function toApiInput(input: MissionInput) {
     .split(",")
     .map((domain) => domain.trim().toLowerCase())
     .filter(Boolean);
-  const { team, ...settings } = rest;
+  const { team, teamConsent, ...settings } = rest;
   const base =
     browserDomains === undefined
       ? settings
       : { ...settings, browserDomains: domains };
-  // Switch on: the switch is the owner's consent (way 1), with the platform's default envelope.
+  // Switch on: `multiAgent`; consent ticked (way 1) adds the owner's consent with the platform's
+  // default envelope, unticked leaves it to the platform's card (way 3).
   // Off: nothing added, the request stays the one sent before the team existed.
   const payload = team
-    ? {
-        ...base,
-        multiAgent: true,
-        delegation: { accepted: true, via: "bouton" },
-      }
+    ? teamConsent
+      ? {
+          ...base,
+          multiAgent: true,
+          delegation: { accepted: true, via: "bouton" },
+        }
+      : { ...base, multiAgent: true }
     : base;
   return attachments?.length
     ? { ...payload, attachments: attachments.map((a) => a.id) }

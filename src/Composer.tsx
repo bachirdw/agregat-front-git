@@ -375,6 +375,17 @@ export function Composer({
             {agentWarning}
           </p>
         )}
+        {input.team &&
+          input.mode === "workflow" &&
+          input.workflow !== "auto" &&
+          !reply &&
+          !disabled && (
+            <p className="agent-warning" role="alert">
+              L’équipe remplace le workflow choisi : la mission partira avec un
+              agent chef, sans ce workflow. Éteins « Équipe d’agents » pour
+              garder le workflow.
+            </p>
+          )}
         <div className="composer-bottom">
           <AttachMenu
             disabled={disabled || uploading > 0}
@@ -569,14 +580,41 @@ export function Composer({
                     checked={!!input.team}
                     aria-checked={!!input.team}
                     disabled={disabled}
-                    onChange={(e) => set({ team: e.target.checked })}
+                    onChange={(e) =>
+                      set({
+                        team: e.target.checked,
+                        teamConsent: e.target.checked,
+                      })
+                    }
                   />
                   <span>Équipe d’agents</span>
                 </label>
+                {input.team && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      aria-describedby={teamHelp}
+                      checked={!!input.teamConsent}
+                      disabled={disabled}
+                      onChange={(e) => set({ teamConsent: e.target.checked })}
+                    />
+                    <span>Autoriser les sous-agents</span>
+                  </label>
+                )}
+                {/* Text of the back contract (docs/api-delegation.md section 6), default envelope. */}
                 <small id={teamHelp}>
-                  L’agent chef peut confier des parties du travail à d’autres
-                  agents qui travaillent en même temps. Chacun consomme ton
-                  abonnement comme une mission. Les envois restent à ton clic.
+                  L’agent de ta mission pourra, s’il le juge utile, confier des
+                  parties du travail à d’autres agents qui travaillent en même
+                  temps. Chacun consomme ton abonnement comme une mission
+                  ordinaire : avec plusieurs agents à la fois, ta limite d’usage
+                  peut être atteinte plus vite. Autoriser n’oblige pas : pour
+                  une demande simple, un seul agent travaillera. Au plus 6
+                  sous-missions Relay pour cette mission, 3 en même temps ; une
+                  sous-mission en échec peut en plus être reprise deux fois hors
+                  de cette limite ; les sous-agents internes que les agents
+                  lancent d’eux-mêmes ne sont ni comptés ni bornés par cette
+                  limite. Sans « Autoriser les sous-agents », ton accord te sera
+                  demandé au premier lancement. Les envois restent à ton clic.
                 </small>
               </Filter>
               <Filter

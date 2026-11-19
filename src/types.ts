@@ -84,6 +84,9 @@ export interface MissionInput {
   attachments?: Attachment[];
   // « Équipe d’agents » switch, interface only: toApiInput turns it into `multiAgent` + `delegation`.
   team?: boolean;
+  // « Autoriser les sous-agents » (way 1 of the contract), separate from the mode: unticked, no
+  // `delegation` key is sent and the platform asks by its card at the first launch (way 3).
+  teamConsent?: boolean;
 }
 // Team of a mother mission (`GET /api/runs/:id`, back docs/api-delegation.md 3.1, 5, 7 bis). Every
 // field may be missing; texts are data, rendered as text only.
