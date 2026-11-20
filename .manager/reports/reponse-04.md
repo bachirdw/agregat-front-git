@@ -5,6 +5,24 @@ multi-agentique, les panneaux, les différentes visions scindées », adapté au
 rendu. Brief principal : `BRIEF-conversation-reponse-04` (collé dans le message, copié dans `docs/`), maquette
 `Conversation agent v5.dc.html`. Branche `claude/bold-goldstine-171eb9`, commits `[reponse-04]`.
 
+## Aperçu (thème sombre, données FICTIVES)
+Réponse d'agent, avant puis après (1440 px) :
+
+![avant](reponse-04/avant-reponse-agent-1440-sombre-haut.png)
+![après](reponse-04/apres-reponse-agent-1440-sombre-haut.png)
+
+Bas de la réponse après (fichier produit, ligne méta, composer à un seul bouton) :
+
+![après, bas](reponse-04/apres-reponse-agent-1440-sombre.png)
+
+Équipe dans le panneau et vue scindée (un membre suivi à côté du fil de sa mission) :
+
+![vue scindée](reponse-04/apres-equipe-1440-sombre-vue-scindee.png)
+
+Mission workflow à 760 px :
+
+![760 px](reponse-04/apres-terminee-workflow-760-sombre-haut.png)
+
 ## En bref
 - **Nouveau code** : la chaîne front `equipe-front-20-11` → `swarm-09` → `swarm-11` (équipe d'agents, écrite pour le
   contrat d'équipe du back `swarm-20-11`) est **fusionnée** dans la branche (fusion, pas de réécriture). Conflits
@@ -17,8 +35,8 @@ rendu. Brief principal : `BRIEF-conversation-reponse-04` (collé dans le message
   « Voir à côté » (un membre suivi en direct dans une **vue scindée** à côté du fil de sa mission) et « Arrêter ».
 - **Aussi** : brief 02 (étapes d'un workflow en une ligne, « Données » dans les détails, journal brut dans le panneau,
   accords d'étape dans la réponse) et `skill-chip-01` (pastille de skill, lueur à trois trajectoires).
-- **Vérifié** : `npm test` 392/392, `npm run build` OK, `prettier` OK, captures avant/après, e2e complet contre le back
-  `swarm-20-11` (résultat plus bas). **Non vérifié** : aucun vrai agent lancé ; suite complète du back non lancée.
+- **Vérifié** : `npm test` 392/392, `npm run build` OK, `prettier` OK, captures avant/après, e2e 17/18 contre le back
+  `swarm-20-11` (le test « défilement » reste rouge, point ouvert n° 10). **Non vérifié** : aucun vrai agent lancé ; suite complète du back non lancée.
 
 ## Journal
 - 09:58 Zip extrait dans un dossier vide du scratchpad : dossier de passation `design_handoff_conversation_agent/`
@@ -46,6 +64,18 @@ rendu. Brief principal : `BRIEF-conversation-reponse-04` (collé dans le message
 - 10:40 Défaut vu sur capture : une ligne méta dépliée sur une mission restait dépliée sur la suivante. Clé par
   mission. Le premier essai donnait à `RunTurn` la même clé que sa bulle voisine, et le test a attrapé le doublon.
   Clés préfixées, test ajouté.
+
+- 10:45-11:05 E2E complet contre le back `swarm-20-11` (`AGENT_PLATFORM_BACKEND_DIR=~/Downloads/agregat-back-swarm`).
+  Une première passe était faussée : les tests en mode dev servent la source, que j'ai modifiée pendant la passe. Elle
+  a été arrêtée et relancée. Corrigé ensuite :
+  - **vrai manque** : la perte du flux en direct ne se voyait plus (l'état était dans l'ancienne carte « Exécution ») ;
+    `RunTurn` montre maintenant « ! Connexion perdue · reconnexion… » tant qu'elle dure ;
+  - sélecteurs e2e de l'ancien affichage (`.approval`, `.results`, `.session-settings`), journal brut lu après
+    l'ouverture de son pli, reconnexion native attendue avant l'assertion `Last-Event-ID`.
+
+  Résultat : **17/18**. Reste rouge « défilement FICTIF : le composeur ne boucle pas après une petite remontée » : le
+  composeur ne passe pas en compact après une remontée de 65 px. **Non diagnostiqué**, point ouvert n° 10. Sortie :
+  `reponse-04/e2e-complet.txt` (passe à 16/18, avant la correction du test SSE).
 
 ## Ce qui disparaît du fil, ou change de place (étape 1 du brief)
 | Avant (dans le fil) | Après |
@@ -177,6 +207,9 @@ Voir `reponse-04/npm-test.txt` (finale plus bas).
 7. **Équipe en tuiles** : c'est le bloc `TeamBlock` de swarm, en tuiles par la CSS. Ses textes et sa logique restent ceux testés par swarm. La tuile de la v4 avec « 3 dernières lignes d'activité » devient « dernière action … il y a … » et « depuis … », ce que donne le back.
 8. **« Revenir en bas »** : rond, centré au-dessus du composer ; il peut chevaucher un bloc (32 px).
 9. Les commits entre « tests rouges » et la fin ont des tests rouges par construction (méthode du brief).
+10. **E2E « défilement FICTIF »** encore rouge : après `scrollTop = scrollHeight` puis une remontée de 65 px, le
+    composeur reste `data-compact="false"`. Piste : la logique `onScroll` d'`App.tsx` (taille du conteneur mesurée
+    comme un redimensionnement) avec la nouvelle hauteur du composer. À diagnostiquer.
 
 ## Questions
 1. Faut-il refondre aussi le fil career-ops (CV, lettres, offres) sur ce modèle ?

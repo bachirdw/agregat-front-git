@@ -537,6 +537,7 @@ export function RunTurn({
   busy,
   act,
   incident,
+  connection,
   requests = true,
 }: {
   run: Run;
@@ -545,6 +546,8 @@ export function RunTurn({
   act: Act;
   // Erreur d'une action sur cette mission : une ligne, pas une bannière.
   incident?: string;
+  // État du flux en direct (« Connexion perdue · reconnexion… ») : une ligne tant qu'il est perdu.
+  connection?: string;
   requests?: boolean;
 }) {
   const items = useMemo(() => activity(events), [events]);
@@ -583,6 +586,7 @@ export function RunTurn({
           <StepsLine run={run} events={events} />
           <ActivityLine tools={tools} waits={waits} />
           {incident && <Incident text={incident} />}
+          {connection?.includes("perdue") && <Incident text={connection} />}
           {run.error && !live && (
             <Incident
               text={

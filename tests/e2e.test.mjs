@@ -217,6 +217,8 @@ test(
     const activity = page.getByRole("complementary", { name: "Activité" });
     await activity.getByRole("button", { name: "Détails techniques" }).click();
     await activity.locator(".raw-journal summary").click();
+    // La liste n'est construite qu'une fois le pli ouvert.
+    await activity.locator(".raw-journal li").first().waitFor();
     assert.match(await activity.locator(".raw-journal").innerText(), /step/);
     // Real HTTP SSE replay with the saved sequence, no client mocks.
     const id = app.store.list()[0].id,
@@ -278,7 +280,11 @@ test(
       .waitFor({ timeout: 45000 });
     await shot(page, "02-mission-senior-0");
     await shot(page, "10-execution-suite");
-    assert.match(await page.locator(".approval").innerText(), /Aucun envoi/);
+    // reponse-04 : l'accord d'étape est un bandeau dans la réponse (brief 02).
+    assert.match(
+      await page.locator(".inline-approval").first().innerText(),
+      /Aucun envoi/,
+    );
     assert.match(await page.locator(".review-output").innerText(), /\S+/);
     await page.getByRole("button", { name: "Refuser", exact: true }).click();
     await page
@@ -408,9 +414,13 @@ test(
       .getByText("Connexion perdue · reconnexion…", { exact: true })
       .waitFor({ timeout: 25000 });
     await page.context().setOffline(false);
+    // reponse-04 : l'état du flux n'est montré que perdu (une ligne « ! ») ; reconnecté, la ligne part.
     await page
-      .getByText("Flux en direct", { exact: true })
-      .waitFor({ timeout: 25000 });
+      .getByText("Connexion perdue · reconnexion…", { exact: true })
+      .waitFor({ state: "detached", timeout: 25000 });
+    // La relecture de la mission peut revenir avant le flux : on attend la reconnexion native du flux.
+    for (let i = 0; i < 100 && !reconnectCursors.length; i++)
+      await new Promise((r) => setTimeout(r, 250));
     assert.ok(
       reconnectCursors.some((cursor) => Number(cursor) > 0),
       "Reconnexion native avec Last-Event-ID",
@@ -467,7 +477,8 @@ test(
     });
     await page.getByRole("button", { name: "Actualiser les missions" }).click();
     await page.locator(".mission-link").first().click();
-    await page.locator(".session-settings").waitFor();
+    // reponse-04 : les réglages de la mission sont derrière le bouton « agent · modèle ».
+    await page.locator(".session-menu > summary").waitFor();
     await page
       .getByRole("button", { name: "Masquer la barre latérale" })
       .click();
@@ -552,12 +563,23 @@ test(
     await page
       .getByRole("img", { name: "Schéma Mermaid du résultat" })
       .waitFor({ timeout: 30000 });
-    assert.equal(await page.locator(".results script").count(), 0);
     assert.equal(
-      await page.locator('.results a[href^="javascript"]').count(),
+      await page.locator('[aria-label="Résultats"] script').count(),
       0,
     );
-    assert.equal(await page.locator(".results table").count(), 1);
+    assert.equal(
+      await page
+        .locator('[aria-label="Résultats"] a[href^="javascript"]')
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page
+        .getByRole("region", { name: "Résultats", exact: true })
+        .locator("table")
+        .count(),
+      1,
+    );
     const image = page.getByRole("img", { name: "Schéma Mermaid du résultat" });
     assert.equal(
       await image.evaluate((el) => el.complete && el.naturalWidth > 0),
@@ -955,7 +977,7 @@ test(
       [...document.querySelectorAll(".prompt-bubble")].map((bubble) => {
         const box = bubble.getBoundingClientRect();
         const turn = document
-          .querySelector(".agent-turn, .results, .timeline")
+          .querySelector(".agent-turn, .reponse, .results, .timeline")
           .getBoundingClientRect();
         return (
           Math.round(turn.right - box.right) <= 1 && box.left > turn.left + 20

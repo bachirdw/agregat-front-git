@@ -24,7 +24,6 @@ import { rememberResume } from "./resumeLinks";
 import { CareerThread, SessionHistory, conversations } from "./Career";
 import { ActivityPanel, SubagentsLine } from "./ActivityPanel";
 import { MissionPill } from "./MissionPill";
-import { metaLine } from "./Tracker";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
 import { RunView } from "./Mission";
@@ -1036,6 +1035,7 @@ export default function App() {
                     busy={busy}
                     act={action}
                     incident={inlineError}
+                    connection={connection}
                   />
                 </>
               )}

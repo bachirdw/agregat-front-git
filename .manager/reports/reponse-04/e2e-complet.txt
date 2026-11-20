@@ -1,0 +1,52 @@
+(node:30661) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ CV FICTIF : dépôt sur la fenêtre et bouton d'ajout visible en mode compact (6695.247459ms)
+✔ production réelle : accueil, filtres, plan → SSE → résultats, historique et galeries (8789.558458ms)
+✔ accord du workflow application-draft, refus puis reprise en place (7351.465708ms)
+✔ budget réel : refus serveur dès l’envoi, aucune mission créée (6917.644833ms)
+✔ thème sombre persistant, mobile sans débordement et navigation clavier (5284.450166ms)
+✔ proxy Vite : mutation avec Origin frontend réécrit, sécurité backend maintenue (8694.155583ms)
+✖ SSE réel : coupure réseau, reconnexion et revue après réouverture de la mission (33076.604625ms)
+✖ défilement FICTIF : le composeur ne boucle pas après une petite remontée (37281.770291ms)
+✔ Markdown non fiable et Mermaid sous CSP de production, sans chargement externe (4533.941875ms)
+✔ Skills réels : source Git refusée, quarantaine, revue par hash et activation (4455.002167ms)
+✔ permission ACP réelle : décision ponctuelle, autorisation permanente masquée (5389.249458ms)
+✔ accord d'envoi : un clic, un seul envoi, libellés de l'envoi (6260.012375ms)
+✔ question de l'agent : la mission attend, le formulaire répond, la mission reprend (5124.21175ms)
+✔ visuel v2 : barre flottante, panneau, pastille à la place de la saisie, retour en fin de mission (6266.114666ms)
+✔ visuel v2 mobile : barre masquée, pas de débordement horizontal (4470.334541ms)
+✔ maquette v3 : suivi de mission, résumé sous le résultat et paramètres réels (7036.870666ms)
+✔ conversation relancée : les tours passés restent dans le fil, avec leur détail (4942.168208ms)
+✔ relance réelle : chaque tour reste dans le fil après une nouvelle session et un rechargement (7788.644458ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 16
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 172234.60525
+
+✖ failing tests:
+
+test at tests/e2e.test.mjs:397:1
+✖ SSE réel : coupure réseau, reconnexion et revue après réouverture de la mission (33076.604625ms)
+  locator.waitFor: Timeout 25000ms exceeded.
+  Call log:
+    - waiting for getByText('Flux en direct', { exact: true }) to be visible
+  
+      at TestContext.<anonymous> (/Users/diaw/Downloads/agregat-front/.claude/worktrees/bold-goldstine-171eb9/tests/e2e.test.mjs:419:8) {
+    name: 'TimeoutError',
+    log: [ "  - waiting for getByText('Flux en direct', { exact: true }) to be visible" ]
+  }
+
+test at tests/e2e.test.mjs:436:1
+✖ défilement FICTIF : le composeur ne boucle pas après une petite remontée (37281.770291ms)
+  locator.waitFor: Timeout 30000ms exceeded.
+  Call log:
+    - waiting for locator('.composer[data-compact="true"]') to be visible
+  
+      at TestContext.<anonymous> (/Users/diaw/Downloads/agregat-front/.claude/worktrees/bold-goldstine-171eb9/tests/e2e.test.mjs:496:60) {
+    name: 'TimeoutError',
+    log: [ `  - waiting for locator('.composer[data-compact="true"]') to be visible` ]
+  }
