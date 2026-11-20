@@ -111,7 +111,7 @@ autorisés sont touchés ; `App.test.tsx` et `etat-liste.test.tsx` ne changent q
    `categoryLabels[...]` lisaient la chaîne du prototype : un rôle ou un verdict `__proto__` écrit par un agent faisait
    planter l'écran (`Objects are not valid as a React child`, vu rouge). Lecture par clé propre (`own()`), le texte
    brut reste affiché comme avant pour une valeur inconnue.
-3. **Mineur, laissé.** Quatre des cinq lectures `?equipe=1` d'`App.tsx` n'étaient couvertes par aucun test (contrôle
+3. **Mineur, corrigé (test ajouté).** Quatre des cinq lectures `?equipe=1` d'`App.tsx` n'étaient couvertes par aucun test (contrôle
    négatif vert) : garde ajoutée sur le source (`App.tsx?raw`), qui rougit pour chacune et pour un `?equipe=1` posé
    sur une route POST.
 4. **Mineur, à trancher.** `src/orienter.test.tsx:398` (`path === "/runs/r2"`, hors autorisation) reste vert mais sa
