@@ -1,0 +1,6 @@
+ × src/reponse-04-app.test.tsx > incidents dans le fil > une action en échec s'affiche en ligne sous l'activité, pas en bannière 378ms
+ × src/reponse-04-app.test.tsx > fil d'une mission hors career-ops > une seule réponse : ni badges, ni carte Exécution, ni coût en colonnes 84ms
+ FAIL  src/reponse-04.test.tsx [ src/reponse-04.test.tsx ]
+Error: Failed to resolve import "./RunTurn" from "src/reponse-04.test.tsx". Does the file exist?
+ Test Files  2 failed | 24 passed (26)
+      Tests  2 failed | 370 passed (372)
