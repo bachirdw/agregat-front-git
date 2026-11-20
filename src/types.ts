@@ -95,14 +95,37 @@ export interface TeamVerdict {
   bloquants?: { ou?: string; pourquoi?: string }[];
   remarques?: string[];
   source?: string;
+  // Back api-verdicts.md (swarm-04): present only when false (no precise blocking point).
+  complet?: false;
+}
+// Failure of a finished member without success (back api-equipe-vue.md, swarm-07). `message` is absent
+// when empty or private; `reprise` is the « réessayer à … » hour, or null.
+export interface MemberCause {
+  type?: "limite_usage" | "erreur" | string;
+  message?: string;
+  reprise?: string | null;
 }
 export interface FamilyMember {
   id: string;
   titre?: string;
   agent?: string;
-  // Not sent by the back's view at c1fb352: read only if a later back adds them.
+  // Sent only by `GET /api/runs/:id?equipe=1` (back api-equipe-vue.md, swarm-07); absent otherwise.
   modele?: string;
   continue?: string;
+  pourquoi?: string;
+  debut?: string | null;
+  fin?: string | null;
+  dureeMs?: number;
+  // Seconds, not milliseconds.
+  depuis?: number;
+  inactiveDepuis?: number;
+  outils?: number;
+  dernierOutil?: string | null;
+  // Text reported by an agent: rendered as plain text only.
+  resultat?: string;
+  cause?: MemberCause;
+  // Typed only: not sent before swarm-14, not displayed.
+  usage?: unknown;
   // A run state, or a state held by the platform: en_file, attend_accord, attend_prerequis.
   state?: string;
   attend?: string | null;

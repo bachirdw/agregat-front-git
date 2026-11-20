@@ -1116,3 +1116,114 @@ fieldset.question-field label {
   margin: 4px 0 0;
   white-space: pre-wrap;
 }
+/* swarm-09 : one state table (src/status.ts) — a dot before the written label, never the color alone. */
+.etat::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.etat-attente {
+  color: var(--muted);
+}
+.etat-attente::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.etat-encours {
+  color: var(--accentText);
+}
+.etat-encours::before {
+  animation: etat-pulse 1.6s ease-in-out infinite;
+}
+.etat-te-demande {
+  color: var(--orange);
+}
+.badge.etat-te-demande {
+  background: var(--orangeFill);
+}
+.etat-fini {
+  color: var(--green);
+}
+.badge.etat-fini {
+  background: var(--greenFill);
+}
+.etat-echec {
+  color: var(--red);
+}
+.badge.etat-echec {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+.etat-annule,
+.etat-inconnu {
+  color: var(--muted);
+}
+.etat-annule::before {
+  background: linear-gradient(
+    135deg,
+    transparent 42%,
+    currentColor 42% 58%,
+    transparent 58%
+  );
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.etat-inconnu::before {
+  background: transparent;
+  border: 1.5px dotted currentColor;
+}
+.team-chef .etat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+@keyframes etat-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.team-chef {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* A vertical line ties the members to their chief. */
+.team-members > li {
+  padding-left: 10px;
+  border-left: 2px solid var(--sep);
+}
+.team-pli {
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+.team-pli summary {
+  cursor: pointer;
+}
+.team-pli p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+.team-echec summary {
+  color: var(--red);
+}
+.team-more {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cmd);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.team-more:focus-visible {
+  outline: 2px solid var(--cmd);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .etat-encours::before {
+    animation: none;
+  }
+}

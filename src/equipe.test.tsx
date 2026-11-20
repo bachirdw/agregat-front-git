@@ -607,3 +607,221 @@ describe("relecture : accord, workflow et compteur", () => {
     ).toBe("1 membre · 1 en cours · 0 finie · 0 en attente de toi");
   });
 });
+
+// swarm-09 : states, members and chief. New member fields of `GET /api/runs/:id?equipe=1` (back
+// api-equipe-vue.md, swarm-07) and `complet` of a verdict (api-verdicts.md, swarm-04). FICTIF values.
+describe("swarm-09 : états, membres, chef", () => {
+  const block = () => screen.getByRole("region", { name: "Équipe" });
+  const row = (title: string) => screen.getByRole("listitem", { name: title });
+  it("le chef en tête du bloc : agent et état de la mission mère", () => {
+    view({ state: "running", family } as never);
+    const chef = block().querySelector(".team-chef")!;
+    expect(chef.textContent).toBe("Chef : agent-fictif · En cours");
+    expect(chef.querySelector(".etat-encours")).not.toBeNull();
+  });
+  it("une seule table : pastille et libellé écrit pour chaque membre", () => {
+    view({ family } as never);
+    const badge = (title: string) => row(title).querySelector(".etat")!;
+    expect(badge("Recherche FICTIVE").className).toContain("etat-fini");
+    expect(badge("Recherche FICTIVE").textContent).toBe("Terminée");
+    // Running but waiting for the owner's click: the dot says « asks you », the label stays written.
+    expect(badge("Rédaction FICTIVE").className).toContain("etat-te-demande");
+    expect(badge("Rédaction FICTIVE").textContent).toBe("En cours");
+    expect(badge("Recherche FICTIVE (suite 1)").className).toContain(
+      "etat-attente",
+    );
+    expect(badge("Accord FICTIF").textContent).toBe("Attend ton accord");
+  });
+  it("état inconnu : « État inconnu », jamais la valeur brute", () => {
+    view({
+      family: [member(ids.a, "Inconnu FICTIF", "etat_fictif_brut", null)],
+    } as never);
+    const r = row("Inconnu FICTIF");
+    expect(r.textContent).toContain("État inconnu");
+    expect(r.textContent).not.toContain("etat_fictif_brut");
+    expect(r.querySelector(".etat-inconnu")).not.toBeNull();
+  });
+  it("membre fini avec résultat : pli fermé, durée, texte brut jamais interprété", () => {
+    view({
+      family: [
+        member(ids.a, "Fini FICTIF", "completed", null, {
+          debut: "2026-11-20T00:00:00.000Z",
+          fin: "2026-11-20T00:04:12.000Z",
+          dureeMs: 252_000,
+          resultat: "**Gras FICTIF** <b>balise</b> <script>alert(1)</script>",
+        }),
+      ],
+    } as never);
+    const r = row("Fini FICTIF");
+    expect(r.textContent).toContain("durée 4 min 12 s");
+    const details = r.querySelector("details")!;
+    expect(details.open).toBe(false);
+    expect(details.querySelector("summary")!.textContent).toBe("Résultat");
+    expect(details.textContent).toContain(
+      "**Gras FICTIF** <b>balise</b> <script>alert(1)</script>",
+    );
+    expect(details.querySelector("b, strong, script")).toBeNull();
+  });
+  it("membre en échec par limite d'usage : pli ouvert, durée, cause et « réessayer à … »", () => {
+    const reprise = "2026-11-20T05:30:00.000Z";
+    view({
+      family: [
+        member(ids.a, "Échec FICTIF", "failed", null, {
+          debut: "2026-11-20T00:00:00.000Z",
+          fin: "2026-11-20T00:00:45.000Z",
+          cause: {
+            type: "limite_usage",
+            message: "Limite FICTIVE <i>atteinte</i>",
+            reprise,
+          },
+        }),
+      ],
+    } as never);
+    const r = row("Échec FICTIF");
+    const details = r.querySelector("details")!;
+    expect(details.open).toBe(true);
+    expect(details.querySelector("summary")!.textContent).toBe(
+      "Échec après 45 s : limite d’usage atteinte",
+    );
+    expect(details.textContent).toContain("Limite FICTIVE <i>atteinte</i>");
+    expect(details.querySelector("i")).toBeNull();
+    const at = new Date(reprise).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    expect(details.textContent).toContain(`réessayer à ${at}`);
+  });
+  it("échec sans message (mission privée) ni reprise : la cause seule, rien d'inventé", () => {
+    view({
+      family: [
+        member(ids.a, "Erreur FICTIVE", "interrupted", null, {
+          cause: { type: "erreur", reprise: null },
+        }),
+      ],
+    } as never);
+    const details = row("Erreur FICTIVE").querySelector("details")!;
+    expect(details.open).toBe(true);
+    expect(details.textContent).toBe("Échec : erreur");
+  });
+  it("membre en cours : depuis quand et dernière action", () => {
+    view({
+      family: [
+        member(ids.a, "En cours FICTIF", "running", null, {
+          debut: "2026-11-20T00:00:00.000Z",
+          fin: null,
+          depuis: 120,
+          inactiveDepuis: 45,
+          outils: 3,
+          dernierOutil: "outil_fictif",
+        }),
+      ],
+    } as never);
+    const r = row("En cours FICTIF");
+    expect(r.textContent).toContain("depuis 2 min 0 s");
+    expect(r.textContent).toContain("dernière action outil_fictif il y a 45 s");
+    expect(r.querySelector("details")).toBeNull();
+  });
+  it("verdict complet: false → « sans point précis » ; source absent → « illisible »", () => {
+    view({
+      family: [
+        member(ids.a, "V1 FICTIVE", "completed", null, {
+          role: "verificateur",
+          verdict: {
+            valeur: "a_corriger",
+            bloquants: [],
+            remarques: [],
+            source: "reponse",
+            complet: false,
+          },
+        }),
+        member(ids.b, "V2 FICTIVE", "completed", null, {
+          role: "verificateur",
+          verdict: {
+            valeur: "a_corriger",
+            bloquants: [],
+            remarques: [],
+            source: "absent",
+            complet: false,
+          },
+        }),
+        // Contrôle négatif : no blocking point but no `complet` key → nothing deduced.
+        member(ids.c, "V3 FICTIVE", "completed", null, {
+          role: "verificateur",
+          verdict: {
+            valeur: "a_corriger",
+            bloquants: [],
+            remarques: [],
+            source: "fichier",
+          },
+        }),
+      ],
+    } as never);
+    expect(row("V1 FICTIVE").textContent).toContain(
+      "Verdict : à corriger · sans point précis",
+    );
+    expect(row("V2 FICTIVE").textContent).toContain(
+      "Verdict : illisible · aucun verdict écrit",
+    );
+    expect(row("V2 FICTIVE").textContent).not.toContain("sans point précis");
+    expect(row("V3 FICTIVE").textContent).toContain("Verdict : à corriger");
+    expect(row("V3 FICTIVE").textContent).not.toMatch(
+      /sans point précis|illisible/,
+    );
+  });
+  it("10 membres : 8 visibles et « +2 autres », qui montre le reste", () => {
+    const ten = Array.from({ length: 10 }, (_, i) =>
+      member(`m-fictif-${i}`, `Membre FICTIF ${i}`, "running", null),
+    );
+    view({ family: ten } as never);
+    const rows = () =>
+      within(block()).getAllByRole("listitem", { name: /Membre FICTIF/ });
+    expect(rows()).toHaveLength(8);
+    // The counter covers every member, shown or not.
+    expect(within(block()).getByRole("status").textContent).toContain(
+      "10 membres · 10 en cours",
+    );
+    fireEvent.click(within(block()).getByRole("button", { name: "+2 autres" }));
+    expect(rows()).toHaveLength(10);
+    expect(
+      within(block()).queryByRole("button", { name: /autres?$/ }),
+    ).toBeNull();
+  });
+  it("membres triés par début, non démarrés à la fin", () => {
+    view({
+      family: [
+        member(ids.a, "Pas démarré FICTIF", "en_file", "place", {
+          debut: null,
+        }),
+        member(ids.b, "Second FICTIF", "running", null, {
+          debut: "2026-11-20T00:02:00.000Z",
+        }),
+        member(ids.c, "Premier FICTIF", "completed", null, {
+          debut: "2026-11-20T00:01:00.000Z",
+        }),
+      ],
+    } as never);
+    expect(
+      within(block())
+        .getAllByRole("listitem", { name: /.+/ })
+        .map((r) => r.getAttribute("aria-label")),
+    ).toEqual(["Premier FICTIF", "Second FICTIF", "Pas démarré FICTIF"]);
+  });
+  it("sans aucun champ neuf : rendu d'aujourd'hui (ordre, compteur, aucun texte neuf)", () => {
+    view({ family } as never);
+    const b = block();
+    expect(
+      within(b)
+        .getAllByRole("listitem", { name: /.+/ })
+        .map((r) => r.getAttribute("aria-label")),
+    ).toEqual(family.map((m) => m.titre));
+    expect(within(b).getByRole("status").textContent).toBe(
+      "7 membres · 0 en cours · 2 en attente d’une place ou d’un prérequis · 2 finies · 3 en attente de toi",
+    );
+    expect(b.textContent).not.toMatch(
+      /durée|depuis|dernière action|Résultat|Échec après|réessayer|sans point précis|illisible|\+\d+ autres?/,
+    );
+    // Only the verifier's verdict folds; no result or failure fold is invented.
+    expect(b.querySelectorAll("details")).toHaveLength(1);
+    expect(within(b).queryByRole("button", { name: /autres?$/ })).toBeNull();
+  });
+});

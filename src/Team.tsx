@@ -1,14 +1,19 @@
 // The team of a multi-agent mother (back docs/api-delegation.md 3.1, 5 and 7 bis): its
 // sub-missions and the team notebook. Every text comes from the API and is rendered as text only.
+import { useState } from "react";
 import type { CarnetNote, FamilyMember, Run, TeamVerdict } from "./types";
-import { finalStates, labels, ownerStates } from "./types";
+import { finalStates, ownerStates } from "./types";
+import {
+  CLASSE_ETAT,
+  dureeOf,
+  formatDuree,
+  labelOf,
+  libelleAutres,
+  membresVisibles,
+  trierParDebut,
+  variantOf,
+} from "./status";
 
-// States held by the platform before a sub-mission starts (delegation.js line()).
-const heldLabels: Record<string, string> = {
-  en_file: "En file",
-  attend_accord: "Attend ton accord",
-  attend_prerequis: "Attend un prérequis",
-};
 const waitLabels: Record<string, string> = {
   place: "attend une place",
   accord: "attend ton accord",
@@ -43,10 +48,6 @@ const text = (value: unknown) => (typeof value === "string" ? value : "");
 const plural = (n: number, one: string, many: string) =>
   `${n} ${n > 1 ? many : one}`;
 
-function stateLabel(state: string) {
-  return heldLabels[state] || labels[state] || state || "État inconnu";
-}
-
 function waitsForOwner(member: FamilyMember) {
   return (
     ownerWaits.has(text(member.attend)) ||
@@ -61,6 +62,10 @@ function Verdict({ verdict }: { verdict: TeamVerdict }) {
     (b) => b && (text(b.ou) || text(b.pourquoi)),
   );
   const remarks = (verdict.remarques || []).filter((r) => text(r));
+  // Back api-verdicts.md section 3: decided on `source` and `complet` only, never on the number of
+  // blocking points; the source `absent` wins over « sans point précis ».
+  const unreadable = verdict.source === "absent";
+  const imprecise = !unreadable && verdict.complet === false;
   return (
     <div className="team-verdict">
       <span
@@ -73,8 +78,13 @@ function Verdict({ verdict }: { verdict: TeamVerdict }) {
               : "warning")
         }
       >
-        Verdict : {verdictLabels[value] || value || "inconnu"}
-        {verdict.source === "absent" ? " · aucun verdict écrit" : ""}
+        Verdict :{" "}
+        {unreadable ? "illisible" : verdictLabels[value] || value || "inconnu"}
+        {unreadable
+          ? " · aucun verdict écrit"
+          : imprecise
+            ? " · sans point précis"
+            : ""}
       </span>
       {(blocking.length > 0 || remarks.length > 0) && (
         <details>
@@ -110,6 +120,31 @@ function Verdict({ verdict }: { verdict: TeamVerdict }) {
   );
 }
 
+// A duration sent in seconds (`depuis`, `inactiveDepuis`); "" when missing or invalid.
+const seconds = (value: unknown) =>
+  typeof value === "number" ? formatDuree(value * 1000) : "";
+
+// « Échec après 4 min 12 s : limite d’usage », the agent's message and « réessayer à … » (back
+// api-equipe-vue.md `cause`). Open by default: a failure is what the owner has to read.
+function Failure({ member }: { member: FamilyMember }) {
+  const cause = member.cause!;
+  const duration = dureeOf(member);
+  const after = duration === null ? "" : formatDuree(duration);
+  const usageLimit = text(cause.type) === "limite_usage";
+  const message = text(cause.message);
+  const retry = text(cause.reprise);
+  return (
+    <details className="team-pli team-echec" open>
+      <summary>
+        {after ? `Échec après ${after}` : "Échec"} :{" "}
+        {usageLimit ? "limite d’usage atteinte" : "erreur"}
+      </summary>
+      {message && <p>{message}</p>}
+      {retry && <p>réessayer à {hour(retry) || retry}</p>}
+    </details>
+  );
+}
+
 export function TeamBlock({
   run,
   openRun,
@@ -117,10 +152,16 @@ export function TeamBlock({
   run: Run;
   openRun?: (id: string) => void;
 }) {
+  const [showAll, setShowAll] = useState(false);
   const family = (Array.isArray(run.family) ? run.family : []).filter(
     (m) => m && typeof m.id === "string",
   );
   if (!family.length) return null;
+  // Oldest start first, members not started yet after them; without any `debut`, the order received.
+  const { visibles, caches } = membresVisibles(
+    trierParDebut(family),
+    showAll ? family.length : 0,
+  );
   const titleOf = (id: string) =>
     text(family.find((m) => m.id === id)?.titre) || "sous-mission";
   const done = family.filter((m) => finalStates.has(text(m.state))).length;
@@ -145,9 +186,31 @@ export function TeamBlock({
           {plural(done, "finie", "finies")} · {waiting} en attente de toi
         </small>
       </div>
+      <p className="team-chef">
+        Chef : {text(run.agent) || "agent inconnu"} ·{" "}
+        <span className={CLASSE_ETAT[variantOf(run.state)]}>
+          {labelOf(run.state)}
+        </span>
+      </p>
       <ul className="team-members">
-        {family.map((m) => {
+        {visibles.map((m) => {
           const title = text(m.titre) || "Sous-mission";
+          const state = text(m.state);
+          const final = finalStates.has(state);
+          const duration = dureeOf(m);
+          const elapsed = final
+            ? duration === null
+              ? ""
+              : formatDuree(duration)
+            : seconds(m.depuis);
+          const lastTool = final ? "" : text(m.dernierOutil);
+          const idle = seconds(m.inactiveDepuis);
+          const result = state === "completed" ? text(m.resultat) : "";
+          const failed =
+            final &&
+            state !== "completed" &&
+            !!m.cause &&
+            typeof m.cause === "object";
           const role = text(m.role);
           const wait = waitLabels[text(m.attend)];
           const reviews = (Array.isArray(m.relit) ? m.relit : []).filter(
@@ -168,7 +231,13 @@ export function TeamBlock({
                 ) : (
                   <strong>{title}</strong>
                 )}
-                <span className="badge">{stateLabel(text(m.state))}</span>
+                <span
+                  className={
+                    "badge " + CLASSE_ETAT[variantOf(m.state, m.attend)]
+                  }
+                >
+                  {labelOf(m.state)}
+                </span>
               </div>
               <div className="tags">
                 {role && (
@@ -197,14 +266,41 @@ export function TeamBlock({
                     relit {reviews.map((id) => `« ${titleOf(id)} »`).join(", ")}
                   </small>
                 )}
+                {elapsed && (
+                  <small className="team-duree">
+                    {final ? `durée ${elapsed}` : `depuis ${elapsed}`}
+                  </small>
+                )}
+                {lastTool && (
+                  <small className="team-action">
+                    dernière action {lastTool}
+                    {idle ? ` il y a ${idle}` : ""}
+                  </small>
+                )}
               </div>
               {m.verdict && typeof m.verdict === "object" && (
                 <Verdict verdict={m.verdict} />
               )}
+              {result && (
+                <details className="team-pli">
+                  <summary>Résultat</summary>
+                  <p>{result}</p>
+                </details>
+              )}
+              {failed && <Failure member={m} />}
             </li>
           );
         })}
       </ul>
+      {caches > 0 && (
+        <button
+          type="button"
+          className="team-more"
+          onClick={() => setShowAll(true)}
+        >
+          {libelleAutres(caches)}
+        </button>
+      )}
     </section>
   );
 }
