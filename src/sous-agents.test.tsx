@@ -136,105 +136,60 @@ const tileOf = (title: string) =>
   screen.getByText(title).closest<HTMLElement>(".subagent-tile")!;
 
 describe("Sous-agents : la famille du back", () => {
-  it("une tuile par sous-mission, avec son état, son attente et le compteur d'agents", () => {
-    const { container } = panel();
-    const section = screen
-      .getByRole("heading", { name: "Sous-agents" })
-      .closest("section")!;
-    expect(section.querySelectorAll(".subagent-tile")).toHaveLength(4);
-    expect(
-      section.querySelector(".activity-section-head")!.textContent,
-    ).toContain("1/4 terminés");
-    expect(
-      within(tileOf("Offres FICTIVES sur SEEK")).getByText("En cours"),
-    ).toBeTruthy();
-    expect(
-      tileOf("Offres FICTIVES sur SEEK").querySelector(
-        ".subagent-dot.tone-running",
-      ),
-    ).toBeTruthy();
-    const linkedin = tileOf("Offres FICTIVES sur LinkedIn");
-    expect(within(linkedin).getByText("Terminée")).toBeTruthy();
-    expect(linkedin.textContent).toContain("1 min 5 s");
-    expect(linkedin.querySelector(".subagent-dot.tone-completed")).toBeTruthy();
-    const indeed = tileOf("Offres FICTIVES sur Indeed");
-    expect(within(indeed).getByText("Attend ta réponse")).toBeTruthy();
-    expect(indeed.querySelector(".subagent-dot.tone-waiting")).toBeTruthy();
-    // style.css a une règle globale `.waiting` (phrase d'attente du fil) : jamais ce nom nu sur la tuile.
-    expect(indeed.classList.contains("waiting")).toBe(false);
-    const queued = tileOf("Relecture FICTIVE");
-    expect(within(queued).getByText("En file : attend une place")).toBeTruthy();
-    expect(queued.querySelector(".subagent-dot.tone-queued")).toBeTruthy();
-    expect(
-      within(section).getByText(
-        "3 agents en activité (missions et sous-agents), dont 1 en attente de toi",
-      ),
-    ).toBeTruthy();
-    expect(container.textContent).not.toMatch(/bientôt/);
-  });
-  it("clic sur une tuile : pleine largeur, Ouvrir et Arrêter réels, détails techniques", () => {
-    const { props } = panel();
-    const tile = tileOf("Offres FICTIVES sur SEEK");
+  // reponse-04 : la section d'équipe du panneau est le bloc Équipe de swarm (Team.tsx), avec ses états,
+  // rôles, verdicts et échecs ; le panneau y ajoute « Voir à côté » (vue scindée) et « Arrêter ».
+  it("le panneau montre l'équipe : Voir à côté, Ouvrir, et Arrêter pour un membre en cours seulement", () => {
+    const onOpenSide = vi.fn();
+    const { props } = panel({ onOpenSide });
+    const team = screen.getByRole("region", { name: "Équipe" });
+    expect(team.closest(".activity-panel")).toBeTruthy();
     fireEvent.click(
-      within(tile).getByRole("button", { name: /Offres FICTIVES sur SEEK/ }),
-    );
-    expect(tile.style.gridColumn).toBe("1 / -1");
-    fireEvent.click(
-      within(tile).getByRole("button", { name: "Ouvrir la sous-mission" }),
-    );
-    expect(props.onOpenRun).toHaveBeenCalledWith("c1");
-    const stop = within(tile).getByRole("button", { name: "Arrêter" });
-    expect((stop as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(stop);
-    expect(props.onCancelRun).toHaveBeenCalledWith("c1");
-    fireEvent.click(
-      within(tile).getByRole("button", { name: "Détails techniques" }),
-    );
-    const tech = tile.querySelector(".activity-tech")!.textContent;
-    expect(tech).toContain("codex · gpt-fictif");
-    expect(tech).toContain("c1");
-  });
-  it("une sous-mission finie ne propose pas Arrêter ; la ligne d'envoi de son Bilan est dans les détails", () => {
-    panel();
-    const tile = tileOf("Offres FICTIVES sur LinkedIn");
-    fireEvent.click(
-      within(tile).getByRole("button", {
-        name: /Offres FICTIVES sur LinkedIn/,
+      within(team).getByRole("button", {
+        name: "Voir à côté Offres FICTIVES sur SEEK",
       }),
     );
-    expect(within(tile).queryByRole("button", { name: "Arrêter" })).toBeNull();
+    expect(onOpenSide).toHaveBeenCalledWith("c1");
     fireEvent.click(
-      within(tile).getByRole("button", { name: "Détails techniques" }),
+      within(team).getByRole("button", {
+        name: "Arrêter Offres FICTIVES sur SEEK",
+      }),
     );
-    expect(tile.querySelector(".activity-tech")!.textContent).toContain(
-      "Envoi par la plateforme : aucun envoi FICTIF.",
-    );
-  });
-  it("question d'une sous-mission : visible dans la tuile, réponse dans la sous-mission", () => {
-    const { props } = panel();
-    const tile = tileOf("Offres FICTIVES sur Indeed");
+    expect(props.onCancelRun).toHaveBeenCalledWith("c1");
+    expect(
+      within(team).queryByRole("button", {
+        name: "Arrêter Offres FICTIVES sur LinkedIn",
+      }),
+    ).toBeNull();
     fireEvent.click(
-      within(tile).getByRole("button", { name: /Offres FICTIVES sur Indeed/ }),
-    );
-    expect(within(tile).getByText(/Quelle ville FICTIVE \?/)).toBeTruthy();
-    fireEvent.click(
-      within(tile).getByRole("button", { name: "Ouvrir la sous-mission" }),
+      within(team).getByRole("button", {
+        name: "Ouvrir la sous-mission Offres FICTIVES sur Indeed",
+      }),
     );
     expect(props.onOpenRun).toHaveBeenCalledWith("c3");
   });
   it("Arrêter est inactif pendant une action en cours", () => {
     panel({ busy: true });
-    const tile = tileOf("Offres FICTIVES sur SEEK");
-    fireEvent.click(
-      within(tile).getByRole("button", { name: /Offres FICTIVES sur SEEK/ }),
-    );
     expect(
       (
-        within(tile).getByRole("button", {
-          name: "Arrêter",
+        screen.getByRole("button", {
+          name: "Arrêter Offres FICTIVES sur SEEK",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
+  });
+  it("le carnet d'équipe a sa propre section dans le panneau", () => {
+    panel({
+      run: {
+        ...mother,
+        carnet: {
+          total: 1,
+          notes: [{ n: 1, auteur: "chercheur FICTIF", texte: "Note FICTIVE" }],
+        },
+      } as unknown as Run,
+    });
+    const carnet = screen.getByRole("region", { name: "Carnet d’équipe" });
+    expect(carnet.closest(".activity-panel")).toBeTruthy();
+    expect(carnet.textContent).toContain("Note FICTIVE");
   });
   it("sans family : ni section ni ligne dans le fil", () => {
     panel({

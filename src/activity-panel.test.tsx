@@ -481,15 +481,10 @@ describe("vocabulaire : le panneau sert à postuler", () => {
       details: true,
     });
     fireEvent.click(screen.getByRole("button", { name: /^Connecteurs/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Recherche Doctolib/ }));
-    const tile = container.querySelector(".subagent-tile")!;
-    fireEvent.click(
-      within(tile as HTMLElement).getByRole("button", {
-        name: "Détails techniques",
-      }),
-    );
+    // reponse-04 : l'équipe du panneau est le bloc Équipe de swarm (Team.tsx), sans détails techniques.
+    expect(screen.getByRole("region", { name: "Équipe" })).toBeTruthy();
     // Les détails techniques existent et contiennent bien le vocabulaire technique…
-    expect(container.querySelectorAll(".activity-tech")).toHaveLength(2);
+    expect(container.querySelectorAll(".activity-tech")).toHaveLength(1);
     expect(
       container.querySelector(".activity-steps .activity-tech")!.textContent,
     ).toContain("Session");

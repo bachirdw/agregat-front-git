@@ -1,13 +1,18 @@
 import { useState } from "react";
 
-const COLLAPSE_LENGTH = 520;
+// reponse-04 : bulle à droite, tronquée à ~170 caractères, « Afficher tout » / « Réduire » en gris.
+const COLLAPSE_LENGTH = 170;
 
 export function PromptBubble({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
-  const long = text.length > COLLAPSE_LENGTH || text.split("\n").length > 10;
+  const long = text.length > COLLAPSE_LENGTH;
   return (
     <div className={"prompt-bubble" + (long && !expanded ? " collapsed" : "")}>
-      <span className="prompt-bubble-text">{text}</span>
+      <span className="prompt-bubble-text">
+        {long && !expanded
+          ? text.slice(0, COLLAPSE_LENGTH).trimEnd() + "…"
+          : text}
+      </span>
       {long && (
         <button
           type="button"
@@ -15,7 +20,7 @@ export function PromptBubble({ text }: { text: string }) {
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >
-          {expanded ? "Afficher moins" : "Afficher plus"}
+          {expanded ? "Réduire" : "Afficher tout"}
         </button>
       )}
     </div>

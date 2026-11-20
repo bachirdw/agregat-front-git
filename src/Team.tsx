@@ -155,9 +155,17 @@ function Failure({ member }: { member: FamilyMember }) {
 export function TeamBlock({
   run,
   openRun,
+  onOpenSide,
+  onCancel,
+  busy = false,
 }: {
   run: Run;
   openRun?: (id: string) => void;
+  // reponse-04 (panneau Activité) : voir un membre à côté du fil (vue scindée), arrêter un membre en
+  // cours (route ordinaire d'annulation d'une mission). Absents : rien n'est ajouté.
+  onOpenSide?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  busy?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
   const family = (Array.isArray(run.family) ? run.family : []).filter(
@@ -295,6 +303,30 @@ export function TeamBlock({
                   </small>
                 )}
               </div>
+              {(onOpenSide || (onCancel && !final)) && (
+                <div className="team-actions">
+                  {onOpenSide && (
+                    <button
+                      type="button"
+                      aria-label={`Voir à côté ${title}`}
+                      onClick={() => onOpenSide(m.id)}
+                    >
+                      Voir à côté
+                    </button>
+                  )}
+                  {onCancel && !final && (
+                    <button
+                      type="button"
+                      aria-label={`Arrêter ${title}`}
+                      disabled={busy}
+                      onClick={() => onCancel(m.id)}
+                    >
+                      <span className="stop-square" aria-hidden="true" />
+                      Arrêter
+                    </button>
+                  )}
+                </div>
+              )}
               {m.verdict && typeof m.verdict === "object" && (
                 <Verdict verdict={m.verdict} />
               )}

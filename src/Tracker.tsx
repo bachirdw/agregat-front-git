@@ -1,6 +1,7 @@
 import { activity, describeTool } from "./Career";
 import type { Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
+import { provenanceText } from "./Mission";
 
 export type Mark = "done" | "failed" | "running" | "pending" | "waiting";
 export type TrackerItem = { id: string; title: string; mark: Mark };
@@ -87,6 +88,9 @@ export function trackerDetails(run: Run, events: RunEvent[]) {
   ];
   if (session) rows.push(["Session", `ACP · mode ${mode || "non annoncé"}`]);
   if (run.browser) rows.push(["Navigateur", run.browser]);
+  // Brief 02 : la provenance des données, mêmes mots qu'avant dans le fil.
+  const data = provenanceText(run, events);
+  if (data) rows.push(["Données", data]);
   if (proofs) rows.push(["Preuves", String(proofs)]);
   if (verification)
     rows.push([

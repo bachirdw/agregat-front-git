@@ -13,6 +13,8 @@ export function Icon({ name }: { name: string }) {
     // Panneau Activité : colonne à droite, sous-agents, document, tâche unique ou récurrente.
     panel: "M3 3h18v18H3z M15 3v18",
     grid: "M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z",
+    // Vue scindée : ouvrir en grand.
+    expand: "M15 3h6v6 M9 21H3v-6 M21 3l-7 7 M3 21l7-7",
     doc: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13h6 M9 17h4",
     clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2",
     repeat:

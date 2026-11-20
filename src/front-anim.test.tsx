@@ -197,14 +197,15 @@ it("replie les longs messages utilisateur et conserve le texte intégral accessi
   expect(
     container.querySelector(".prompt-bubble")?.classList.contains("collapsed"),
   ).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Afficher plus" }));
+  // reponse-04 : « Afficher tout » / « Réduire » (avant : « Afficher plus » / « Afficher moins »).
+  fireEvent.click(screen.getByRole("button", { name: "Afficher tout" }));
   expect(
     container.querySelector(".prompt-bubble")?.classList.contains("collapsed"),
   ).toBe(false);
   expect(container.querySelector(".prompt-bubble-text")?.textContent).toBe(
     long,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Afficher moins" }));
+  fireEvent.click(screen.getByRole("button", { name: "Réduire" }));
   expect(
     container.querySelector(".prompt-bubble")?.classList.contains("collapsed"),
   ).toBe(true);
@@ -212,7 +213,7 @@ it("replie les longs messages utilisateur et conserve le texte intégral accessi
 
 it("un court message ne crée pas de commande de repli", () => {
   render(<PromptBubble text="Court message fictif" />);
-  expect(screen.queryByRole("button", { name: "Afficher plus" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Afficher tout" })).toBeNull();
 });
 
 it("les animations du composeur et des messages ont une règle de réduction globale", () => {

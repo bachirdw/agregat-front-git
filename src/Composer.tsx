@@ -261,6 +261,317 @@ export function Composer({
   const models = agent?.probe?.models || [];
   const pack = catalog?.packs.find((p) => p.id === input.pack);
   const workflows = pack?.dags || catalog?.packs.flatMap((p) => p.dags) || [];
+  // Les réglages de la mission (une pastille par réglage).
+  const filtersRow = (
+    <div className="filters" aria-hidden={compact}>
+      <Filter name="Agent" value={agent?.name || "Auto"}>
+        <label>
+          Agent d’exécution
+          <select
+            aria-label="Agent"
+            value={input.agent}
+            disabled={disabled || !catalog}
+            onChange={(e) =>
+              set({ agent: e.target.value, model: "", agentMode: "" })
+            }
+          >
+            <option value="auto">Auto · selon les capacités</option>
+            {/* Ready agents first; an agent under a limit or refused stays selectable (the
+                        owner may force it), with its real state read from the catalog. */}
+            {agentsInOrder(catalog?.agents).map((a) => (
+              <option
+                key={a.id}
+                value={a.id}
+                disabled={
+                  !a.installed ||
+                  !a.compatible ||
+                  (!catalog?.live && !a.simulated)
+                }
+              >
+                {a.name}
+                {agentStateLabel(a)
+                  ? ` · ${agentStateLabel(a)}`
+                  : !a.compatible
+                    ? " · indisponible"
+                    : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <small>
+          {catalog?.live
+            ? "Agents de votre machine, comptes BYOA."
+            : "Démonstration locale · aucun modèle appelé."}
+        </small>
+      </Filter>
+      <Filter name="Modèle" value={input.model || "Défaut"}>
+        <label>
+          Modèle annoncé
+          <select
+            aria-label="Modèle"
+            value={input.model}
+            disabled={disabled || !catalog?.live || !models.length}
+            onChange={(e) => set({ model: e.target.value })}
+          >
+            <option value="">Défaut du fournisseur</option>
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name || m.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <small>
+          {models.length
+            ? "Annoncés au dernier test de session."
+            : "Aucun modèle connu pour cet agent. Choisissez un agent réel testé."}
+        </small>
+      </Filter>
+      <Filter name="Mode ACP" value={input.agentMode || "Défaut"}>
+        <label>
+          Permissions de l’agent
+          <select
+            aria-label="Mode ACP"
+            value={input.agentMode || ""}
+            disabled={
+              disabled || !catalog?.live || !agent?.probe?.modes?.length
+            }
+            onChange={(e) => set({ agentMode: e.target.value })}
+          >
+            <option value="">Défaut de la plateforme</option>
+            {agent?.probe?.modes
+              ?.filter((mode) => !/bypass|yolo/i.test(mode))
+              .map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+          </select>
+        </label>
+        <small>Modes annoncés par la dernière session ACP.</small>
+      </Filter>
+      <Filter name="Navigateur" value={input.browser || "auto"}>
+        <label>
+          Navigateur de la mission
+          <select
+            aria-label="Navigateur"
+            value={input.browser || "auto"}
+            disabled={disabled}
+            onChange={(e) =>
+              set({
+                browser: e.target.value as MissionInput["browser"],
+              })
+            }
+          >
+            <option value="auto">Auto · selon le mode</option>
+            <option value="playwriter">Chrome autorisé · Playwriter</option>
+            <option value="isolated">Chrome isolé</option>
+            <option value="fixture">Navigateur fictif · démonstration</option>
+          </select>
+        </label>
+        <small>
+          Playwriter requiert son relais et son extension ; le repli vers Chrome
+          isolé est signalé.
+        </small>
+        <label>
+          Domaines autorisés (séparés par des virgules)
+          <input
+            aria-label="Domaines navigateur"
+            value={input.browserDomains || ""}
+            disabled={disabled}
+            placeholder="example.com, autre.example.org"
+            onChange={(e) => set({ browserDomains: e.target.value })}
+          />
+        </label>
+        <small>
+          Vide en mode propriétaire : tous les domaines publics. Le plan affiche
+          le périmètre retenu.
+        </small>
+      </Filter>
+      <Filter name="Skills" value={String(input.skills.length)}>
+        {catalog?.skills.map((s) => (
+          <label className="check" key={s.id}>
+            <input
+              type="checkbox"
+              checked={input.skills.includes(s.id)}
+              disabled={disabled || !s.active || !s.integrity}
+              onChange={(e) =>
+                set({
+                  skills: e.target.checked
+                    ? [...input.skills, s.id]
+                    : input.skills.filter((id) => id !== s.id),
+                })
+              }
+            />
+            <span>
+              {s.name}
+              <small>
+                {s.active && s.integrity
+                  ? "Actif"
+                  : "À installer ou activer dans Skills"}
+              </small>
+            </span>
+          </label>
+        ))}
+        {!catalog?.skills.length && <small>Aucun Skill disponible.</small>}
+      </Filter>
+      <Filter name="Pack" value={pack?.name || "Auto"}>
+        <label>
+          Domain Pack
+          <select
+            aria-label="Pack"
+            value={input.pack}
+            disabled={disabled}
+            onChange={(e) =>
+              set({
+                pack: e.target.value,
+                workflow: "auto",
+              })
+            }
+          >
+            <option value="auto">Auto · selon l’objectif</option>
+            {catalog?.packs.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <small>
+          {pack?.description || "Le plan expliquera le pack retenu."}
+        </small>
+      </Filter>
+      <Filter name="Équipe" value={input.team ? "Allumée" : "Éteinte"}>
+        <label className="check">
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="Équipe d’agents"
+            aria-describedby={teamHelp}
+            checked={!!input.team}
+            aria-checked={!!input.team}
+            disabled={disabled}
+            onChange={(e) =>
+              set({
+                team: e.target.checked,
+                teamConsent: e.target.checked,
+              })
+            }
+          />
+          <span>Équipe d’agents</span>
+        </label>
+        {input.team && (
+          <label className="check">
+            <input
+              type="checkbox"
+              aria-describedby={teamHelp}
+              checked={!!input.teamConsent}
+              disabled={disabled}
+              onChange={(e) => set({ teamConsent: e.target.checked })}
+            />
+            <span>Autoriser les sous-agents</span>
+          </label>
+        )}
+        {/* One short sentence; the whole contract text stays below, folded (swarm
+                    request-header: one line, the detail in the body). */}
+        <small className="team-accord">
+          Ton agent pourra se faire aider par d’autres agents, chacun sur ton
+          abonnement.
+        </small>
+        <details className="team-accord-plus">
+          <summary>En savoir plus</summary>
+          {/* Text of the back contract (docs/api-delegation.md section 6), default envelope. */}
+          <small id={teamHelp}>
+            L’agent de ta mission pourra, s’il le juge utile, confier des
+            parties du travail à d’autres agents qui travaillent en même temps.
+            Chacun consomme ton abonnement comme une mission ordinaire : avec
+            plusieurs agents à la fois, ta limite d’usage peut être atteinte
+            plus vite. Autoriser n’oblige pas : pour une demande simple, un seul
+            agent travaillera. Au plus 6 sous-missions Relay pour cette mission,
+            3 en même temps ; une sous-mission en échec peut en plus être
+            reprise deux fois hors de cette limite ; les sous-agents internes
+            que les agents lancent d’eux-mêmes ne sont ni comptés ni bornés par
+            cette limite. Sans « Autoriser les sous-agents », ton accord te sera
+            demandé au premier lancement. Les envois restent à ton clic.
+          </small>
+        </details>
+      </Filter>
+      <Filter
+        name="Mode"
+        value={input.mode === "workflow" ? "Workflow" : "Agent unique"}
+      >
+        <label>
+          Exécution
+          <select
+            aria-label="Mode"
+            value={input.mode}
+            disabled={disabled}
+            onChange={(e) =>
+              set({ mode: e.target.value as MissionInput["mode"] })
+            }
+          >
+            <option value="agent">Agent unique</option>
+            <option value="workflow">Workflow DAG</option>
+          </select>
+        </label>
+        <small>Le workflow conserve les étapes et leurs accords.</small>
+      </Filter>
+      {input.mode === "workflow" && (
+        <Filter
+          name="Workflow"
+          value={
+            input.workflow === "auto"
+              ? "Auto"
+              : workflows.find((w) => w.id === input.workflow)?.title || "Auto"
+          }
+        >
+          <label>
+            Recette
+            <select
+              aria-label="Workflow"
+              value={input.workflow}
+              disabled={disabled}
+              onChange={(e) => set({ workflow: e.target.value })}
+            >
+              <option value="auto">Auto · proposé selon l’objectif</option>
+              {workflows.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </Filter>
+      )}
+      <Filter
+        name="Budget"
+        value={money(input.budgetCents, catalog?.pricing.currency)}
+      >
+        <label>
+          Budget maximum (unités de devise)
+          <input
+            type="number"
+            aria-label="Budget maximum"
+            min="0"
+            max="1000"
+            step="0.01"
+            value={budget}
+            disabled={disabled}
+            onChange={(e) => {
+              setBudget(e.target.value);
+              const n = Number(e.target.value);
+              if (Number.isFinite(n) && n >= 0 && n <= 1000)
+                set({ budgetCents: Math.round(n * 100) });
+            }}
+          />
+        </label>
+        <small>
+          Devise : {catalog?.pricing.currency || "EUR"}. Le coût fournisseur
+          BYOA est inconnu et non refacturé.
+        </small>
+      </Filter>
+    </div>
+  );
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (input.prompt.trim() && !busy && !uploading && !disabled && catalog)
@@ -357,20 +668,6 @@ export function Composer({
             Afficher les réglages
           </button>
         )}
-        {sessionSettings && !compact && (
-          <div className="session-settings" aria-label="Réglages de la mission">
-            <span>Agent · {sessionSettings.agent}</span>
-            <span>Modèle · {sessionSettings.model || "Défaut"}</span>
-            <span>Pack · {sessionSettings.pack}</span>
-            <span>
-              Skills ·{" "}
-              {sessionSettings.skills.length
-                ? sessionSettings.skills.join(", ")
-                : "aucun"}
-            </span>
-            <small>Réglages de cette session</small>
-          </div>
-        )}
         {agentWarning && !reply && !disabled && (
           <p className="agent-warning" role="alert">
             {agentWarning}
@@ -392,327 +689,36 @@ export function Composer({
             disabled={disabled || uploading > 0}
             onPick={() => fileRef.current?.click()}
           />
-          {!reply && (
-            <div className="filters" aria-hidden={compact}>
-              <Filter name="Agent" value={agent?.name || "Auto"}>
-                <label>
-                  Agent d’exécution
-                  <select
-                    aria-label="Agent"
-                    value={input.agent}
-                    disabled={disabled || !catalog}
-                    onChange={(e) =>
-                      set({ agent: e.target.value, model: "", agentMode: "" })
-                    }
-                  >
-                    <option value="auto">Auto · selon les capacités</option>
-                    {/* Ready agents first; an agent under a limit or refused stays selectable (the
-                        owner may force it), with its real state read from the catalog. */}
-                    {agentsInOrder(catalog?.agents).map((a) => (
-                      <option
-                        key={a.id}
-                        value={a.id}
-                        disabled={
-                          !a.installed ||
-                          !a.compatible ||
-                          (!catalog?.live && !a.simulated)
-                        }
-                      >
-                        {a.name}
-                        {agentStateLabel(a)
-                          ? ` · ${agentStateLabel(a)}`
-                          : !a.compatible
-                            ? " · indisponible"
-                            : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <small>
-                  {catalog?.live
-                    ? "Agents de votre machine, comptes BYOA."
-                    : "Démonstration locale · aucun modèle appelé."}
-                </small>
-              </Filter>
-              <Filter name="Modèle" value={input.model || "Défaut"}>
-                <label>
-                  Modèle annoncé
-                  <select
-                    aria-label="Modèle"
-                    value={input.model}
-                    disabled={disabled || !catalog?.live || !models.length}
-                    onChange={(e) => set({ model: e.target.value })}
-                  >
-                    <option value="">Défaut du fournisseur</option>
-                    {models.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name || m.id}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <small>
-                  {models.length
-                    ? "Annoncés au dernier test de session."
-                    : "Aucun modèle connu pour cet agent. Choisissez un agent réel testé."}
-                </small>
-              </Filter>
-              <Filter name="Mode ACP" value={input.agentMode || "Défaut"}>
-                <label>
-                  Permissions de l’agent
-                  <select
-                    aria-label="Mode ACP"
-                    value={input.agentMode || ""}
-                    disabled={
-                      disabled || !catalog?.live || !agent?.probe?.modes?.length
-                    }
-                    onChange={(e) => set({ agentMode: e.target.value })}
-                  >
-                    <option value="">Défaut de la plateforme</option>
-                    {agent?.probe?.modes
-                      ?.filter((mode) => !/bypass|yolo/i.test(mode))
-                      .map((mode) => (
-                        <option key={mode} value={mode}>
-                          {mode}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <small>Modes annoncés par la dernière session ACP.</small>
-              </Filter>
-              <Filter name="Navigateur" value={input.browser || "auto"}>
-                <label>
-                  Navigateur de la mission
-                  <select
-                    aria-label="Navigateur"
-                    value={input.browser || "auto"}
-                    disabled={disabled}
-                    onChange={(e) =>
-                      set({
-                        browser: e.target.value as MissionInput["browser"],
-                      })
-                    }
-                  >
-                    <option value="auto">Auto · selon le mode</option>
-                    <option value="playwriter">
-                      Chrome autorisé · Playwriter
-                    </option>
-                    <option value="isolated">Chrome isolé</option>
-                    <option value="fixture">
-                      Navigateur fictif · démonstration
-                    </option>
-                  </select>
-                </label>
-                <small>
-                  Playwriter requiert son relais et son extension ; le repli
-                  vers Chrome isolé est signalé.
-                </small>
-                <label>
-                  Domaines autorisés (séparés par des virgules)
-                  <input
-                    aria-label="Domaines navigateur"
-                    value={input.browserDomains || ""}
-                    disabled={disabled}
-                    placeholder="example.com, autre.example.org"
-                    onChange={(e) => set({ browserDomains: e.target.value })}
-                  />
-                </label>
-                <small>
-                  Vide en mode propriétaire : tous les domaines publics. Le plan
-                  affiche le périmètre retenu.
-                </small>
-              </Filter>
-              <Filter name="Skills" value={String(input.skills.length)}>
-                {catalog?.skills.map((s) => (
-                  <label className="check" key={s.id}>
-                    <input
-                      type="checkbox"
-                      checked={input.skills.includes(s.id)}
-                      disabled={disabled || !s.active || !s.integrity}
-                      onChange={(e) =>
-                        set({
-                          skills: e.target.checked
-                            ? [...input.skills, s.id]
-                            : input.skills.filter((id) => id !== s.id),
-                        })
-                      }
-                    />
-                    <span>
-                      {s.name}
-                      <small>
-                        {s.active && s.integrity
-                          ? "Actif"
-                          : "À installer ou activer dans Skills"}
-                      </small>
-                    </span>
-                  </label>
-                ))}
-                {!catalog?.skills.length && (
-                  <small>Aucun Skill disponible.</small>
-                )}
-              </Filter>
-              <Filter name="Pack" value={pack?.name || "Auto"}>
-                <label>
-                  Domain Pack
-                  <select
-                    aria-label="Pack"
-                    value={input.pack}
-                    disabled={disabled}
-                    onChange={(e) =>
-                      set({
-                        pack: e.target.value,
-                        workflow: "auto",
-                      })
-                    }
-                  >
-                    <option value="auto">Auto · selon l’objectif</option>
-                    {catalog?.packs.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <small>
-                  {pack?.description || "Le plan expliquera le pack retenu."}
-                </small>
-              </Filter>
-              <Filter name="Équipe" value={input.team ? "Allumée" : "Éteinte"}>
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    aria-label="Équipe d’agents"
-                    aria-describedby={teamHelp}
-                    checked={!!input.team}
-                    aria-checked={!!input.team}
-                    disabled={disabled}
-                    onChange={(e) =>
-                      set({
-                        team: e.target.checked,
-                        teamConsent: e.target.checked,
-                      })
-                    }
-                  />
-                  <span>Équipe d’agents</span>
-                </label>
-                {input.team && (
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      aria-describedby={teamHelp}
-                      checked={!!input.teamConsent}
-                      disabled={disabled}
-                      onChange={(e) => set({ teamConsent: e.target.checked })}
-                    />
-                    <span>Autoriser les sous-agents</span>
-                  </label>
-                )}
-                {/* One short sentence; the whole contract text stays below, folded (swarm
-                    request-header: one line, the detail in the body). */}
-                <small className="team-accord">
-                  Ton agent pourra se faire aider par d’autres agents, chacun
-                  sur ton abonnement.
-                </small>
-                <details className="team-accord-plus">
-                  <summary>En savoir plus</summary>
-                  {/* Text of the back contract (docs/api-delegation.md section 6), default envelope. */}
-                  <small id={teamHelp}>
-                    L’agent de ta mission pourra, s’il le juge utile, confier
-                    des parties du travail à d’autres agents qui travaillent en
-                    même temps. Chacun consomme ton abonnement comme une mission
-                    ordinaire : avec plusieurs agents à la fois, ta limite
-                    d’usage peut être atteinte plus vite. Autoriser n’oblige pas
-                    : pour une demande simple, un seul agent travaillera. Au
-                    plus 6 sous-missions Relay pour cette mission, 3 en même
-                    temps ; une sous-mission en échec peut en plus être reprise
-                    deux fois hors de cette limite ; les sous-agents internes
-                    que les agents lancent d’eux-mêmes ne sont ni comptés ni
-                    bornés par cette limite. Sans « Autoriser les sous-agents »,
-                    ton accord te sera demandé au premier lancement. Les envois
-                    restent à ton clic.
-                  </small>
-                </details>
-              </Filter>
-              <Filter
-                name="Mode"
-                value={input.mode === "workflow" ? "Workflow" : "Agent unique"}
-              >
-                <label>
-                  Exécution
-                  <select
-                    aria-label="Mode"
-                    value={input.mode}
-                    disabled={disabled}
-                    onChange={(e) =>
-                      set({ mode: e.target.value as MissionInput["mode"] })
-                    }
-                  >
-                    <option value="agent">Agent unique</option>
-                    <option value="workflow">Workflow DAG</option>
-                  </select>
-                </label>
-                <small>Le workflow conserve les étapes et leurs accords.</small>
-              </Filter>
-              {input.mode === "workflow" && (
-                <Filter
-                  name="Workflow"
-                  value={
-                    input.workflow === "auto"
-                      ? "Auto"
-                      : workflows.find((w) => w.id === input.workflow)?.title ||
-                        "Auto"
-                  }
+          {sessionSettings && !compact ? (
+            // reponse-04 : dans une mission, les pastilles et les réglages passent derrière un seul
+            // bouton discret « agent · modèle » (maquette v5).
+            <details className="session-menu">
+              <summary>
+                {sessionSettings.agent} · {sessionSettings.model || "défaut"}
+              </summary>
+              <div className="session-menu-body">
+                <div
+                  className="session-settings"
+                  aria-label="Réglages de la mission"
                 >
-                  <label>
-                    Recette
-                    <select
-                      aria-label="Workflow"
-                      value={input.workflow}
-                      disabled={disabled}
-                      onChange={(e) => set({ workflow: e.target.value })}
-                    >
-                      <option value="auto">
-                        Auto · proposé selon l’objectif
-                      </option>
-                      {workflows.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </Filter>
-              )}
-              <Filter
-                name="Budget"
-                value={money(input.budgetCents, catalog?.pricing.currency)}
-              >
-                <label>
-                  Budget maximum (unités de devise)
-                  <input
-                    type="number"
-                    aria-label="Budget maximum"
-                    min="0"
-                    max="1000"
-                    step="0.01"
-                    value={budget}
-                    disabled={disabled}
-                    onChange={(e) => {
-                      setBudget(e.target.value);
-                      const n = Number(e.target.value);
-                      if (Number.isFinite(n) && n >= 0 && n <= 1000)
-                        set({ budgetCents: Math.round(n * 100) });
-                    }}
-                  />
-                </label>
-                <small>
-                  Devise : {catalog?.pricing.currency || "EUR"}. Le coût
-                  fournisseur BYOA est inconnu et non refacturé.
-                </small>
-              </Filter>
-            </div>
+                  <span>Agent · {sessionSettings.agent}</span>
+                  <span>Modèle · {sessionSettings.model || "Défaut"}</span>
+                  <span>Pack · {sessionSettings.pack}</span>
+                  <span>
+                    Skills ·{" "}
+                    {sessionSettings.skills.length
+                      ? sessionSettings.skills.join(", ")
+                      : "aucun"}
+                  </span>
+                  <small>Réglages de cette session</small>
+                </div>
+                {!reply && filtersRow}
+              </div>
+            </details>
+          ) : (
+            !reply && filtersRow
           )}
+          <span className="composer-spacer" />
           <button
             className="send primary"
             type="submit"
@@ -729,13 +735,6 @@ export function Composer({
           </button>
         </div>
       </form>
-      <small className="composer-note">
-        {reply
-          ? "Votre réponse poursuit cette mission. Si l’agent ne peut pas recharger sa session, il repart de sa dernière réponse."
-          : disabled
-            ? "Cette mission ne peut pas être poursuivie. Créez une nouvelle mission."
-            : "L’envoi lance directement la mission. Les actions sensibles demandent toujours votre décision."}
-      </small>
     </div>
   );
 }

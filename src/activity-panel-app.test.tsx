@@ -138,7 +138,9 @@ describe("panneau Activité dans l'application", () => {
     expect(container.querySelector("main .activity-panel")).toBeNull();
     expect(container.querySelector(".app > .activity-panel")).toBeTruthy();
   });
-  it("le résumé sous le résultat ouvre le panneau et déplie les détails techniques", async () => {
+  // reponse-04 (BRIEF 04) : la ligne méta se déplie sur place en liste clé/valeur ; elle n'ouvre plus le
+  // panneau (avant : elle ouvrait le panneau et dépliait ses détails techniques).
+  it("le résumé sous le résultat se déplie sur place, sans ouvrir le panneau", async () => {
     serve({
       ...base,
       state: "completed",
@@ -149,13 +151,11 @@ describe("panneau Activité dans l'application", () => {
     fireEvent.click(await screen.findByText("Mission FICTIVE"));
     const meta = await screen.findByRole("button", { name: /2 preuves/ });
     expect(panel()).toBeNull();
+    expect(meta.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(meta);
-    expect(panel()).toBeTruthy();
-    const more = screen.getByRole("button", { name: "Détails techniques" });
-    expect(more.getAttribute("aria-expanded")).toBe("true");
-    expect(
-      document.querySelector(".activity-steps .activity-tech dl"),
-    ).toBeTruthy();
+    expect(meta.getAttribute("aria-expanded")).toBe("true");
+    expect(document.querySelector(".thread .meta-details")).toBeTruthy();
+    expect(panel()).toBeNull();
   });
   it("sous 1180px : ouvrir le panneau masque la barre latérale, la rouvrir ferme le panneau", async () => {
     serve(base);
@@ -213,7 +213,8 @@ describe("panneau Activité dans l'application", () => {
       }),
     );
     expect(panel()).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Sous-agents" })).toBeTruthy();
+    // reponse-04 : la section d'équipe du panneau est le bloc Équipe de swarm (Team.tsx).
+    expect(screen.getByRole("region", { name: "Équipe" })).toBeTruthy();
   });
   it("sans sous-agents, aucune ligne dans le fil", async () => {
     serve(base);

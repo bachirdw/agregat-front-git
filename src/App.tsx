@@ -28,6 +28,8 @@ import { metaLine } from "./Tracker";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
 import { RunView } from "./Mission";
+import { Incident, MetaLine, RunTurn } from "./RunTurn";
+import { SidePane } from "./SidePane";
 import {
   activiteListe,
   avecDetailsDesLignes,
@@ -135,6 +137,8 @@ export default function App() {
   const launching = useRef<AbortController | null>(null);
   // « Détails techniques » of the mission steps, in the Activité panel.
   const [stepDetails, setStepDetails] = useState(false),
+    // reponse-04 : vue scindée, un membre de l'équipe suivi à côté du fil.
+    [sideRunId, setSideRunId] = useState<string | null>(null),
     [profileName, setProfileName] = useState(storedName);
   const settingsReturn = useRef<Page>("home");
   const {
@@ -248,8 +252,16 @@ export default function App() {
     return () => observer.disconnect();
   }, [page, starting, run?.id]);
   // The Activité panel opens only on a click (toolbar, summary line, sub-agents line), never on its own.
+  // The thread keeps at least 560px: the split view hides the sidebar up to 1560px and takes the
+  // panel's place up to 1340px; reopening the panel there closes the split view.
+  const openSide = (id: string) => {
+    setSideRunId(id);
+    if (innerWidth <= 1560) setSide(false);
+    if (innerWidth <= 1340) setPanel(false);
+  };
   const showPanel = (open: boolean) => {
     setPanel(open);
+    if (open && innerWidth <= 1340) setSideRunId(null);
     if (open && innerWidth <= 1180) setSide(false);
     // Under 760px the panel covers the toolbar button that opened it: focus moves to its close button.
     if (open && innerWidth <= 760)
@@ -261,6 +273,7 @@ export default function App() {
   };
   const showSide = () => {
     setSide(true);
+    if (innerWidth <= 1560) setSideRunId(null);
     if (innerWidth <= 1180) setPanel(false);
     requestAnimationFrame(() =>
       navRef.current?.querySelector("button")?.focus(),
@@ -326,6 +339,7 @@ export default function App() {
   }, [newMission, side]);
   const openRun = async (id: string) => {
     const version = ++viewVersion.current;
+    setSideRunId(null);
     current.current = id;
     setImmediatePrompt((old) => (old?.id === id ? old : null));
     setError("");
@@ -569,7 +583,10 @@ export default function App() {
       }}
     />
   );
-  const summaryLine = page === "mission" && run ? metaLine(run, events) : "";
+  // reponse-04 : une erreur d'action sur la mission ouverte est une ligne du fil ; la bannière rouge
+  // reste pour une mission réellement bloquée qui attend l'utilisateur, et hors des missions.
+  const inlineError =
+    page === "mission" && run && !ownerStates.has(run.state) ? error : "";
   // sous-agents-19-11 : line of voie 2 written by the back (delegation_accepted.message).
   const delegationNote =
     page === "mission"
@@ -912,7 +929,7 @@ export default function App() {
               setComposerCompact(false);
           }}
         >
-          {error && (
+          {error && !inlineError && (
             <div className="global-error" role="alert">
               <strong>Impossible de terminer l’action</strong>
               <p>{error}</p>
@@ -1010,15 +1027,18 @@ export default function App() {
                 <>
                   <SessionHistory run={run} runs={runs} />
                   <PromptBubble key={run.id} text={run.prompt} />
-                  <RunView
+                  {/* reponse-04 : une seule réponse, façon Claude Code (RunView reste pour les détails). */}
+                  <RunTurn
                     run={avecDetailsDesLignes(run, runs)}
                     events={events}
-                    connection={connection}
                     busy={busy}
                     act={action}
-                    openRun={(id) => void openRun(id)}
+                    incident={inlineError}
                   />
                 </>
+              )}
+              {run.pack === "career-ops" && inlineError && (
+                <Incident text={inlineError} />
               )}
               {delegationNote && (
                 <p className="delegation-note">{delegationNote}</p>
@@ -1028,22 +1048,9 @@ export default function App() {
                 family={run.family}
                 onOpen={() => showPanel(true)}
               />
-              {summaryLine && (
-                <button
-                  className="meta-line"
-                  title="Voir le détail dans le panneau Activité"
-                  onClick={() => {
-                    showPanel(true);
-                    setStepDetails(true);
-                    requestAnimationFrame(() =>
-                      document
-                        .querySelector(".activity-steps .tech-toggle")
-                        ?.scrollIntoView?.({ block: "nearest" }),
-                    );
-                  }}
-                >
-                  {summaryLine}
-                </button>
+              {/* reponse-04 : la ligne méta se déplie sur place (dans RunTurn hors career-ops). */}
+              {run.pack === "career-ops" && finalStates.has(run.state) && (
+                <MetaLine run={run} events={events} />
               )}
             </div>
           )}
@@ -1090,7 +1097,22 @@ export default function App() {
               toBottom();
             }}
           >
-            <span aria-hidden="true">↓</span> Revenir en bas
+            {/* reponse-04 : bouton rond de 32 px, une flèche, sans texte. */}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 3v10M3.5 8.5L8 13l4.5-4.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         )}
         {runActive && run && (
@@ -1159,10 +1181,23 @@ export default function App() {
           />
         )}
       </main>
+      {sideRunId && page === "mission" && (
+        <SidePane
+          key={sideRunId}
+          id={sideRunId}
+          onClose={() => setSideRunId(null)}
+          onOpenFull={(id) => {
+            setSideRunId(null);
+            void openRun(id);
+          }}
+        />
+      )}
       {panel && (
         <ActivityPanel
           catalog={catalog}
-          run={page === "mission" ? run : null}
+          run={
+            page === "mission" && run ? avecDetailsDesLignes(run, runs) : null
+          }
           events={page === "mission" ? events : []}
           onClose={() => {
             setPanel(false);
@@ -1176,6 +1211,7 @@ export default function App() {
           setDetails={setStepDetails}
           onOpenRun={(id) => void openRun(id)}
           onCancelRun={(id) => void action(`/runs/${id}/cancel`, {})}
+          onOpenSide={openSide}
           busy={busy}
         />
       )}

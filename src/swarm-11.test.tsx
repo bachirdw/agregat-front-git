@@ -215,6 +215,10 @@ describe("liste : seulement les missions, l'équipe en un mot", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: /Mère FICTIVE ouverte/ }),
     );
+    // reponse-04 : l'équipe est dans le panneau Activité (fermé par défaut à 1024 px), plus dans le fil.
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Afficher l’activité" }),
+    );
     const team = await screen.findByRole("region", { name: "Équipe" });
     const first = within(team).getByRole("listitem", { name: "Tâche 61" });
     const motif = first.querySelector(".team-motif")!;

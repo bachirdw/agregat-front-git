@@ -280,7 +280,14 @@ describe("pastille de skill (skill-chip-01)", () => {
   it("cachée pendant une demande d'accord et quand la mission est finie", () => {
     render(
       <RunTurn
-        run={{ ...live, permissions: [{ id: "p" }] } as unknown as Run}
+        run={
+          {
+            ...live,
+            permissions: [
+              { id: "p", tool: { title: "Envoi FICTIF" }, options: [] },
+            ],
+          } as unknown as Run
+        }
         events={[reading("c1", "career_read")]}
         busy={false}
         act={vi.fn()}

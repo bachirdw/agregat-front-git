@@ -17,6 +17,25 @@ const dataModeLabel = {
   user: "Données fournies par l’utilisateur · non vérifiées",
   unverified: "Provenance des données non vérifiée",
 };
+// reponse-04 / brief 02 : la provenance des données, mêmes mots que le badge d'avant (jamais plus large
+// que la vérification du back). Lue par la ligne méta de la réponse et par trackerDetails « Données ».
+export function provenanceText(run: Run, events: RunEvent[]) {
+  if (!run.dataMode) return "";
+  const verification = [...events]
+    .reverse()
+    .find((event) => event.type === "verification");
+  const scope = verification?.data.scope ? String(verification.data.scope) : "";
+  const browserEvidenceConfirmed =
+    run.state === "completed" &&
+    run.result?.simulated === false &&
+    run.result.provenance?.data === "navigateur réel" &&
+    !!run.result.evidence?.length;
+  return browserEvidenceConfirmed
+    ? "Page observée · preuves navigateur"
+    : run.dataMode === "unverified" && scope
+      ? scope
+      : dataModeLabel[run.dataMode];
+}
 export function UsageCard({ run }: { run: Run }) {
   return run.usage ? (
     <section

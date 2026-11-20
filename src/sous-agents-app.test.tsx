@@ -95,7 +95,7 @@ const serve = (runs: Run[]) =>
   });
 
 describe("sous-agents dans l'application", () => {
-  it("une tuile ouvre sa sous-mission et Arrêter annule cette sous-mission seulement", async () => {
+  it("depuis le bloc Équipe du panneau : Arrêter annule ce membre seulement, Ouvrir l'affiche en grand", async () => {
     serve([mother, child]);
     render(<App />);
     fireEvent.click(
@@ -104,22 +104,86 @@ describe("sous-agents dans l'application", () => {
     const aside = await screen.findByRole("complementary", {
       name: "Activité",
     });
-    const tile = await within(aside).findByRole("button", {
-      name: /Offres FICTIVES sur SEEK/,
-    });
-    fireEvent.click(tile);
-    fireEvent.click(within(aside).getByRole("button", { name: "Arrêter" }));
+    fireEvent.click(
+      await within(aside).findByRole("button", {
+        name: "Arrêter Offres FICTIVES sur SEEK",
+      }),
+    );
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith("/runs/c1/cancel", {}),
     );
     expect(api).not.toHaveBeenCalledWith("/runs/m1/cancel", {});
     fireEvent.click(
-      within(aside).getByRole("button", { name: "Ouvrir la sous-mission" }),
+      within(aside).getByRole("button", {
+        name: "Ouvrir la sous-mission Offres FICTIVES sur SEEK",
+      }),
     );
     await screen.findByText("Consigne FICTIVE de la sous-mission");
     expect(
       screen.getByRole("button", { name: "Revenir à la mission principale" }),
     ).toBeTruthy();
+  });
+  it("vue scindée : « Voir à côté » suit le membre à côté du fil de sa mission, puis se ferme", async () => {
+    serve([mother, child]);
+    const { container } = render(<App />);
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
+    const aside = await screen.findByRole("complementary", {
+      name: "Activité",
+    });
+    fireEvent.click(
+      await within(aside).findByRole("button", {
+        name: "Voir à côté Offres FICTIVES sur SEEK",
+      }),
+    );
+    const pane = await screen.findByRole("complementary", {
+      name: "Sous-agent : Offres FICTIVES sur SEEK",
+    });
+    // Le membre à côté, la mission principale toujours dans le fil.
+    await within(pane).findByText("Consigne FICTIVE de la sous-mission");
+    expect(
+      within(container.querySelector("main")!).getByText(
+        "Mission FICTIVE à trois portails",
+        { selector: ".prompt-bubble-text" },
+      ),
+    ).toBeTruthy();
+    // Jusqu'à 1560 px la barre latérale s'efface pour garder la place du fil.
+    expect(container.querySelector(".sidebar")).toBeNull();
+    fireEvent.click(
+      within(pane).getByRole("button", { name: "Fermer la vue à côté" }),
+    );
+    expect(
+      screen.queryByRole("complementary", {
+        name: "Sous-agent : Offres FICTIVES sur SEEK",
+      }),
+    ).toBeNull();
+  });
+  it("vue scindée : « Ouvrir en grand » ouvre le membre à la place de sa mission", async () => {
+    serve([mother, child]);
+    render(<App />);
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Voir à côté Offres FICTIVES sur SEEK",
+      }),
+    );
+    const pane = await screen.findByRole("complementary", {
+      name: "Sous-agent : Offres FICTIVES sur SEEK",
+    });
+    fireEvent.click(
+      within(pane).getByRole("button", { name: "Ouvrir en grand" }),
+    );
+    await screen.findByRole("button", {
+      name: "Revenir à la mission principale",
+    });
+    expect(
+      screen.queryByRole("complementary", {
+        name: "Sous-agent : Offres FICTIVES sur SEEK",
+      }),
+    ).toBeNull();
   });
   it("barre latérale : sans sa mère dans la liste, une sous-mission reste listée, titrée et marquée « sous-agent »", async () => {
     // swarm-11 retire une sous-mission dont la mère est listée ; l'orpheline reste ouvrable.

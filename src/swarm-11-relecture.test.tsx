@@ -108,23 +108,36 @@ describe("relecture : liste", () => {
       ],
     } as Run;
     const openedKid = { ...kid, title: "Sous-mission FICTIVE ouverte" } as Run;
-    serve([mother, kid], [openedMother, openedKid]);
-    fireEvent.click(
-      await screen.findByRole("button", { name: /Mère FICTIVE/ }),
-    );
-    const team = await screen.findByRole("region", { name: "Équipe" });
-    fireEvent.click(
-      within(team).getByRole("button", {
-        name: "Ouvrir la sous-mission Tâche 21",
-      }),
-    );
-    expect(vi.mocked(api)).toHaveBeenCalledWith(
-      expect.stringMatching(new RegExp(`^/runs/${kid.id}`)),
-    );
-    // The list still shows the mother alone, and no row claims to be the open one.
-    const list = document.querySelector(".mission-list")!;
-    expect(list.querySelectorAll(".mission-link").length).toBe(1);
-    expect(list.textContent).not.toMatch(/Sous-mission FICTIVE/);
+    // reponse-04 : l'équipe est dans le panneau Activité, plus dans le fil. À 1440 px le panneau est
+    // ouvert par défaut et la barre latérale (la liste vérifiée plus bas) reste affichée.
+    const width = (value: number) =>
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value,
+      });
+    width(1440);
+    try {
+      serve([mother, kid], [openedMother, openedKid]);
+      fireEvent.click(
+        await screen.findByRole("button", { name: /Mère FICTIVE/ }),
+      );
+      const team = await screen.findByRole("region", { name: "Équipe" });
+      fireEvent.click(
+        within(team).getByRole("button", {
+          name: "Ouvrir la sous-mission Tâche 21",
+        }),
+      );
+      expect(vi.mocked(api)).toHaveBeenCalledWith(
+        expect.stringMatching(new RegExp(`^/runs/${kid.id}`)),
+      );
+      // The list still shows the mother alone, and no row claims to be the open one.
+      const list = document.querySelector(".mission-list")!;
+      expect(list.querySelectorAll(".mission-link").length).toBe(1);
+      expect(list.textContent).not.toMatch(/Sous-mission FICTIVE/);
+    } finally {
+      width(1024);
+    }
   });
 });
 

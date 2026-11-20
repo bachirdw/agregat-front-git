@@ -5,6 +5,7 @@ import { useId, useState, type ReactNode } from "react";
 import { activity, describeTool, shortToolName } from "./Career";
 import { activityRows, type ActivityRow } from "./ConnectionsPanel";
 import { Icon } from "./Icon";
+import { CarnetBlock, TeamBlock } from "./Team";
 import {
   trackerDetails,
   trackerItems,
@@ -144,38 +145,8 @@ export function funnelCells(run: Run): [string, number][] {
 
 // Sous-agents : la famille du back (GET /api/runs/:id `family`, docs/api-delegation.md), complétée
 // par les événements de la mère (modèle, heures de lancement et de fin, envois vus par la plateforme).
-const heldLabels: Record<string, string> = {
-  en_file: "En file",
-  attend_accord: "Attend ton accord",
-};
-const waitLabels: Record<string, string> = {
-  question: "Attend ta réponse",
-  carte_envoi: "Un envoi attend ton clic",
-  accord: "Attend ton accord des sous-agents",
-  place: "En file : attend une place",
-};
-// Own keys only: a value written by an agent (`__proto__`…) never reads Object.prototype.
-const own = (table: Record<string, string>, key: unknown) =>
-  typeof key === "string" && Object.prototype.hasOwnProperty.call(table, key)
-    ? table[key]
-    : "";
 const stateOf = (member: FamilyMember) =>
   typeof member.state === "string" ? member.state : "";
-const memberStatus = (member: FamilyMember) =>
-  own(waitLabels, member.attend) ||
-  own(heldLabels, member.state) ||
-  own(labels, member.state) ||
-  stateOf(member);
-const memberTone = (state: string) =>
-  state === "running"
-    ? "running"
-    : state === "completed"
-      ? "completed"
-      : ["failed", "cancelled", "interrupted"].includes(state)
-        ? "failed"
-        : ["awaiting_owner", "waiting_permission"].includes(state)
-          ? "waiting"
-          : "queued";
 const waitsForOwner = (member: FamilyMember) =>
   member.attend === "question" || member.attend === "carte_envoi";
 export function familySummary(family: FamilyMember[]) {
@@ -196,53 +167,6 @@ export function familySummary(family: FamilyMember[]) {
       : "")
   );
 }
-const activityLine = ({
-  agents = 0,
-  awaitingOwner = 0,
-}: {
-  agents?: number;
-  awaitingOwner?: number;
-}) =>
-  (agents
-    ? `${agents} agent${agents > 1 ? "s" : ""} en activité (missions et sous-agents)`
-    : "Aucun agent en activité (missions et sous-agents)") +
-  (awaitingOwner ? `, dont ${awaitingOwner} en attente de toi` : "");
-type ChildTrace = {
-  modele?: string;
-  launchedAt?: string;
-  doneAt?: string;
-  envois?: string;
-};
-function childTraces(events: RunEvent[]) {
-  const traces = new Map<string, ChildTrace>();
-  for (const event of events) {
-    const data = event.data ?? {};
-    const id = typeof data.childId === "string" ? data.childId : "";
-    if (!id) continue;
-    const trace = traces.get(id) ?? {};
-    if (event.type === "child_launched") {
-      trace.launchedAt = event.at;
-      if (typeof data.modele === "string" && data.modele)
-        trace.modele = data.modele;
-    } else if (event.type === "child_done") {
-      trace.doneAt = event.at;
-      const line = (data.envois as { ligne?: unknown } | null | undefined)
-        ?.ligne;
-      if (typeof line === "string" && line) trace.envois = line;
-    }
-    traces.set(id, trace);
-  }
-  return traces;
-}
-const memberDuration = (member: FamilyMember, trace?: ChildTrace) =>
-  !trace?.launchedAt
-    ? ""
-    : trace.doneAt
-      ? duration(trace.launchedAt, trace.doneAt)
-      : stateOf(member) === "running"
-        ? duration(trace.launchedAt, Date.now())
-        : "";
-
 function Section({
   title,
   summary,
@@ -270,10 +194,12 @@ function TechDetails({
   open,
   onToggle,
   rows,
+  children,
 }: {
   open: boolean;
   onToggle: () => void;
   rows: DetailRow[];
+  children?: ReactNode;
 }) {
   return (
     <>
@@ -300,9 +226,36 @@ function TechDetails({
               </div>
             ))}
           </dl>
+          {children}
         </div>
       )}
     </>
+  );
+}
+// Brief 02 : le journal brut de la mission, replié, dans les détails techniques.
+function RawJournal({ events }: { events: RunEvent[] }) {
+  const [open, setOpen] = useState(false);
+  if (!events.length) return null;
+  return (
+    <details
+      className="fold raw-journal"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary>Journal brut · {events.length} entrées</summary>
+      {open && (
+        <ol>
+          {events.map((e) => (
+            <li key={e.seq}>
+              <span>
+                #{e.seq} · {e.type}
+              </span>
+              <pre>{JSON.stringify(e.data, null, 2)}</pre>
+            </li>
+          ))}
+        </ol>
+      )}
+    </details>
   );
 }
 function StepList({
@@ -323,89 +276,6 @@ function StepList({
         </li>
       ))}
     </ol>
-  );
-}
-function FamilyTile({
-  member,
-  trace,
-  busy,
-  onOpen,
-  onCancel,
-}: {
-  member: FamilyMember;
-  trace?: ChildTrace;
-  busy?: boolean;
-  onOpen?: (id: string) => void;
-  onCancel?: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [tech, setTech] = useState(false);
-  const tone = memberTone(stateOf(member));
-  const time = memberDuration(member, trace);
-  const asked = (member.pendingQuestion as { message?: unknown } | null)
-    ?.message;
-  const question = typeof asked === "string" ? asked.split("\n")[0] : "";
-  const techRows: DetailRow[] = [
-    [
-      "Agent",
-      `${member.agent || "non précisé"} · ${trace?.modele || "défaut"}`,
-    ],
-    ["Identifiant", member.id],
-  ];
-  if (trace?.envois) techRows.push(["Envois", trace.envois]);
-  return (
-    <div
-      // Préfixe : style.css a une règle globale `.waiting` (phrase d'attente du fil).
-      className={"subagent-tile tone-" + tone}
-      style={open ? { gridColumn: "1 / -1" } : undefined}
-    >
-      <button
-        type="button"
-        className="subagent-head"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        <span className="subagent-title">
-          <i className={"subagent-dot tone-" + tone} aria-hidden="true" />
-          <strong>{member.titre}</strong>
-          {time && <small>{time}</small>}
-        </span>
-        <span className="subagent-status">{memberStatus(member)}</span>
-      </button>
-      {open && (
-        <div className="subagent-body">
-          {question && <p className="subagent-task">Question : {question}</p>}
-          {!!member.pendingPermission && (
-            <p className="subagent-task">
-              Un envoi attend ton clic dans la sous-mission.
-            </p>
-          )}
-          <div className="subagent-actions">
-            <button
-              type="button"
-              disabled={!onOpen}
-              onClick={() => onOpen?.(member.id)}
-            >
-              Ouvrir la sous-mission
-            </button>
-            {!finalStates.has(stateOf(member)) && (
-              <button
-                type="button"
-                disabled={busy || !onCancel}
-                onClick={() => onCancel?.(member.id)}
-              >
-                Arrêter
-              </button>
-            )}
-          </div>
-          <TechDetails
-            open={tech}
-            onToggle={() => setTech(!tech)}
-            rows={techRows}
-          />
-        </div>
-      )}
-    </div>
   );
 }
 function datePad(at: string) {
@@ -473,6 +343,7 @@ export function ActivityPanel({
   schedules,
   onOpenRun,
   onCancelRun,
+  onOpenSide,
   busy,
 }: {
   catalog: Catalog | null;
@@ -487,6 +358,8 @@ export function ActivityPanel({
   // sous-agents-19-11 : open a sub-mission (or the main mission) and cancel a sub-mission.
   onOpenRun?: (id: string) => void;
   onCancelRun?: (id: string) => void;
+  // Vue scindée : un membre de l'équipe ouvert à côté du fil.
+  onOpenSide?: (id: string) => void;
   busy?: boolean;
 }) {
   const [connectors, setConnectors] = useState(false);
@@ -513,8 +386,7 @@ export function ActivityPanel({
         ? "completed"
         : "failed";
   const cells = run ? funnelCells(run) : [];
-  const family = run?.family ?? [];
-  const traces = childTraces(events);
+  const family = Array.isArray(run?.family) ? run!.family : [];
   const documents = run?.documents ?? [];
   const domains = run?.browserDomains ?? [];
   return (
@@ -649,27 +521,22 @@ export function ActivityPanel({
             </div>
           )}
         </section>
-        {family.length > 0 && (
-          <Section
-            title="Sous-agents"
-            summary={`${family.filter((member) => finalStates.has(stateOf(member))).length}/${family.length} terminés`}
-          >
-            <div className="subagent-grid">
-              {family.map((member) => (
-                <FamilyTile
-                  key={member.id}
-                  member={member}
-                  trace={traces.get(member.id)}
-                  busy={busy}
-                  onOpen={onOpenRun}
-                  onCancel={onCancelRun}
-                />
-              ))}
-            </div>
-            {run?.activity && (
-              <p className="activity-note">{activityLine(run.activity)}</p>
-            )}
-          </Section>
+        {/* reponse-04 : l'équipe (logique swarm, Team.tsx) vit dans le panneau, plus dans le fil. */}
+        {run && family.length > 0 && (
+          <section className="activity-section activity-team">
+            <TeamBlock
+              run={run}
+              openRun={onOpenRun}
+              onOpenSide={onOpenSide}
+              onCancel={onCancelRun}
+              busy={busy}
+            />
+          </section>
+        )}
+        {run && Number(run.carnet?.total) > 0 && (
+          <section className="activity-section activity-carnet">
+            <CarnetBlock run={run} />
+          </section>
         )}
         {run && cells.length > 0 && (
           <Section
@@ -739,7 +606,9 @@ export function ActivityPanel({
               open={stepsDetails}
               onToggle={() => (setDetails ?? setOwnDetails)(!stepsDetails)}
               rows={trackerDetails(run, events)}
-            />
+            >
+              <RawJournal events={events} />
+            </TechDetails>
           </Section>
         )}
         {documents.length > 0 && (

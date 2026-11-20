@@ -34,7 +34,7 @@ import {
 import type { Act } from "./OwnerRequests";
 
 // Claude-Code-like activity feed built from ACP session updates (tool calls and agent text).
-type Tool = {
+export type Tool = {
   kind: "tool";
   id: string;
   title: string;
@@ -58,7 +58,7 @@ type Tool = {
   endAt?: string;
 };
 // Message the owner sent while the mission ran (`owner_message`): one item per message id.
-type Owner = {
+export type Owner = {
   kind: "owner";
   id: string;
   messageId: string;
@@ -68,7 +68,7 @@ type Owner = {
   deliveredAt: string | null;
   text?: string;
 };
-type Item =
+export type Item =
   | Tool
   | Owner
   | { kind: "text"; id: string; text: string; at?: string }
@@ -248,7 +248,7 @@ export function waitingLabel(items: Item[]): string | null {
     ? null
     : "Réflexion…";
 }
-function Waiting({ label }: { label: string }) {
+export function Waiting({ label }: { label: string }) {
   return (
     <p className="waiting" role="status">
       <span className="thinking-dots" aria-hidden="true">
@@ -505,6 +505,51 @@ function span(
 export function toolDuration(tool: Tool, waits: Wait[] = []) {
   return span([tool.at], [tool.endAt], waits);
 }
+// reponse-04 : durée de toutes les actions d'une réponse (« A exécuté N actions · 4 min 12 s »).
+export function actionsDuration(tools: Tool[], waits: Wait[] = []) {
+  return tools.length
+    ? span(
+        tools.map((t) => t.at),
+        tools.map((t) => t.endAt),
+        waits,
+      )
+    : null;
+}
+export const isActiveTool = (tool: Tool) => active(tool.status);
+// skill-chip-01 : nom du skill ou de l'outil en cours, visible ~1,6 s au début de chaque appel ;
+// masqué pendant une demande d'accord et une fois la mission finie.
+export function SkillChip({ events, run }: { events: RunEvent[]; run: Run }) {
+  const tool = useMemo(
+    () =>
+      [...activity(events)]
+        .reverse()
+        .find((i): i is Tool => i.kind === "tool" && active(i.status)),
+    [events],
+  );
+  const [shown, setShown] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tool) {
+      setShown(null);
+      return;
+    }
+    setShown(tool.id);
+    const timer = window.setTimeout(() => setShown(null), 1600);
+    return () => window.clearTimeout(timer);
+  }, [tool?.id]);
+  if (
+    !tool ||
+    shown !== tool.id ||
+    finalStates.has(run.state) ||
+    run.permissions?.length
+  )
+    return null;
+  return (
+    <div className="skill-chip" role="status">
+      <i aria-hidden="true" />
+      {shortToolName(describeTool(tool).name)}
+    </div>
+  );
+}
 // The agent's question to the owner (Claude's AskUserQuestion): its time is the owner's wait.
 const asksOwner = (tool: Tool) =>
   tool.toolName === "AskUserQuestion" ||
@@ -684,7 +729,7 @@ export function ownerStatus(message: {
   return `Remis à l’agent${when ?? ""}${at ? ` · ${at}` : ""}`;
 }
 // The owner's message in the feed: its text (from the event, else the one this page sent) and state.
-function OwnerBubble({ message }: { message: Owner }) {
+export function OwnerBubble({ message }: { message: Owner }) {
   const text = message.text ?? ownerText(message.messageId);
   return (
     <div className={"owner-message " + message.state}>
