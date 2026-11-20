@@ -283,7 +283,7 @@ export default function App() {
     setImmediatePrompt((old) => (old?.id === id ? old : null));
     setError("");
     try {
-      const next = await api<Run>("/runs/" + id);
+      const next = await api<Run>("/runs/" + id + "?equipe=1");
       if (current.current === id && version === viewVersion.current) {
         setRun(next);
         setPage("mission");
@@ -309,7 +309,7 @@ export default function App() {
       refreshing = true;
       try {
         const next = await api<Run>(
-          "/runs/" + id,
+          "/runs/" + id + "?equipe=1",
           undefined,
           controller.signal,
         );
@@ -499,7 +499,7 @@ export default function App() {
         await openRun((response as Run).id);
         await history();
       } else if (run) {
-        const next = await api<Run>("/runs/" + run.id);
+        const next = await api<Run>("/runs/" + run.id + "?equipe=1");
         if (current.current === run.id) setRun(next);
       }
     } catch (e) {
@@ -516,7 +516,7 @@ export default function App() {
       runs={runs}
       selected={usageRun}
       onSelect={(id) => {
-        void api<Run>("/runs/" + id)
+        void api<Run>("/runs/" + id + "?equipe=1")
           .then(setUsageRun)
           .catch(report);
       }}
@@ -539,7 +539,7 @@ export default function App() {
           ),
       );
     // The stream's final state arrives before `resumable`: decide on a fresh copy of the run.
-    void api<Run>("/runs/" + runId)
+    void api<Run>("/runs/" + runId + "?equipe=1")
       .then(async (fresh) => {
         if (fresh.state === "completed" && fresh.resumable) {
           await action(

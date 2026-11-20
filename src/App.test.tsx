@@ -250,7 +250,7 @@ it("signale une perte du backend pendant une mission puis retente la lecture", a
       ? (Promise.resolve(catalog) as never)
       : path === "/runs"
         ? (Promise.resolve([run]) as never)
-        : path === `/runs/${run.id}`
+        : path.split("?")[0] === `/runs/${run.id}`
           ? ++reads === 1
             ? Promise.resolve(run)
             : Promise.reject(new ApiError("API locale inaccessible", 502))
@@ -291,7 +291,7 @@ it("détecte une perte du backend même si le flux ne signale aucune erreur", as
       ? (Promise.resolve(catalog) as never)
       : path === "/runs"
         ? (Promise.resolve([run]) as never)
-        : path === `/runs/${run.id}`
+        : path.split("?")[0] === `/runs/${run.id}`
           ? ++reads === 1
             ? Promise.resolve(run)
             : Promise.reject(new ApiError("API locale inaccessible", 502))
@@ -638,7 +638,7 @@ describe("instruction mise en file pendant une mission (repli : back sans la rou
         return Promise.reject(new ApiError("Not found", 404)) as never;
       if (String(path).endsWith("/resume"))
         return Promise.resolve({ ...running, id: "r2" }) as never;
-      if (path === "/runs/r2")
+      if (path.split("?")[0] === "/runs/r2")
         return Promise.resolve({ ...running, id: "r2" }) as never;
       return Promise.resolve(current) as never;
     });
@@ -784,7 +784,8 @@ it("après une réponse, le tour précédent reste dans le fil même si le back 
       resumed = true;
       return Promise.resolve(child) as never;
     }
-    if (path === `/runs/${child.id}`) return Promise.resolve(child) as never;
+    if (path.split("?")[0] === `/runs/${child.id}`)
+      return Promise.resolve(child) as never;
     return Promise.resolve(parent) as never;
   });
   render(<App />);

@@ -78,3 +78,20 @@ Codeur, 21/11/2026, de 01 h 49 à 01 h 55 (heure locale lue par `date`). Arbre
 ## État réel
 
 Commit `20f192b` (code et tests) puis le commit de ce rapport ; arbre propre ; rien poussé.
+
+## Suite : décision du manager sur le point 1 (21/11, 01 h 55)
+
+- Test ajouté d'abord dans `src/equipe.test.tsx` : « ouvrir une mission la lit par GET /runs/:id?equipe=1, jamais
+  sans le paramètre ». Sortie rouge avant la retouche : `× ouvrir une mission la lit par GET /runs/:id?equipe=1…`,
+  `AssertionError: expected "vi.fn()" to be called with arguments`, appel reçu `"/runs/00000000-0000-4000-8000-0000000000f0"`
+  (sans paramètre) ; `Tests 1 failed | 39 passed (40)`.
+- `src/App.tsx` : `+ "?equipe=1"` sur les 5 lectures GET d'une mission (lignes 286, 312, 502, 519, 542), rien d'autre.
+- **Tests existants modifiés** (seulement la comparaison du chemin du faux `api`, `path.split("?")[0]`, aucune
+  assertion touchée) :
+  - `src/App.test.tsx` lignes 253, 294, 641, 787 (787 coupée en deux lignes par prettier) ;
+  - `src/etat-liste.test.tsx` ligne 126.
+  La ligne 440 d'`App.test.tsx` (`path.startsWith("/runs/")`) n'a pas besoin de changer. `src/orienter.test.tsx:398`
+  (`path === "/runs/r2"`) a la même forme mais reste vert : non touché (hors autorisation).
+- Fin : `npm test` → 17 fichiers, 308 réussis / 308 ; `npm run build` → code 0 ; `npx prettier --check src` → code 0.
+- Le premier écart au plan (« `?equipe=1` non posé ») et le point à trancher 1 sont donc levés : les champs neufs
+  arrivent à l'écran avec un back swarm-07.

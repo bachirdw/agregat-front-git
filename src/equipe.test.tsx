@@ -825,3 +825,35 @@ describe("swarm-09 : états, membres, chef", () => {
     expect(within(b).queryByRole("button", { name: /autres?$/ })).toBeNull();
   });
 });
+
+describe("swarm-09 : lecture d'une mission avec la vue d'équipe", () => {
+  it("ouvrir une mission la lit par GET /runs/:id?equipe=1, jamais sans le paramètre", async () => {
+    const mother = run({ state: "completed", title: "Mère FICTIVE" } as never);
+    vi.mocked(api).mockImplementation((path) =>
+      path === "/catalog"
+        ? (Promise.resolve(catalog) as never)
+        : path === "/runs"
+          ? (Promise.resolve([mother]) as never)
+          : path.split("?")[0] === `/runs/${mother.id}`
+            ? (Promise.resolve(mother) as never)
+            : (new Promise(() => {}) as never),
+    );
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Mère FICTIVE/ }),
+    );
+    await waitFor(() =>
+      expect(vi.mocked(api)).toHaveBeenCalledWith(
+        `/runs/${mother.id}?equipe=1`,
+      ),
+    );
+    const reads = vi
+      .mocked(api)
+      .mock.calls.map(([path]) => path)
+      .filter((path) => path.split("?")[0] === `/runs/${mother.id}`);
+    expect(reads.length).toBeGreaterThan(0);
+    expect(reads.every((path) => path === `/runs/${mother.id}?equipe=1`)).toBe(
+      true,
+    );
+  });
+});
