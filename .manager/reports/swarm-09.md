@@ -95,3 +95,60 @@ Commit `20f192b` (code et tests) puis le commit de ce rapport ; arbre propre ; r
 - Fin : `npm test` → 17 fichiers, 308 réussis / 308 ; `npm run build` → code 0 ; `npx prettier --check src` → code 0.
 - Le premier écart au plan (« `?equipe=1` non posé ») et le point à trancher 1 sont donc levés : les champs neufs
   arrivent à l'écran avec un back swarm-07.
+
+## Relecture indépendante (21/11, 02 h 01)
+
+Base `0937088`, commits relus `0ee9aa5`, `20f192b`, `176a703`, `1abfda7`. Périmètre conforme : seuls les fichiers
+autorisés sont touchés ; `App.test.tsx` et `etat-liste.test.tsx` ne changent que la comparaison du chemin
+(`path.split("?")[0]`), aucune assertion ; `equipe.test.tsx` n'a que des ajouts (aucune ligne retirée).
+
+### Constats
+
+1. **Majeur, corrigé.** `Team.tsx` `Failure` : `réessayer à {hour(retry) || retry}` affichait la valeur brute de
+   `cause.reprise` quand elle n'est pas une heure. Désormais seule une heure valide est écrite (heure locale,
+   `toLocaleTimeString("fr-FR")`). Test rouge d'abord (`× « réessayer à » seulement pour une heure valide…`).
+2. **Majeur, préexistant (base), corrigé.** `roleLabels[role]`, `waitLabels[attend]`, `verdictLabels[valeur]`,
+   `categoryLabels[...]` lisaient la chaîne du prototype : un rôle ou un verdict `__proto__` écrit par un agent faisait
+   planter l'écran (`Objects are not valid as a React child`, vu rouge). Lecture par clé propre (`own()`), le texte
+   brut reste affiché comme avant pour une valeur inconnue.
+3. **Mineur, laissé.** Quatre des cinq lectures `?equipe=1` d'`App.tsx` n'étaient couvertes par aucun test (contrôle
+   négatif vert) : garde ajoutée sur le source (`App.tsx?raw`), qui rougit pour chacune et pour un `?equipe=1` posé
+   sur une route POST.
+4. **Mineur, à trancher.** `src/orienter.test.tsx:398` (`path === "/runs/r2"`, hors autorisation) reste vert mais sa
+   branche `/runs/r2` n'est plus jamais prise (la lecture porte `?equipe=1` et tombe sur la réponse par défaut) ;
+   l'assertion du test (reprise de `r1`) garde son sens.
+5. Conformes, vérifiés : en-tête de licence en première ligne de `status.ts` ; constantes de swarm (`WIDE_LIMIT` 8,
+   `formatDuration` arrondi à la seconde inférieure, heures sans secondes) ; chaque état de `labels` et des états
+   retenus a variante et libellé ; inconnu, `__proto__`, `constructor` → « État inconnu » ; `depuis` /
+   `inactiveDepuis` en secondes, `dureeMs` en ms ; aucun `dangerouslySetInnerHTML`, ni Markdown ; aucun nom d'agent,
+   de modèle, de Skill ou de site ; CSS : règles neuves seulement, variables existantes définies en clair et en sombre
+   (`data-theme`), animation éteinte sous `prefers-reduced-motion`, libellé toujours écrit. `Team.tsx` complet et
+   cohérent après l'incident `git restore` (diff relu en entier, build vert). Sans champ neuf, le rendu de la base est
+   gardé hors chef, pastille, « État inconnu » au lieu de la valeur brute et « illisible » pour la source `absent`
+   (voulus par le plan).
+
+### Contrôles négatifs (tous rougissent, code remis à l'identique, vérifié par `cmp`)
+
+Inconnu rendu brut (4 rouges) ; `hasOwn` → `in` (2) ; pli Échec fermé (3) ; pli Résultat ouvert (1) ; limite 9 (2) ;
+`complet` ignoré (1) ; `illisible` retiré (2) ; secondes lues en ms (1) ; reprise brute (2) ; tri retiré (1) ; dernière
+action sur un membre fini (1) ; état final après `attend` (1) ; chacune des 5 lectures sans `?equipe=1` (1 chacune,
+avec la garde ajoutée) ; `?equipe=1` sur une route POST (1). Non testable sous jsdom : `prefers-reduced-motion`,
+contraste (à voir à l'écran).
+
+### Tests ajoutés
+
+`src/swarm-09-relecture.test.tsx` (5) : reprise invalide ; valeurs mal typées (`__proto__`, `constructor`, NaN,
+négatifs, objets, tableau, nombre, 50 000 caractères) ; rôle, attente et verdict `__proto__` ; garde des 5 lectures ;
+membre fini sans « depuis » ni dernière action (« durée 1 h 05 »).
+
+### Totaux
+
+`npm test` : 18 fichiers, 313 réussis / 313 (308 avant la relecture) ; `npm run build` code 0 ;
+`npx prettier --check src` code 0.
+
+### Points à trancher par le manager
+
+- Constat 4 (`orienter.test.tsx`, hors autorisation).
+- Capture d'écran et contraste en mode sombre : non faits (décision du manager : il regardera l'écran).
+
+Verdict : `bon_a_integrer`.
