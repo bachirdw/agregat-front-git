@@ -3,6 +3,7 @@
 // Adapté de desplega-ai/agent-swarm (MIT, © desplega.sh) : apps/ui/src/components/shared/transcript/transcript.tsx
 // Adapté de desplega-ai/agent-swarm (MIT, © desplega.sh) : apps/ui/src/pages/tasks/[id]/lineage/lineage-tree.ts
 // Adapté de desplega-ai/agent-swarm (MIT, © desplega.sh) : apps/ui/src/lib/utils.ts
+// Adapté de desplega-ai/agent-swarm (MIT, © desplega.sh) : apps/ui/src/components/sessions-v2/sidebar/session-row.tsx
 //
 // One state table for the « Équipe » block: state → variant → class, one French label per state, the
 // « confié à agent · état · durée » line and « 8 members then +N autres ». Pure functions, no React.
@@ -229,4 +230,186 @@ export function resumeEquipe(membres: readonly MembreVu[]): {
     agents: agents.size,
     vivants: liste.filter((m) => !FINAUX.has(texte(m.state))).length,
   };
+}
+
+// ---- swarm-11 : liste des missions (une activité par ligne) et détails de la ligne brute d'un membre ----
+// Règle `activityOf` de swarm (session-row.tsx, lignes 46-54) : « Needs you, else running, else failed », une
+// seule marque par ligne.
+
+/** Mother of a sub-mission row (`famille.mere`), or "" for a mission of its own. */
+export function mereDe(row: unknown): string {
+  if (!row || typeof row !== "object") return "";
+  const famille = (row as { famille?: unknown }).famille;
+  if (!famille || typeof famille !== "object") return "";
+  return texte((famille as { mere?: unknown }).mere);
+}
+
+/**
+ * The rows the left list shows: every row except a sub-mission whose mother is in the same answer (the back's
+ * `?racines=1` rule: a sub-mission whose mother is gone stays listed, so it can still be opened).
+ */
+export function missionsDeLaListe<T extends { id: string }>(
+  rows: readonly T[],
+): T[] {
+  const liste = Array.isArray(rows)
+    ? rows.filter((r) => r && typeof r === "object")
+    : [];
+  const ids = new Set(liste.map((r) => r.id));
+  return liste.filter((r) => {
+    const mere = mereDe(r);
+    return !mere || !ids.has(mere);
+  });
+}
+
+export interface ResumeListe {
+  membres: number;
+  enCours: number;
+  teDemande: number;
+  /** Members `failed` only (cancelled or interrupted alone is not a failure of the row). */
+  echecs: number;
+}
+
+const nombre = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
+const ENCORE_PROPRIETAIRE = new Set([
+  "awaiting_owner",
+  "waiting_permission",
+  "attend_accord",
+]);
+
+/**
+ * Team summary of a mother row, `null` for a mission without a team. The back's `equipe` wins when it is on the
+ * row; otherwise it is counted from the sub-mission rows present in the same answer. The failures come from those
+ * rows when there are some (`failed` only), else from `equipe.echecs` (which also counts cancelled members).
+ */
+export function resumeListe(
+  run: { id: string; equipe?: unknown },
+  rows: readonly unknown[],
+): ResumeListe | null {
+  const enfants = (Array.isArray(rows) ? rows : []).filter(
+    (r) => mereDe(r) === run.id && run.id !== "",
+  ) as { state?: unknown }[];
+  const echecsVus = enfants.filter((r) => texte(r.state) === "failed").length;
+  const eq =
+    run.equipe && typeof run.equipe === "object"
+      ? (run.equipe as Record<string, unknown>)
+      : null;
+  if (eq && nombre(eq.membres) > 0)
+    return {
+      membres: nombre(eq.membres),
+      enCours: nombre(eq.enCours),
+      teDemande: nombre(eq.teDemande),
+      echecs: enfants.length ? echecsVus : nombre(eq.echecs),
+    };
+  if (!enfants.length) return null;
+  return {
+    membres: enfants.length,
+    enCours: enfants.filter((r) => !FINAUX.has(texte(r.state))).length,
+    teDemande: enfants.filter((r) => ENCORE_PROPRIETAIRE.has(texte(r.state)))
+      .length,
+    echecs: echecsVus,
+  };
+}
+
+export type ActiviteListe = "te_demande" | "encours" | "echec" | null;
+
+/** One activity per row: the owner is asked, else something runs, else a failure, else none. */
+export function activiteListe(
+  run: { state?: unknown },
+  resume: ResumeListe,
+): ActiviteListe {
+  const etat = texte(run.state);
+  if (ENCORE_PROPRIETAIRE.has(etat) || resume.teDemande > 0)
+    return "te_demande";
+  if (!FINAUX.has(etat) || resume.enCours > 0) return "encours";
+  if (etat === "failed" || resume.echecs > 0) return "echec";
+  return null;
+}
+
+/** Dot class of the row (existing `.dot.<state>` colors of style.css). */
+export const POINT_ACTIVITE: Record<Exclude<ActiviteListe, null>, string> = {
+  te_demande: "awaiting_owner",
+  encours: "running",
+  echec: "failed",
+};
+
+/**
+ * « 3 membres · 1 te demande », « 3 membres · 2 en cours », « 3 membres · 1 échec », « 3 membres ». When only the
+ * mother herself carries the activity (no member counted), the word comes without a number.
+ */
+export function texteResume(
+  resume: ResumeListe,
+  activite: ActiviteListe,
+): string {
+  const membres = `${resume.membres} ${resume.membres > 1 ? "membres" : "membre"}`;
+  const n =
+    activite === "te_demande"
+      ? resume.teDemande
+      : activite === "encours"
+        ? resume.enCours
+        : activite === "echec"
+          ? resume.echecs
+          : 0;
+  const mot =
+    activite === "te_demande"
+      ? n > 1
+        ? "te demandent"
+        : "te demande"
+      : activite === "encours"
+        ? "en cours"
+        : activite === "echec"
+          ? n > 1
+            ? "échecs"
+            : "échec"
+          : "";
+  if (!mot) return membres;
+  return `${membres} · ${n > 0 ? `${n} ` : ""}${mot}`;
+}
+
+/**
+ * Copies `motif` and `agentPrevu` from each sub-mission's own row (`famille`) onto the open mother's
+ * `family[]` members: `family[]` never carries them. Returns the same run when nothing is added.
+ */
+export function avecDetailsDesLignes<
+  R extends { family?: { id: string; motif?: string; agentPrevu?: string }[] },
+>(run: R, rows: readonly unknown[]): R {
+  const family = Array.isArray(run.family) ? run.family : null;
+  if (!family || !family.length || !Array.isArray(rows)) return run;
+  const parId = new Map<string, Record<string, unknown>>();
+  for (const r of rows) {
+    if (!r || typeof r !== "object") continue;
+    const id = (r as { id?: unknown }).id;
+    const famille = (r as { famille?: unknown }).famille;
+    if (typeof id === "string" && famille && typeof famille === "object")
+      parId.set(id, famille as Record<string, unknown>);
+  }
+  let change = false;
+  const suite = family.map((m) => {
+    const f = m && typeof m.id === "string" ? parId.get(m.id) : undefined;
+    if (!f) return m;
+    const motif = texte(f.motif);
+    const agentPrevu = texte(f.agentPrevu);
+    if (!motif && !agentPrevu) return m;
+    change = true;
+    return {
+      ...m,
+      ...(motif ? { motif } : {}),
+      ...(agentPrevu ? { agentPrevu } : {}),
+    };
+  });
+  return change ? { ...run, family: suite } : run;
+}
+
+/** « 12 345 jetons » from an announced `usage`, "" when no total is announced. */
+export function texteJetons(usage: unknown): string {
+  if (!usage || typeof usage !== "object") return "";
+  const jetons = (usage as { jetons?: unknown }).jetons;
+  if (!jetons || typeof jetons !== "object") return "";
+  const total = (jetons as { total?: unknown }).total;
+  if (typeof total !== "number" || !Number.isFinite(total) || total < 0)
+    return "";
+  const n = Math.round(total);
+  return `${new Intl.NumberFormat("fr-FR").format(n)} ${n > 1 ? "jetons" : "jeton"}`;
 }

@@ -20,6 +20,13 @@ export interface Agent {
     modes?: string[];
     error?: string;
   };
+  // Real state of the agent (back docs/api-agents-etat.md, swarm-02), absent from an older back:
+  // pret, simule, non_installe, adaptateur_absent, mode_reel_eteint, limite, connexion_refusee, a_reessayer.
+  etat?: string;
+  raison?: string;
+  // ISO end of a usage limit (`etat: "limite"`).
+  jusqua?: string;
+  modelesLimites?: Record<string, string>;
 }
 export interface Skill {
   id: string;
@@ -124,8 +131,13 @@ export interface FamilyMember {
   // Text reported by an agent: rendered as plain text only.
   resultat?: string;
   cause?: MemberCause;
-  // Typed only: not sent before swarm-14, not displayed.
-  usage?: unknown;
+  // Consumption announced by the member's agent (plan swarm 3.2, swarm-14), not sent before swarm-14;
+  // shown only as « N jetons » when `jetons.total` is a number.
+  usage?: MemberUsage | null;
+  // Read by the interface on the sub-mission's own row of `GET /api/runs` (`famille.motif`,
+  // `famille.agentPrevu`), never sent in `family[]`: plain text only.
+  motif?: string;
+  agentPrevu?: string;
   // A run state, or a state held by the platform: en_file, attend_accord, attend_prerequis.
   state?: string;
   attend?: string | null;
@@ -134,6 +146,29 @@ export interface FamilyMember {
   role?: string;
   relit?: string[];
   verdict?: TeamVerdict;
+}
+export interface MemberUsage {
+  tours?: number;
+  jetons?: { entree?: number; sortie?: number; total?: number } | null;
+  cout?: { montant?: number; devise?: string } | null;
+}
+// Summary of a mother's team on a row of `GET /api/runs` (back docs/api-equipe-vue.md, swarm-07).
+export interface TeamSummary {
+  membres?: number;
+  enCours?: number;
+  finis?: number;
+  echecs?: number;
+  teDemande?: number;
+}
+// Link of a sub-mission to its mother, on its own row of `GET /api/runs` (back `famille`).
+export interface RunLink {
+  racine?: string;
+  mere?: string;
+  titre?: string;
+  pourquoi?: string;
+  motif?: string;
+  agentPrevu?: string;
+  agentImpose?: boolean;
 }
 export interface CarnetNote {
   n?: number;
@@ -302,6 +337,9 @@ export interface Run {
   multiAgent?: boolean;
   family?: FamilyMember[];
   activity?: { agents?: number; awaitingOwner?: number };
+  // Rows of `GET /api/runs` only: the team summary of a mother, the link of a sub-mission.
+  equipe?: TeamSummary;
+  famille?: RunLink;
   // Private space: `total` only.
   carnet?: { total?: number; notes?: CarnetNote[] };
 }
