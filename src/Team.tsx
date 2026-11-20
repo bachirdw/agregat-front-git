@@ -47,6 +47,9 @@ const categoryLabels: Record<string, string> = {
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 const plural = (n: number, one: string, many: string) =>
   `${n} ${n > 1 ? many : one}`;
+// Own keys only: a value such as `__proto__` written by an agent reads as unknown, never as Object.prototype.
+const own = (table: Record<string, string>, key: string) =>
+  Object.prototype.hasOwnProperty.call(table, key) ? table[key] : "";
 
 function waitsForOwner(member: FamilyMember) {
   return (
@@ -79,7 +82,9 @@ function Verdict({ verdict }: { verdict: TeamVerdict }) {
         }
       >
         Verdict :{" "}
-        {unreadable ? "illisible" : verdictLabels[value] || value || "inconnu"}
+        {unreadable
+          ? "illisible"
+          : own(verdictLabels, value) || value || "inconnu"}
         {unreadable
           ? " · aucun verdict écrit"
           : imprecise
@@ -132,7 +137,8 @@ function Failure({ member }: { member: FamilyMember }) {
   const after = duration === null ? "" : formatDuree(duration);
   const usageLimit = text(cause.type) === "limite_usage";
   const message = text(cause.message);
-  const retry = text(cause.reprise);
+  // Only a valid hour: a raw or unreadable `reprise` is left out, never shown as is.
+  const retry = hour(text(cause.reprise));
   return (
     <details className="team-pli team-echec" open>
       <summary>
@@ -140,7 +146,7 @@ function Failure({ member }: { member: FamilyMember }) {
         {usageLimit ? "limite d’usage atteinte" : "erreur"}
       </summary>
       {message && <p>{message}</p>}
-      {retry && <p>réessayer à {hour(retry) || retry}</p>}
+      {retry && <p>réessayer à {retry}</p>}
     </details>
   );
 }
@@ -212,7 +218,7 @@ export function TeamBlock({
             !!m.cause &&
             typeof m.cause === "object";
           const role = text(m.role);
-          const wait = waitLabels[text(m.attend)];
+          const wait = own(waitLabels, text(m.attend));
           const reviews = (Array.isArray(m.relit) ? m.relit : []).filter(
             (id) => typeof id === "string",
           );
@@ -242,7 +248,7 @@ export function TeamBlock({
               <div className="tags">
                 {role && (
                   <span className="badge">
-                    {roleLabels[role.toLowerCase()] || role}
+                    {own(roleLabels, role.toLowerCase()) || role}
                   </span>
                 )}
                 {text(m.agent) && (
@@ -339,13 +345,13 @@ export function CarnetBlock({ run }: { run: Run }) {
                   <strong>{text(note.auteur) || "membre"}</strong>
                   {text(note.role) && (
                     <span className="badge">
-                      {roleLabels[text(note.role).toLowerCase()] ||
+                      {own(roleLabels, text(note.role).toLowerCase()) ||
                         text(note.role)}
                     </span>
                   )}
                   {category && (
                     <span className="badge">
-                      {categoryLabels[category] || category}
+                      {own(categoryLabels, category) || category}
                     </span>
                   )}
                   {at && hour(at) && <time dateTime={at}>{hour(at)}</time>}
