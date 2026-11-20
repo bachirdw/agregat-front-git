@@ -148,17 +148,24 @@ const heldLabels: Record<string, string> = {
   en_file: "En file",
   attend_accord: "Attend ton accord",
 };
-const waitLabels: Record<NonNullable<FamilyMember["attend"]>, string> = {
+const waitLabels: Record<string, string> = {
   question: "Attend ta réponse",
   carte_envoi: "Un envoi attend ton clic",
   accord: "Attend ton accord des sous-agents",
   place: "En file : attend une place",
 };
+// Own keys only: a value written by an agent (`__proto__`…) never reads Object.prototype.
+const own = (table: Record<string, string>, key: unknown) =>
+  typeof key === "string" && Object.prototype.hasOwnProperty.call(table, key)
+    ? table[key]
+    : "";
+const stateOf = (member: FamilyMember) =>
+  typeof member.state === "string" ? member.state : "";
 const memberStatus = (member: FamilyMember) =>
-  (member.attend && waitLabels[member.attend]) ||
-  heldLabels[member.state] ||
-  labels[member.state] ||
-  member.state;
+  own(waitLabels, member.attend) ||
+  own(heldLabels, member.state) ||
+  own(labels, member.state) ||
+  stateOf(member);
 const memberTone = (state: string) =>
   state === "running"
     ? "running"
@@ -172,8 +179,12 @@ const memberTone = (state: string) =>
 const waitsForOwner = (member: FamilyMember) =>
   member.attend === "question" || member.attend === "carte_envoi";
 export function familySummary(family: FamilyMember[]) {
-  const running = family.filter((member) => member.state === "running").length;
-  const done = family.filter((member) => finalStates.has(member.state)).length;
+  const running = family.filter(
+    (member) => stateOf(member) === "running",
+  ).length;
+  const done = family.filter((member) =>
+    finalStates.has(stateOf(member)),
+  ).length;
   const waiting = family.filter(waitsForOwner).length;
   const head = running
     ? `${running} sous-agent${running > 1 ? "s" : ""} en cours`
@@ -186,11 +197,11 @@ export function familySummary(family: FamilyMember[]) {
   );
 }
 const activityLine = ({
-  agents,
-  awaitingOwner,
+  agents = 0,
+  awaitingOwner = 0,
 }: {
-  agents: number;
-  awaitingOwner: number;
+  agents?: number;
+  awaitingOwner?: number;
 }) =>
   (agents
     ? `${agents} agent${agents > 1 ? "s" : ""} en activité (missions et sous-agents)`
@@ -228,7 +239,7 @@ const memberDuration = (member: FamilyMember, trace?: ChildTrace) =>
     ? ""
     : trace.doneAt
       ? duration(trace.launchedAt, trace.doneAt)
-      : member.state === "running"
+      : stateOf(member) === "running"
         ? duration(trace.launchedAt, Date.now())
         : "";
 
@@ -329,9 +340,11 @@ function FamilyTile({
 }) {
   const [open, setOpen] = useState(false);
   const [tech, setTech] = useState(false);
-  const tone = memberTone(member.state);
+  const tone = memberTone(stateOf(member));
   const time = memberDuration(member, trace);
-  const question = member.pendingQuestion?.message?.split("\n")[0];
+  const asked = (member.pendingQuestion as { message?: unknown } | null)
+    ?.message;
+  const question = typeof asked === "string" ? asked.split("\n")[0] : "";
   const techRows: DetailRow[] = [
     [
       "Agent",
@@ -362,7 +375,7 @@ function FamilyTile({
       {open && (
         <div className="subagent-body">
           {question && <p className="subagent-task">Question : {question}</p>}
-          {member.pendingPermission && (
+          {!!member.pendingPermission && (
             <p className="subagent-task">
               Un envoi attend ton clic dans la sous-mission.
             </p>
@@ -375,7 +388,7 @@ function FamilyTile({
             >
               Ouvrir la sous-mission
             </button>
-            {!finalStates.has(member.state) && (
+            {!finalStates.has(stateOf(member)) && (
               <button
                 type="button"
                 disabled={busy || !onCancel}
@@ -518,10 +531,13 @@ export function ActivityPanel({
         </button>
       </header>
       <div className="activity-body">
-        {run?.famille && onOpenRun && (
+        {typeof run?.famille?.mere === "string" && onOpenRun && (
           <div className="activity-parent">
             <span>Sous-agent d’une autre mission</span>
-            <button type="button" onClick={() => onOpenRun(run.famille!.mere)}>
+            <button
+              type="button"
+              onClick={() => onOpenRun(String(run.famille!.mere))}
+            >
               Revenir à la mission principale
             </button>
           </div>
@@ -636,7 +652,7 @@ export function ActivityPanel({
         {family.length > 0 && (
           <Section
             title="Sous-agents"
-            summary={`${family.filter((member) => finalStates.has(member.state)).length}/${family.length} terminés`}
+            summary={`${family.filter((member) => finalStates.has(stateOf(member))).length}/${family.length} terminés`}
           >
             <div className="subagent-grid">
               {family.map((member) => (

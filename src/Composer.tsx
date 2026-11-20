@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type { Attachment, Catalog, MissionInput } from "./types";
 import { ATTACHMENT_MAX_COUNT, uploadFile } from "./api";
 import { money } from "./types";
 import { Icon } from "./Icon";
+import { agentStateLabel, agentsInOrder } from "./agentStatus";
 function size(bytes: number) {
   return bytes < 1024 * 1024
     ? `${Math.max(1, Math.round(bytes / 1024))} Ko`
@@ -137,6 +138,7 @@ export function Composer({
   };
   agentWarning?: string | null;
 }) {
+  const teamHelp = useId();
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const measureRef = useRef<() => void>(() => {});
   measureRef.current = () => {
@@ -255,26 +257,6 @@ export function Composer({
   );
   const set = (patch: Partial<MissionInput>) =>
     onChange({ ...input, ...patch });
-  // sous-agents-19-11 : envelope of « Autoriser les sous-agents » (back default 6 and 3, bounds 1-200
-  // and 1-8). Kept while the box is unchecked; a draft keeps what is typed until it is a number.
-  const [envelope, setEnvelope] = useState({ total: 6, parallel: 3 });
-  const [drafts, setDrafts] = useState<{ total?: string; parallel?: string }>(
-    {},
-  );
-  const delegationTotal = input.delegation?.total ?? envelope.total;
-  const delegationParallel = input.delegation?.parallel ?? envelope.parallel;
-  const changeEnvelope = (field: "total" | "parallel", raw: string) => {
-    setDrafts((old) => ({ ...old, [field]: raw }));
-    const typed = Number(raw);
-    if (!raw.trim() || !Number.isFinite(typed)) return;
-    const value = Math.min(
-      field === "total" ? 200 : 8,
-      Math.max(1, Math.round(typed)),
-    );
-    setEnvelope((old) => ({ ...old, [field]: value }));
-    if (input.delegation)
-      set({ delegation: { ...input.delegation, [field]: value } });
-  };
   const agent = catalog?.agents.find((a) => a.id === input.agent);
   const models = agent?.probe?.models || [];
   const pack = catalog?.packs.find((p) => p.id === input.pack);
@@ -394,6 +376,17 @@ export function Composer({
             {agentWarning}
           </p>
         )}
+        {input.team &&
+          input.mode === "workflow" &&
+          input.workflow !== "auto" &&
+          !reply &&
+          !disabled && (
+            <p className="agent-warning" role="alert">
+              L’équipe remplace le workflow choisi : la mission partira avec un
+              agent chef, sans ce workflow. Éteins « Équipe d’agents » pour
+              garder le workflow.
+            </p>
+          )}
         <div className="composer-bottom">
           <AttachMenu
             disabled={disabled || uploading > 0}
@@ -413,18 +406,24 @@ export function Composer({
                     }
                   >
                     <option value="auto">Auto · selon les capacités</option>
-                    {catalog?.agents.map((a) => (
+                    {/* Ready agents first; an agent under a limit or refused stays selectable (the
+                        owner may force it), with its real state read from the catalog. */}
+                    {agentsInOrder(catalog?.agents).map((a) => (
                       <option
                         key={a.id}
                         value={a.id}
                         disabled={
                           !a.installed ||
                           !a.compatible ||
-                          (!catalog.live && !a.simulated)
+                          (!catalog?.live && !a.simulated)
                         }
                       >
                         {a.name}
-                        {!a.compatible ? " · indisponible" : ""}
+                        {agentStateLabel(a)
+                          ? ` · ${agentStateLabel(a)}`
+                          : !a.compatible
+                            ? " · indisponible"
+                            : ""}
                       </option>
                     ))}
                   </select>
@@ -578,6 +577,63 @@ export function Composer({
                   {pack?.description || "Le plan expliquera le pack retenu."}
                 </small>
               </Filter>
+              <Filter name="Équipe" value={input.team ? "Allumée" : "Éteinte"}>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Équipe d’agents"
+                    aria-describedby={teamHelp}
+                    checked={!!input.team}
+                    aria-checked={!!input.team}
+                    disabled={disabled}
+                    onChange={(e) =>
+                      set({
+                        team: e.target.checked,
+                        teamConsent: e.target.checked,
+                      })
+                    }
+                  />
+                  <span>Équipe d’agents</span>
+                </label>
+                {input.team && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      aria-describedby={teamHelp}
+                      checked={!!input.teamConsent}
+                      disabled={disabled}
+                      onChange={(e) => set({ teamConsent: e.target.checked })}
+                    />
+                    <span>Autoriser les sous-agents</span>
+                  </label>
+                )}
+                {/* One short sentence; the whole contract text stays below, folded (swarm
+                    request-header: one line, the detail in the body). */}
+                <small className="team-accord">
+                  Ton agent pourra se faire aider par d’autres agents, chacun
+                  sur ton abonnement.
+                </small>
+                <details className="team-accord-plus">
+                  <summary>En savoir plus</summary>
+                  {/* Text of the back contract (docs/api-delegation.md section 6), default envelope. */}
+                  <small id={teamHelp}>
+                    L’agent de ta mission pourra, s’il le juge utile, confier
+                    des parties du travail à d’autres agents qui travaillent en
+                    même temps. Chacun consomme ton abonnement comme une mission
+                    ordinaire : avec plusieurs agents à la fois, ta limite
+                    d’usage peut être atteinte plus vite. Autoriser n’oblige pas
+                    : pour une demande simple, un seul agent travaillera. Au
+                    plus 6 sous-missions Relay pour cette mission, 3 en même
+                    temps ; une sous-mission en échec peut en plus être reprise
+                    deux fois hors de cette limite ; les sous-agents internes
+                    que les agents lancent d’eux-mêmes ne sont ni comptés ni
+                    bornés par cette limite. Sans « Autoriser les sous-agents »,
+                    ton accord te sera demandé au premier lancement. Les envois
+                    restent à ton clic.
+                  </small>
+                </details>
+              </Filter>
               <Filter
                 name="Mode"
                 value={input.mode === "workflow" ? "Workflow" : "Agent unique"}
@@ -628,84 +684,6 @@ export function Composer({
                   </label>
                 </Filter>
               )}
-              <Filter
-                name="Sous-agents"
-                value={input.delegation ? "Autorisés" : "Non"}
-              >
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={!!input.delegation}
-                    disabled={disabled}
-                    onChange={(e) =>
-                      set({
-                        delegation: e.target.checked
-                          ? {
-                              accepted: true,
-                              via: "bouton",
-                              total: delegationTotal,
-                              parallel: delegationParallel,
-                            }
-                          : undefined,
-                      })
-                    }
-                  />
-                  Autoriser les sous-agents
-                </label>
-                {/* Texte du back (docs/api-delegation.md §6), tel quel. */}
-                <small className="delegation-text">
-                  L’agent de ta mission pourra, s’il le juge utile, confier des
-                  parties du travail à d’autres agents qui travaillent en même
-                  temps. Chacun consomme ton abonnement comme une mission
-                  ordinaire : avec plusieurs agents à la fois, ta limite d’usage
-                  peut être atteinte plus vite. Autoriser n’oblige pas : pour
-                  une demande simple, un seul agent travaillera. Au plus{" "}
-                  {delegationTotal} sous-agents pour cette mission,{" "}
-                  {delegationParallel} en même temps (modifiables). Les envois
-                  restent à ton clic.
-                </small>
-                <div className="delegation-envelope">
-                  <label>
-                    Au plus
-                    <input
-                      type="number"
-                      aria-label="Sous-agents au plus"
-                      min="1"
-                      max="200"
-                      step="1"
-                      value={drafts.total ?? String(delegationTotal)}
-                      disabled={disabled}
-                      onChange={(e) => changeEnvelope("total", e.target.value)}
-                      onBlur={() =>
-                        setDrafts((old) => ({ ...old, total: undefined }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    En même temps
-                    <input
-                      type="number"
-                      aria-label="Sous-agents en même temps"
-                      min="1"
-                      max="8"
-                      step="1"
-                      value={drafts.parallel ?? String(delegationParallel)}
-                      disabled={disabled}
-                      onChange={(e) =>
-                        changeEnvelope("parallel", e.target.value)
-                      }
-                      onBlur={() =>
-                        setDrafts((old) => ({ ...old, parallel: undefined }))
-                      }
-                    />
-                  </label>
-                </div>
-                {input.delegation && input.mode === "workflow" && (
-                  <small>
-                    La mission sera menée par un agent, pas par un workflow DAG.
-                  </small>
-                )}
-              </Filter>
               <Filter
                 name="Budget"
                 value={money(input.budgetCents, catalog?.pricing.currency)}

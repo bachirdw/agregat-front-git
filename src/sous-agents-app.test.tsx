@@ -86,49 +86,15 @@ const serve = (runs: Run[]) =>
   vi.mocked(api).mockImplementation((path) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
     if (path === "/runs") return Promise.resolve(runs) as never;
-    const found = runs.find((r) => path === "/runs/" + r.id);
+    // swarm-09 : une mission se lit avec ?equipe=1.
+    const found = runs.find(
+      (r) => String(path).split("?")[0] === "/runs/" + r.id,
+    );
     if (found) return Promise.resolve(found) as never;
     return Promise.resolve({ ok: true }) as never;
   });
 
 describe("sous-agents dans l'application", () => {
-  it("la case cochée part avec la requête de lancement, puis se décoche pour la mission suivante", async () => {
-    let created: unknown;
-    vi.mocked(api).mockImplementation((path, body) => {
-      if (path === "/catalog") return Promise.resolve(catalog) as never;
-      if (path === "/runs" && body) {
-        created = body;
-        return Promise.resolve({ ...base, id: "n1", prompt: "x" }) as never;
-      }
-      if (path === "/runs") return Promise.resolve([]) as never;
-      return Promise.resolve({ ...base, id: "n1", prompt: "x" }) as never;
-    });
-    render(<App />);
-    await screen.findByRole("button", { name: "Lancer la mission" });
-    fireEvent.click(
-      screen.getByRole("checkbox", { name: "Autoriser les sous-agents" }),
-    );
-    fireEvent.change(screen.getByLabelText("Objectif de la mission"), {
-      target: { value: "Cherche sur trois portails FICTIFS" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Lancer la mission" }));
-    await waitFor(() => expect(created).toBeTruthy());
-    expect((created as { delegation: object }).delegation).toMatchObject({
-      accepted: true,
-      via: "bouton",
-      total: 6,
-      parallel: 3,
-    });
-    await waitFor(() =>
-      expect(
-        (
-          screen.getByRole("checkbox", {
-            name: "Autoriser les sous-agents",
-          }) as HTMLInputElement
-        ).checked,
-      ).toBe(false),
-    );
-  });
   it("une tuile ouvre sa sous-mission et Arrêter annule cette sous-mission seulement", async () => {
     serve([mother, child]);
     render(<App />);
@@ -155,17 +121,15 @@ describe("sous-agents dans l'application", () => {
       screen.getByRole("button", { name: "Revenir à la mission principale" }),
     ).toBeTruthy();
   });
-  it("barre latérale : une sous-mission est marquée « sous-agent »", async () => {
-    serve([mother, child]);
+  it("barre latérale : sans sa mère dans la liste, une sous-mission reste listée, titrée et marquée « sous-agent »", async () => {
+    // swarm-11 retire une sous-mission dont la mère est listée ; l'orpheline reste ouvrable.
+    serve([child]);
     render(<App />);
     const entry = (
       await screen.findByTitle("Consigne FICTIVE de la sous-mission")
     ).closest("button")!;
     expect(within(entry).getByText("sous-agent")).toBeTruthy();
-    const main = screen
-      .getByTitle("Mission FICTIVE à trois portails")
-      .closest("button")!;
-    expect(within(main).queryByText("sous-agent")).toBeNull();
+    expect(entry.textContent).toContain("Offres FICTIVES sur SEEK");
   });
   it("voie 2 : la ligne du back « Sous-agents lancés à ta demande » s'affiche dans le fil", async () => {
     serve([mother]);

@@ -1412,3 +1412,184 @@ fieldset.question-field label {
   font-size: 11.5px;
   opacity: 0.85;
 }
+/* equipe-front-20-11 : team of a multi-agent mission and its notebook. */
+.team-members,
+.team-notes {
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+.team-members > li,
+.team-notes > li {
+  padding: 8px 0 0;
+  box-shadow: inset 0 0.5px 0 var(--sep);
+  overflow-wrap: anywhere;
+}
+.team .tags,
+.team-carnet .tags {
+  align-items: center;
+  margin-top: 4px;
+}
+.team-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cmd);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.team-open:focus-visible {
+  outline: 2px solid var(--cmd);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.team-verdict {
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+.team-verdict ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.team-notes p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+/* swarm-09 : one state table (src/status.ts) — a dot before the written label, never the color alone. */
+.etat::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.etat-attente {
+  color: var(--muted);
+}
+.etat-attente::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.etat-encours {
+  color: var(--accentText);
+}
+.etat-encours::before {
+  animation: etat-pulse 1.6s ease-in-out infinite;
+}
+.etat-te-demande {
+  color: var(--orange);
+}
+.badge.etat-te-demande {
+  background: var(--orangeFill);
+}
+.etat-fini {
+  color: var(--green);
+}
+.badge.etat-fini {
+  background: var(--greenFill);
+}
+.etat-echec {
+  color: var(--red);
+}
+.badge.etat-echec {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+.etat-annule,
+.etat-inconnu {
+  color: var(--muted);
+}
+.etat-annule::before {
+  background: linear-gradient(
+    135deg,
+    transparent 42%,
+    currentColor 42% 58%,
+    transparent 58%
+  );
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.etat-inconnu::before {
+  background: transparent;
+  border: 1.5px dotted currentColor;
+}
+.team-chef .etat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+@keyframes etat-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.team-chef {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* A vertical line ties the members to their chief. */
+.team-members > li {
+  padding-left: 10px;
+  border-left: 2px solid var(--sep);
+}
+.team-pli {
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+.team-pli summary {
+  cursor: pointer;
+}
+.team-pli p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+.team-echec summary {
+  color: var(--red);
+}
+.team-more {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cmd);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.team-more:focus-visible {
+  outline: 2px solid var(--cmd);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .etat-encours::before {
+    animation: none;
+  }
+}
+
+/* swarm-11 : résumé d'équipe d'une ligne de la liste, accord court, motif et jetons d'un membre */
+.mission-link small.team-summary {
+  flex: none;
+  white-space: nowrap;
+}
+.team-accord-plus > summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.team-accord-plus > small {
+  display: block;
+  margin-top: 4px;
+}
+.team-members .team-motif {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.team-members .team-jetons {
+  color: var(--muted);
+}

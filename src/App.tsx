@@ -28,6 +28,14 @@ import { metaLine } from "./Tracker";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
 import { RunView } from "./Mission";
+import {
+  activiteListe,
+  avecDetailsDesLignes,
+  missionsDeLaListe,
+  POINT_ACTIVITE,
+  resumeListe,
+  texteResume,
+} from "./status";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
 const ENDED_NOTICE =
   "La mission est terminée : votre message sera envoyé dans une reprise";
@@ -322,7 +330,7 @@ export default function App() {
     setImmediatePrompt((old) => (old?.id === id ? old : null));
     setError("");
     try {
-      const next = await api<Run>("/runs/" + id);
+      const next = await api<Run>("/runs/" + id + "?equipe=1");
       if (current.current === id && version === viewVersion.current) {
         setRun(next);
         setPage("mission");
@@ -348,7 +356,7 @@ export default function App() {
       refreshing = true;
       try {
         const next = await api<Run>(
-          "/runs/" + id,
+          "/runs/" + id + "?equipe=1",
           undefined,
           controller.signal,
         );
@@ -473,13 +481,7 @@ export default function App() {
           setImmediatePrompt({ id: next.id, text: candidate.prompt });
         await openRun(next.id);
         if (viewVersion.current === version + 1 && current.current === next.id)
-          // sous-agents-19-11 : the agreement is per mission; the box is unchecked for the next one.
-          setInput((old) => ({
-            ...old,
-            prompt: "",
-            attachments: [],
-            delegation: undefined,
-          }));
+          setInput((old) => ({ ...old, prompt: "", attachments: [] }));
       }
       await history();
     } catch (e) {
@@ -544,7 +546,7 @@ export default function App() {
         await openRun((response as Run).id);
         await history();
       } else if (run) {
-        const next = await api<Run>("/runs/" + run.id);
+        const next = await api<Run>("/runs/" + run.id + "?equipe=1");
         if (current.current === run.id) setRun(next);
       }
     } catch (e) {
@@ -561,7 +563,7 @@ export default function App() {
       runs={runs}
       selected={usageRun}
       onSelect={(id) => {
-        void api<Run>("/runs/" + id)
+        void api<Run>("/runs/" + id + "?equipe=1")
           .then(setUsageRun)
           .catch(report);
       }}
@@ -598,7 +600,7 @@ export default function App() {
           ),
       );
     // The stream's final state arrives before `resumable`: decide on a fresh copy of the run.
-    void api<Run>("/runs/" + runId)
+    void api<Run>("/runs/" + runId + "?equipe=1")
       .then(async (fresh) => {
         if (fresh.state === "completed" && fresh.resumable) {
           await action(
@@ -724,48 +726,78 @@ export default function App() {
             </button>
           </div>
           <div className="mission-list">
-            {conversations(runs).map(({ run: r, turns }) => (
-              <button
-                key={r.id}
-                className={
-                  "mission-link " +
-                  (run?.id === r.id && page === "mission" ? "active" : "")
-                }
-                onClick={() => void openRun(r.id)}
-              >
-                <i className={"dot " + r.state} />
-                <span title={r.prompt}>
-                  {/* sous-agents-19-11 : une sous-mission porte le titre que son chef lui a donné. */}
-                  {r.famille?.titre || r.title || r.prompt}
-                </span>
-                <small
+            {/* Sub-missions leave the list (their mother shows her team); the full `runs` stays for the
+                counter, Consumption, the history and the agent warning. */}
+            {conversations(missionsDeLaListe(runs)).map(({ run: r, turns }) => {
+              const team = resumeListe(r, runs);
+              // A mission with a team: one activity mark, and its words are the row's only state text.
+              const activity = team && activiteListe(r, team);
+              return (
+                <button
+                  key={r.id}
                   className={
-                    finalStates.has(r.state) || ownerStates.has(r.state)
-                      ? "sr-only"
-                      : ""
+                    "mission-link " +
+                    (run?.id === r.id && page === "mission" ? "active" : "")
                   }
+                  onClick={() => void openRun(r.id)}
                 >
-                  {labels[r.state] || r.state}
-                </small>
-                {ownerStates.has(r.state) && (
-                  <small className="owner-turn" title="À vous de répondre">
-                    À vous
-                  </small>
-                )}
-                {turns > 1 && <small className="turns">{turns} tours</small>}
-                {r.simulated && <small>fictif</small>}
-                {r.famille && (
-                  // Icône des sous-agents (comme la ligne du fil) : le titre garde la place.
-                  <small
-                    className="subagent-tag"
-                    title="Sous-agent d’une autre mission"
-                  >
-                    <Icon name="grid" />
-                    <span className="sr-only">sous-agent</span>
-                  </small>
-                )}
-              </button>
-            ))}
+                  <i
+                    className={
+                      "dot " + (activity ? POINT_ACTIVITE[activity] : r.state)
+                    }
+                    data-activite={team ? activity || "aucune" : undefined}
+                  />
+                  <span title={r.prompt}>
+                    {/* Sous-mission orpheline (mère hors de la liste) : le titre que son chef lui a donné. */}
+                    {r.famille?.titre || r.title || r.prompt}
+                  </span>
+                  {team ? (
+                    <>
+                      {!activity && (
+                        <small className="sr-only">
+                          {labels[r.state] || r.state}
+                        </small>
+                      )}
+                      <small className="team-summary">
+                        {texteResume(team, activity)}
+                      </small>
+                    </>
+                  ) : (
+                    <>
+                      <small
+                        className={
+                          finalStates.has(r.state) || ownerStates.has(r.state)
+                            ? "sr-only"
+                            : ""
+                        }
+                      >
+                        {labels[r.state] || r.state}
+                      </small>
+                      {ownerStates.has(r.state) && (
+                        <small
+                          className="owner-turn"
+                          title="À vous de répondre"
+                        >
+                          À vous
+                        </small>
+                      )}
+                    </>
+                  )}
+                  {turns > 1 && <small className="turns">{turns} tours</small>}
+                  {r.simulated && <small>fictif</small>}
+                  {r.famille && (
+                    // Icône des sous-agents (comme la ligne du fil) : le titre garde la place.
+                    <small
+                      className="subagent-tag"
+                      title="Sous-agent d’une autre mission"
+                    >
+                      <Icon name="grid" />
+                      <span className="sr-only">sous-agent</span>
+                    </small>
+                  )}
+                </button>
+              );
+            })}
             {!runs.length && (
               <small className="empty">
                 Votre première mission commence ici.
@@ -964,13 +996,14 @@ export default function App() {
                   act={action}
                 >
                   <RunView
-                    run={run}
+                    run={avecDetailsDesLignes(run, runs)}
                     events={events}
                     connection={connection}
                     busy={busy}
                     act={action}
                     requests={false}
                     transcript={false}
+                    openRun={(id) => void openRun(id)}
                   />
                 </CareerThread>
               ) : (
@@ -978,11 +1011,12 @@ export default function App() {
                   <SessionHistory run={run} runs={runs} />
                   <PromptBubble key={run.id} text={run.prompt} />
                   <RunView
-                    run={run}
+                    run={avecDetailsDesLignes(run, runs)}
                     events={events}
                     connection={connection}
                     busy={busy}
                     act={action}
+                    openRun={(id) => void openRun(id)}
                   />
                 </>
               )}

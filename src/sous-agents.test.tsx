@@ -11,15 +11,7 @@ import {
 } from "@testing-library/react";
 import { ActivityPanel, SubagentsLine } from "./ActivityPanel";
 import { activityRows } from "./ConnectionsPanel";
-import { Composer } from "./Composer";
-import { toApiInput } from "./api";
-import type {
-  Catalog,
-  FamilyMember,
-  MissionInput,
-  Run,
-  RunEvent,
-} from "./types";
+import type { Catalog, FamilyMember, Run, RunEvent } from "./types";
 
 afterEach(cleanup);
 
@@ -308,119 +300,5 @@ describe("journal de la mission : événements de la famille", () => {
         "",
       ],
     ]);
-  });
-});
-
-const input: MissionInput = {
-  prompt: "",
-  agent: "auto",
-  pack: "auto",
-  skills: [],
-  model: "",
-  agentMode: "",
-  browser: "auto",
-  browserDomains: "",
-  budgetCents: 0,
-  mode: "workflow",
-  workflow: "auto",
-  attachments: [],
-};
-describe("case « Autoriser les sous-agents » (voie 1)", () => {
-  const compose = (value: MissionInput) => {
-    const onChange = vi.fn();
-    render(
-      <Composer
-        catalog={catalog}
-        input={value}
-        onChange={onChange}
-        onPlan={vi.fn()}
-        busy={false}
-      />,
-    );
-    return onChange;
-  };
-  it("non cochée par défaut ; le texte du back avec l'enveloppe ; cochée : accord par bouton 6 et 3", () => {
-    const onChange = compose(input);
-    const box = screen.getByRole("checkbox", {
-      name: "Autoriser les sous-agents",
-    }) as HTMLInputElement;
-    expect(box.checked).toBe(false);
-    const filter = box.closest(".filter")!;
-    expect(filter.textContent).toContain(
-      "Chacun consomme ton abonnement comme une mission ordinaire",
-    );
-    expect(filter.textContent).toContain(
-      "Au plus 6 sous-agents pour cette mission, 3 en même temps (modifiables). Les envois restent à ton clic.",
-    );
-    fireEvent.click(box);
-    expect(onChange).toHaveBeenCalledWith({
-      ...input,
-      delegation: { accepted: true, via: "bouton", total: 6, parallel: 3 },
-    });
-  });
-  it("enveloppe modifiable dans les bornes du back (1 à 200, 1 à 8), décocher retire l'accord", () => {
-    const checked = {
-      ...input,
-      delegation: {
-        accepted: true as const,
-        via: "bouton" as const,
-        total: 6,
-        parallel: 3,
-      },
-    };
-    const onChange = compose(checked);
-    fireEvent.change(screen.getByLabelText("Sous-agents au plus"), {
-      target: { value: "9" },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      ...checked,
-      delegation: { ...checked.delegation, total: 9 },
-    });
-    fireEvent.change(screen.getByLabelText("Sous-agents en même temps"), {
-      target: { value: "12" },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      ...checked,
-      delegation: { ...checked.delegation, parallel: 8 },
-    });
-    fireEvent.change(screen.getByLabelText("Sous-agents au plus"), {
-      target: { value: "0" },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      ...checked,
-      delegation: { ...checked.delegation, total: 1 },
-    });
-    fireEvent.click(
-      screen.getByRole("checkbox", { name: "Autoriser les sous-agents" }),
-    );
-    expect(onChange).toHaveBeenLastCalledWith({
-      ...checked,
-      delegation: undefined,
-    });
-  });
-  it("en mode workflow, la case dit que la mission sera menée par un agent", () => {
-    compose({
-      ...input,
-      delegation: { accepted: true, via: "bouton", total: 6, parallel: 3 },
-    });
-    expect(
-      screen.getByText(/menée par un agent, pas par un workflow/),
-    ).toBeTruthy();
-  });
-  it("requête : le champ part avec l'heure de l'accord, et n'existe pas sans la case", () => {
-    const sent = toApiInput({
-      ...input,
-      delegation: { accepted: true, via: "bouton", total: 6, parallel: 3 },
-    }) as { delegation?: Record<string, unknown> };
-    expect(sent.delegation).toMatchObject({
-      accepted: true,
-      via: "bouton",
-      total: 6,
-      parallel: 3,
-    });
-    expect(String(sent.delegation!.acceptedAt)).toMatch(
-      /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/,
-    );
-    expect("delegation" in (toApiInput(input) as object)).toBe(false);
   });
 });

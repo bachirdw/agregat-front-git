@@ -123,7 +123,7 @@ it("un événement d'état SSE met la liste à jour avant même la relecture de 
       ? (Promise.resolve(catalog) as never)
       : path === "/runs"
         ? (Promise.resolve([run]) as never)
-        : path === `/runs/${run.id}`
+        : path.split("?")[0] === `/runs/${run.id}`
           ? (Promise.resolve(run) as never)
           : (new Promise(() => {}) as never),
   );

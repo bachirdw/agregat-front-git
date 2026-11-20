@@ -114,23 +114,28 @@ export async function uploadFile(
 }
 // The API takes attachment ids only; names and sizes stay in the interface.
 export function toApiInput(input: MissionInput) {
-  const { attachments, browserDomains, delegation, ...rest } = input;
+  const { attachments, browserDomains, ...rest } = input;
   const domains = (browserDomains || "")
     .split(",")
     .map((domain) => domain.trim().toLowerCase())
     .filter(Boolean);
-  // sous-agents-19-11 : the owner's agreement leaves with the hour it was given (ISO, UTC);
-  // unchecked, no field at all (back docs/api-delegation.md §2.1).
-  const agreed = delegation
-    ? {
-        ...rest,
-        delegation: { ...delegation, acceptedAt: new Date().toISOString() },
-      }
-    : rest;
-  const payload =
+  const { team, teamConsent, ...settings } = rest;
+  const base =
     browserDomains === undefined
-      ? agreed
-      : { ...agreed, browserDomains: domains };
+      ? settings
+      : { ...settings, browserDomains: domains };
+  // Switch on: `multiAgent`; consent ticked (way 1) adds the owner's consent with the platform's
+  // default envelope, unticked leaves it to the platform's card (way 3).
+  // Off: nothing added, the request stays the one sent before the team existed.
+  const payload = team
+    ? teamConsent
+      ? {
+          ...base,
+          multiAgent: true,
+          delegation: { accepted: true, via: "bouton" },
+        }
+      : { ...base, multiAgent: true }
+    : base;
   return attachments?.length
     ? { ...payload, attachments: attachments.map((a) => a.id) }
     : payload;
