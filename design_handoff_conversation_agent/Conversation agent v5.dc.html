@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+html,body{margin:0;height:100%;background:#0e0e10}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;letter-spacing:-0.008em}
+a{color:#0a84ff;text-decoration:none}a:hover{text-decoration:underline}
+:focus{outline:none}:focus-visible{outline:3px solid rgba(10,132,255,.55);outline-offset:2px;border-radius:8px}
+textarea::placeholder{color:#7c7c82}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style></helmet>
+<div data-screen-label="Conversation v5" style="height:100vh;display:flex;flex-direction:column;background:#0e0e10;color:#f5f5f7">
+  <header style="flex:none;display:flex;align-items:center;gap:10px;height:52px;padding:0 20px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.08)">
+    <span style="font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Recherche marché — outils IA candidature (Australie)</span>
+    <span style="flex:none;height:20px;padding:0 8px;border-radius:10px;background:rgba(120,120,128,.13);color:#a1a1a6;font-size:11px;line-height:20px">Terminée</span>
+  </header>
+
+  <div style="flex:1;overflow-y:auto">
+    <div style="max-width:720px;margin:0 auto;padding:32px 32px 220px;display:flex;flex-direction:column;gap:32px">
+
+      <div style="align-self:flex-end;max-width:min(85%,560px);display:flex;flex-direction:column;gap:6px;padding:10px 16px;border-radius:18px;background:rgba(120,120,128,.13);font-size:15px;line-height:1.55">
+        <div style="white-space:pre-wrap;overflow-wrap:anywhere;text-wrap:pretty">{{ userText }}</div>
+        <button onClick="{{ toggleUser }}" style="align-self:flex-start;padding:0;border:0;background:none;color:#a1a1a6;font:inherit;font-size:13px;cursor:pointer" style-hover="color:#f5f5f7">{{ userToggleLabel }}</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;font-size:15px;line-height:1.62;animation:rise .24s ease-out">
+
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <button onClick="{{ toggleActs }}" style="align-self:flex-start;display:flex;align-items:center;gap:7px;min-height:26px;padding:2px 9px 2px 6px;margin-left:-6px;border:0;border-radius:8px;background:transparent;color:#a1a1a6;font:inherit;font-size:13px;cursor:pointer" style-hover="background:rgba(120,120,128,.13)">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="2.5"></rect><path d="M4.5 6.5l2 1.5-2 1.5M8.5 10h3"></path></svg>
+            <span>A exécuté 38 actions</span>
+            <span style="color:#7c7c82;font-size:11.5px">4 min 12 s</span>
+            <svg width="8" height="8" viewBox="0 0 10 10" style="color:#7c7c82;transform:{{ actsChev }};transition:transform .2s"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+          </button>
+          <sc-if value="{{ actsOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;margin:2px 0 0 6px;padding-left:14px;box-shadow:inset 1.5px 0 0 rgba(255,255,255,.08);font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#a1a1a6;line-height:1.9">
+              <sc-for list="{{ acts }}" as="a" hint-placeholder-count="4">
+                <div style="display:flex;gap:8px;min-width:0"><span style="flex:none;color:{{ a.color }}">{{ a.mark }}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.text }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex;align-items:baseline;gap:7px;padding-left:1px;font-size:13px;color:#a1a1a6">
+            <span style="flex:none;color:#ff9f0a">!</span>
+            <span style="text-wrap:pretty">Une sous-tâche a échoué ; l'agent principal l'a relancée et terminée.</span>
+          </div>
+        </div>
+
+        <p style="margin:0;text-wrap:pretty">La recherche est terminée. Tout est sourcé dans <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;padding:1px 6px;border-radius:6px;background:rgba(120,120,128,.18)">australie.md</code> : chaque ligne porte l'URL, la date de la donnée et la date de consultation (20/11/2026).</p>
+
+        <h3 style="margin:8px 0 0;font-size:17px;font-weight:600;letter-spacing:-0.015em">Prix des outils</h3>
+        <div style="overflow-x:auto;margin:0 -4px">
+          <div style="display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;font-size:14px;line-height:1.45">
+            <span style="font-weight:500;color:#a1a1a6;padding:6px 12px 8px 4px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.14)">Outil</span><span style="font-weight:500;color:#a1a1a6;padding:6px 12px 8px 4px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.14)">Plan payant</span><span style="font-weight:500;color:#a1a1a6;padding:6px 12px 8px 4px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.14)">Source</span>
+            <sc-for list="{{ prices }}" as="p" hint-placeholder-count="6">
+              <span style="padding:8px 12px 8px 4px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.06);white-space:nowrap">{{ p.tool }}</span>
+              <span style="padding:8px 12px 8px 4px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.06);font-variant-numeric:tabular-nums">{{ p.price }}</span>
+              <span style="padding:8px 12px 8px 4px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.06);color:{{ p.srcColor }};white-space:nowrap">{{ p.src }}</span>
+            </sc-for>
+          </div>
+        </div>
+
+        <h3 style="margin:8px 0 0;font-size:17px;font-weight:600;letter-spacing:-0.015em">Marché HR tech en Australie</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;padding:16px 18px;border-radius:14px;background:#1c1c1e;box-shadow:0 0 0 .5px rgba(255,255,255,.1)">
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#a1a1a6"><span>Taille du marché, M USD</span><span>IMARC · TCAC 7,22 %</span></div>
+          <div style="display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:8px">
+            <sc-for list="{{ bars }}" as="b" hint-placeholder-count="10">
+              <div style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px">
+                <div style="width:100%;height:{{ b.h }};border-radius:4px 4px 1px 1px;background:{{ b.bg }}"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#7c7c82;font-variant-numeric:tabular-nums"><span>2025 · 774,7</span><span>2034 · 1 450,9</span></div>
+        </div>
+
+        <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;text-wrap:pretty">
+          <li>Adoption de l'IA : <strong style="font-weight:600">25 %</strong> des candidats, <strong style="font-weight:600">76 %</strong> des recruteurs <span style="color:#7c7c82">(SEEK, 14/01/2026)</span></li>
+          <li>25 % utilisent l'IA pour le CV ou la lettre, dont 14 % fréquemment <span style="color:#7c7c82">(people2people, 25/11/2025)</span></li>
+          <li>~184 candidatures par offre <span style="color:#7c7c82">(SEEK, avr. 2025)</span></li>
+          <li>Chômage oct. 2026 : 4,9 %, 753 700 personnes <span style="color:#7c7c82">(ABS)</span></li>
+        </ul>
+
+        <h3 style="margin:8px 0 0;font-size:17px;font-weight:600;letter-spacing:-0.015em">À vérifier</h3>
+        <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;text-wrap:pretty">
+          <li>Prix officiels de Jobscan, Simplify, Enhancv et Careerflow (pages en 403/404)</li>
+          <li>Le chiffre « 62 % des organisations AU » n'est pas confirmé à la source</li>
+          <li>Ne pas fusionner les deux « 25 % » : ils mesurent deux choses différentes</li>
+        </ul>
+
+        <a href="#" style="align-self:flex-start;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 12px;border-radius:12px;background:#1c1c1e;box-shadow:0 0 0 .5px rgba(255,255,255,.1);color:#f5f5f7;max-width:100%" style-hover="background:#242427;text-decoration:none">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a1a1a6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path></svg>
+          <span style="display:flex;flex-direction:column;min-width:0;line-height:1.3"><span style="font-size:14px">australie.md</span><span style="font-size:12px;color:#7c7c82;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">relay/missions/f419245a/1-recherche-marche…</span></span>
+        </a>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          <button onClick="{{ toggleMeta }}" style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:2px 8px 2px 6px;margin-left:-6px;border:0;border-radius:8px;background:transparent;color:#7c7c82;font:inherit;font-size:12.5px;cursor:pointer;flex-wrap:wrap" style-hover="background:rgba(120,120,128,.13);color:#a1a1a6">
+            <span style="color:#30d158">✓</span><span>Vérifié</span><span>·</span><span>2 preuves</span><span>·</span><span>claude</span><span>·</span><span>0,00 €</span>
+            <svg width="8" height="8" viewBox="0 0 10 10" style="transform:{{ metaChev }};transition:transform .2s"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+          </button>
+          <sc-if value="{{ metaOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 20px;padding:4px 0 0 14px;margin-left:2px;box-shadow:inset 1.5px 0 0 rgba(255,255,255,.08);font-size:13px;animation:rise .2s ease-out">
+              <sc-for list="{{ meta }}" as="m" hint-placeholder-count="6">
+                <span style="color:#7c7c82">{{ m.k }}</span><span style="color:#a1a1a6;text-wrap:pretty">{{ m.v }}</span>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:none;position:relative;z-index:2;padding:48px 32px 18px;margin-top:-120px;background:linear-gradient(rgba(14,14,16,0),#0e0e10 40%)">
+    <div style="max-width:656px;margin:0 auto;display:flex;flex-direction:column;gap:8px;padding:12px 12px 10px 16px;border-radius:20px;background:#242427;box-shadow:0 0 0 .5px rgba(255,255,255,.1),0 18px 44px -10px rgba(0,0,0,.8)">
+      <textarea rows="1" placeholder="Répondre…" style="border:0;background:none;color:#f5f5f7;font:inherit;font-size:15px;resize:none;padding:4px 0"></textarea>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button aria-label="Ajouter" style="width:30px;height:30px;border:0;border-radius:50%;background:rgba(120,120,128,.18);color:#a1a1a6;display:grid;place-items:center;cursor:pointer" style-hover="background:rgba(120,120,128,.28)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"></path></svg></button>
+        <button style="height:30px;padding:0 10px;border:0;border-radius:15px;background:transparent;color:#7c7c82;font:inherit;font-size:12.5px;cursor:pointer" style-hover="background:rgba(120,120,128,.13);color:#a1a1a6">claude · défaut</button>
+        <span style="flex:1"></span>
+        <button aria-label="Envoyer" style="width:30px;height:30px;border:0;border-radius:50%;background:#0a84ff;color:#fff;display:grid;place-items:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { user: false, acts: false, meta: false };
+  renderVals() {
+    const s = this.state, t = k => () => this.setState(p => ({ [k]: !p[k] }));
+    const full = "Utilise le navigateur (browser_navigate / browser_snapshot / browser_extract) et des recherches web pour couvrir le marché australien des outils d'IA d'aide à la candidature.\n\nDeux familles de données à collecter, CHACUNE avec sa source :\nA) PRIX des outils : pour chaque outil pertinent, relève le plan gratuit et les plans payants (montant, devise, période mensuelle/annuelle).\nB) MARCHÉ : taille, croissance, adoption de l'IA par candidats et recruteurs.";
+    const vals = [774.7, 830.6, 890.6, 954.8, 1023.7, 1097.6, 1176.8, 1261.7, 1352.7, 1450.9];
+    const off = "#a1a1a6", sec = "#ff9f0a";
+    return {
+      userText: s.user ? full : full.slice(0, 170) + "…",
+      userToggleLabel: s.user ? "Réduire" : "Afficher tout",
+      toggleUser: t("user"), toggleActs: t("acts"), toggleMeta: t("meta"),
+      actsOpen: s.acts, actsChev: s.acts ? "rotate(90deg)" : "none",
+      metaOpen: s.meta, metaChev: s.meta ? "rotate(90deg)" : "none",
+      acts: [
+        { mark: "✓", color: "#30d158", text: "browser_navigate tealhq.com/pricing" },
+        { mark: "✓", color: "#30d158", text: "browser_extract rezi.ai/pricing" },
+        { mark: "✕", color: "#ff6961", text: "browser_navigate jobscan.co/pricing — 403" },
+        { mark: "✓", color: "#30d158", text: "web_search « SEEK AI candidates 2026 »" },
+        { mark: "✓", color: "#30d158", text: "write australie.md" }
+      ],
+      prices: [
+        { tool: "Teal", price: "Gratuit · 13 $/7 j · 29 $/30 j", src: "officielle", srcColor: off },
+        { tool: "Rezi", price: "29 USD/mois", src: "officielle", srcColor: off },
+        { tool: "Kickresume", price: "8–24 USD/mois", src: "officielle", srcColor: off },
+        { tool: "Huntr", price: "40 USD/mois", src: "officielle", srcColor: off },
+        { tool: "LoopCV", price: "dès 9,99 EUR", src: "officielle", srcColor: off },
+        { tool: "MerlAI", price: "dès 7,99 AUD/mois", src: "officielle", srcColor: off },
+        { tool: "Jobscan, Simplify…", price: "non confirmé", src: "secondaire", srcColor: sec }
+      ],
+      bars: vals.map((v, i) => ({ h: Math.round(v / 1450.9 * 100) + "%", bg: i === 0 || i === 9 ? "#0a84ff" : "rgba(10,132,255,.35)" })),
+      meta: [
+        { k: "Coût plateforme", v: "0,00 € · 1 workflow, 2 outils, 2 actions navigateur" },
+        { k: "Outils natifs", v: "36 observés · non facturés" },
+        { k: "Agent", v: "claude · modèle par défaut du fournisseur (non confirmé par ACP)" },
+        { k: "Compte", v: "BYOA · consommation fournisseur inconnue, non refacturée" },
+        { k: "Registre", v: "Intègre (vérifié par le backend)" },
+        { k: "Preuves", v: "Page naviguée et observée ; autres affirmations non vérifiées" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

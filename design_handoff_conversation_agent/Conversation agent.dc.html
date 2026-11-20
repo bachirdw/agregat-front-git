@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="viewport" content="width=device-width,initial-scale=1"><template id="__bundler_thumbnail" data-bg-color="#151517"><svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg"><rect x="300" y="250" width="600" height="60" rx="30" fill="#2c2c30"/><rect x="300" y="350" width="420" height="24" rx="12" fill="#0a84ff"/><rect x="300" y="410" width="520" height="24" rx="12" fill="#48484c"/><rect x="300" y="560" width="600" height="80" rx="40" fill="#232326"/></svg></template><style>
+html,body{margin:0;height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.5;letter-spacing:-0.008em}
+[data-theme=dark]{color-scheme:dark;--bg:#0e0e10;--side:rgba(40,40,44,.82);--card:#1e1e21;--fill:rgba(120,120,128,.24);--fill2:rgba(120,120,128,.13);--label:#f5f5f7;--label2:#a1a1a6;--label3:#7c7c82;--sep:rgba(255,255,255,.08);--accent:#0a84ff;--green:#30d158;--red:#ff6961;--orange:#ff9f0a;--code:#1c1c1e;--cmd:#64d2ff;--bar:rgba(22,22,24,.62);--field:#242427;--glow:.55;--glowBusy:.8;--g1:#ff8a3d;--g2:#2f7bff;--g3:#ff4f9e;--layer:rgba(255,255,255,.065);--layerShadow:0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.06),0 10px 30px -10px rgba(0,0,0,.55),0 1px 2px rgba(0,0,0,.3);--blend:screen;--soft:0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.07),0 18px 44px -10px rgba(0,0,0,.8),0 2px 6px rgba(0,0,0,.3);--shadow:0 10px 32px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.1)}
+[data-theme=light]{color-scheme:light;--bg:#fff;--side:rgba(243,243,246,.9);--card:#f7f7f9;--fill:rgba(120,120,128,.12);--fill2:rgba(120,120,128,.07);--label:#1d1d1f;--label2:#6e6e73;--label3:#8e8e93;--sep:rgba(0,0,0,.08);--accent:#0071e3;--green:#248a3d;--red:#d70015;--orange:#c93400;--code:#fff;--cmd:#0b5cad;--bar:rgba(255,255,255,.62);--field:#fff;--glow:.8;--glowBusy:1;--g1:#ffd9a8;--g2:#bfe0ff;--g3:#ffd1e8;--layer:rgba(255,255,255,.72);--layerShadow:0 0 0 .5px rgba(0,0,0,.06),0 10px 30px -12px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.04);--blend:normal;--soft:0 0 0 .5px rgba(0,0,0,.09),0 18px 44px -12px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.04);--shadow:0 10px 32px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.08)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+:focus{outline:none}:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px;border-radius:8px}
+textarea::placeholder{color:var(--label3)}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--fill);border-radius:4px;border:2px solid transparent;background-clip:padding-box}
+@keyframes dotp{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+@keyframes caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes driftA{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(8%,10%) scale(1.15)}}
+@keyframes driftB{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-10%,8%) scale(1.1)}}
+@keyframes driftC{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(6%,-12%) scale(1.2)}}
+@media (max-width:1100px){[data-role=panel]{display:none!important}}
+@media (max-width:760px){[data-role=side]{display:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-theme="{{ theme }}" data-screen-label="Conversation agent" style="height:100vh;display:flex;background:var(--bg);color:var(--label);position:relative;overflow:hidden">
+
+  <aside data-role="side" style="flex:none;width:216px;margin:10px 0 10px 10px;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;background:var(--side);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);box-shadow:var(--soft);position:relative;z-index:2">
+    <div style="flex:none;display:flex;align-items:center;gap:8px;height:48px;padding:0 14px">
+      <span style="width:22px;height:22px;border-radius:7px;background:var(--label);color:var(--bg);display:grid;place-items:center;font-size:12px;font-weight:700">a</span>
+      <span style="font-weight:600;font-size:13.5px;letter-spacing:-0.012em">agre agent</span>
+    </div>
+    <div style="flex:none;padding:0 10px 8px">
+      <button onClick="{{ newMission }}" style="width:100%;height:30px;display:flex;align-items:center;gap:8px;padding:0 10px;border:0;border-radius:9px;background:var(--fill2);color:var(--label);font:inherit;font-size:13px;cursor:pointer;transition:background .15s" style-hover="background:var(--fill)" style-active="transform:scale(.98)">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"></path></svg>
+        <span style="flex:1;text-align:left">Nouvelle mission</span><span style="font-size:11px;color:var(--label3)">⌘K</span>
+      </button>
+    </div>
+    <div style="flex:none;padding:6px 18px 4px;font-size:11px;font-weight:600;color:var(--label3)">Missions</div>
+    <nav style="flex:1;min-height:0;overflow-y:auto;padding:0 8px 12px;display:flex;flex-direction:column;gap:1px">
+      <sc-for list="{{ missions }}" as="m" hint-placeholder-count="6">
+        <div title="{{ m.state }}" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;border-radius:8px;background:{{ m.bg }};font-size:13px;cursor:default;flex:none" style-hover="background:var(--fill2)">
+          <span style="flex:none;width:6px;height:6px;border-radius:50%;background:{{ m.color }}"></span>
+          <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.name }}</span>
+          <sc-if value="{{ m.live }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:11px;color:var(--orange)">en cours</span></sc-if>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px 10px;box-shadow:inset 0 .5px 0 var(--sep)">
+      <span style="flex:none;width:26px;height:26px;border-radius:50%;background:var(--fill);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--label2)">T</span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25">
+        <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Ton compte</span>
+        <span style="font-size:11px;color:var(--label3)">Pro · {{ weekPct }} % cette semaine</span>
+      </div>
+      <button onClick="{{ openSettings }}" aria-label="Paramètres" title="Paramètres" style="flex:none;width:28px;height:28px;border:0;border-radius:8px;background:{{ gearBg }};color:var(--label2);display:grid;place-items:center;cursor:pointer;transition:background .15s" style-hover="background:var(--fill)" style-active="transform:scale(.94)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;position:relative">
+    {{ glow }}
+    <header style="flex:none;display:flex;align-items:center;gap:8px;height:48px;padding:0 16px;background:var(--bar);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:inset 0 -.5px 0 var(--sep);position:relative;z-index:2">
+      <span style="font-weight:600;font-size:13.5px;letter-spacing:-0.012em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ title }}</span>
+      <span style="flex:none;height:20px;padding:0 8px;border-radius:10px;background:var(--fill2);color:var(--label2);font-size:11px;line-height:20px">{{ statusLabel }}</span>
+      <span style="flex:1"></span>
+      <button onClick="{{ togglePanel }}" aria-label="Connexions locales" title="Connexions locales" style="width:28px;height:28px;border:0;border-radius:8px;background:{{ panelBtnBg }};color:var(--label2);display:grid;place-items:center;cursor:pointer" style-hover="background:var(--fill)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M9.5 2.5v11"></path></svg>
+      </button>
+    </header>
+
+    <div ref="{{ scrollRef }}" onScroll="{{ onScroll }}" style="flex:1;overflow-y:auto;position:relative;z-index:1">
+      <div style="max-width:660px;margin:0 auto;padding:22px 20px 170px;display:flex;flex-direction:column;gap:18px">
+        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:12vh;display:flex;flex-direction:column;gap:6px;animation:rise .3s ease-out">
+            <span style="font-size:24px;font-weight:600;letter-spacing:-0.025em">Que dois-je faire ?</span>
+            <span style="color:var(--label2)">Décris une mission. L'agent travaille, tu suis ses commandes si tu le souhaites.</span>
+          </div>
+        </sc-if>
+        <sc-for list="{{ turns }}" as="t" hint-placeholder-count="2">
+          <div style="display:flex;flex-direction:column;gap:8px;animation:rise .24s ease-out">
+            <sc-if value="{{ t.isUser }}" hint-placeholder-val="{{ false }}">
+              <div style="align-self:flex-end;max-width:min(78%,520px);padding:7px 13px;border-radius:17px;background:var(--fill);box-shadow:var(--layerShadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);white-space:pre-wrap;overflow-wrap:anywhere;text-wrap:pretty">{{ t.text }}</div>
+            </sc-if>
+            <sc-if value="{{ t.isAgent }}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{ t.hasSkill }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start;margin:0 0 -2px 6px"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:11px;background:var(--layer);box-shadow:var(--layerShadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;color:var(--label2);animation:rise .25s ease-out"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);animation:dotp 1.1s infinite"></span>{{ t.skill }}</span></div></sc-if>
+            <div style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;border-radius:16px;background:var(--layer);box-shadow:var(--layerShadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)">
+              <sc-if value="{{ t.hasIntro }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:0;text-wrap:pretty">{{ t.intro }}<sc-if value="{{ t.introCaret }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;width:2px;height:1em;margin-left:2px;vertical-align:-2px;background:var(--label);animation:caret 1s steps(1) infinite"></span></sc-if></p>
+              </sc-if>
+              <sc-if value="{{ t.hasActivity }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column">
+                  <button onClick="{{ t.toggle }}" aria-expanded="{{ t.open }}" style="align-self:flex-start;max-width:100%;display:flex;align-items:center;gap:7px;min-height:26px;padding:2px 9px 2px 6px;margin-left:-6px;border:0;border-radius:8px;background:transparent;color:var(--label2);font:inherit;font-size:13px;text-align:left;cursor:pointer;transition:background .15s" style-hover="background:var(--fill2)" style-active="transform:scale(.99)">
+                    <span style="flex:none;width:14px;height:14px;display:grid;place-items:center">
+                      <sc-if value="{{ t.running }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:2px"><span style="width:3px;height:3px;border-radius:50%;background:var(--orange);animation:dotp 1.1s infinite"></span><span style="width:3px;height:3px;border-radius:50%;background:var(--orange);animation:dotp 1.1s .15s infinite"></span><span style="width:3px;height:3px;border-radius:50%;background:var(--orange);animation:dotp 1.1s .3s infinite"></span></span></sc-if>
+                      <sc-if value="{{ t.finished }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="2.5"></rect><path d="M4.5 6.5l2 1.5-2 1.5M8.5 10h3"></path></svg></sc-if>
+                    </span>
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.summary }}<sc-if value="{{ t.sumCaret }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;width:2px;height:1em;margin-left:2px;vertical-align:-2px;background:var(--label2);animation:caret 1s steps(1) infinite"></span></sc-if></span>
+                    <sc-if value="{{ t.hasErr }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:11.5px;color:var(--red)">{{ t.errLabel }}</span></sc-if>
+                    <span style="flex:none;font-size:11.5px;color:var(--label3);font-variant-numeric:tabular-nums">{{ t.time }}</span>
+                    <svg width="8" height="8" viewBox="0 0 10 10" style="flex:none;color:var(--label3);transform:{{ t.chev }};transition:transform .2s cubic-bezier(.2,.8,.2,1)"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <sc-if value="{{ t.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;margin:2px 0 0 6px;padding-left:14px;box-shadow:inset 1.5px 0 0 var(--sep);animation:rise .2s ease-out">
+                      <sc-for list="{{ t.steps }}" as="s" hint-placeholder-count="3">
+                        <div style="display:flex;flex-direction:column">
+                          <button onClick="{{ s.toggle }}" aria-expanded="{{ s.open }}" style="display:flex;align-items:center;gap:7px;min-height:24px;padding:1px 8px;margin:0 -8px;border:0;border-radius:7px;background:transparent;color:var(--label2);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;transition:background .15s" style-hover="background:var(--fill2)">
+                            <span style="flex:none;width:11px;display:grid;place-items:center;font-size:10px;font-weight:700">
+                              <sc-if value="{{ s.isRun }}" hint-placeholder-val="{{ false }}"><span style="width:5px;height:5px;border-radius:50%;background:var(--orange);animation:dotp 1.1s infinite"></span></sc-if>
+                              <sc-if value="{{ s.isDone }}" hint-placeholder-val="{{ true }}"><span style="color:var(--green)">✓</span></sc-if>
+                              <sc-if value="{{ s.isErr }}" hint-placeholder-val="{{ false }}"><span style="color:var(--red)">✕</span></sc-if>
+                            </span>
+                            <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.title }}</span>
+                            <span style="flex:none;width:30px;text-align:right;font-size:11px;color:var(--label3);font-variant-numeric:tabular-nums">{{ s.dur }}</span>
+                            <svg width="7" height="7" viewBox="0 0 10 10" style="flex:none;color:var(--label3);transform:{{ s.chev }};transition:transform .2s cubic-bezier(.2,.8,.2,1)"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                          </button>
+                          <sc-if value="{{ s.open }}" hint-placeholder-val="{{ false }}">
+                            <div style="margin:6px 0 14px;border-radius:12px;background:var(--code);box-shadow:var(--soft);overflow:hidden;animation:rise .2s ease-out">
+                              <div style="position:relative">
+                                <pre style="margin:0;padding:8px 58px 8px 10px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11.5px;line-height:1.55;color:var(--cmd);white-space:pre-wrap;word-break:break-word"><span style="color:var(--label3);user-select:none">$ </span>{{ s.cmd }}<sc-if value="{{ s.cmdCaret }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;width:6px;height:1.05em;vertical-align:-2px;background:var(--cmd);animation:caret 1s steps(1) infinite"></span></sc-if></pre>
+                                <button onClick="{{ s.copy }}" style="position:absolute;top:6px;right:6px;height:20px;padding:0 7px;border:0;border-radius:6px;background:var(--fill2);color:var(--label2);font:inherit;font-size:10.5px;cursor:pointer" style-hover="background:var(--fill)" style-active="transform:scale(.95)">{{ s.copyLabel }}</button>
+                              </div>
+                              <sc-if value="{{ s.hasOut }}" hint-placeholder-val="{{ false }}">
+                                <pre style="margin:0;padding:8px 10px;max-height:150px;overflow:auto;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;line-height:1.55;color:var(--label2);white-space:pre-wrap;word-break:break-word;box-shadow:inset 0 .5px 0 var(--sep)">{{ s.out }}</pre>
+                              </sc-if>
+                            </div>
+                          </sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+              <sc-if value="{{ t.waiting }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:7px 8px 7px 12px;border-radius:12px;background:color-mix(in srgb,var(--orange) 11%,transparent);font-size:12.5px;animation:rise .2s ease-out">
+                  <span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--orange);animation:dotp 1.1s infinite"></span>
+                  <span style="flex:1;min-width:0">{{ t.gateLabel }}</span>
+                  <button onClick="{{ t.deny }}" style="height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--fill);color:var(--label);font:inherit;font-size:12px;cursor:pointer" style-hover="background:var(--fill2)" style-active="transform:scale(.96)">Refuser</button>
+                  <button onClick="{{ t.always }}" style="height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--fill);color:var(--label);font:inherit;font-size:12px;cursor:pointer" style-hover="background:var(--fill2)" style-active="transform:scale(.96)">Toujours autoriser</button>
+                  <button onClick="{{ t.approve }}" style="height:24px;padding:0 12px;border:0;border-radius:12px;background:var(--accent);color:#fff;font:inherit;font-size:12px;font-weight:500;cursor:pointer" style-active="transform:scale(.96)">Autoriser</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ t.hasDenied }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:12px;color:var(--red)">Autorisation refusée · mission arrêtée</span>
+              </sc-if>
+              <sc-if value="{{ t.hasFinal }}" hint-placeholder-val="{{ false }}">
+                <p style="margin:0;text-wrap:pretty">{{ t.final }}<sc-if value="{{ t.finalCaret }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;width:2px;height:1em;margin-left:2px;vertical-align:-2px;background:var(--label);animation:caret 1s steps(1) infinite"></span></sc-if></p>
+              </sc-if>
+              <sc-if value="{{ t.hasMeta }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ t.openDetails }}" title="Voir le détail dans le suivi" style="align-self:flex-start;height:22px;padding:0 8px;margin-left:-8px;border:0;border-radius:7px;background:transparent;color:var(--label3);font:inherit;font-size:11.5px;cursor:pointer" style-hover="background:var(--fill2);color:var(--label2)">{{ t.metaLine }}</button>
+              </sc-if>
+              <sc-if value="{{ t.hasResult }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:12px;animation:rise .2s ease-out">
+                  <span style="height:20px;padding:0 8px;border-radius:10px;background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);font-weight:600;line-height:20px">Échec</span>
+                  <span style="color:var(--label2);min-width:0;flex:1">{{ t.resultMsg }}</span>
+                  <button style="height:22px;padding:0 10px;border:0;border-radius:11px;background:var(--fill);color:var(--label);font:inherit;font-size:11.5px;font-weight:500;cursor:pointer" style-hover="background:var(--fill2)" style-active="transform:scale(.96)">Reprendre</button>
+                </div>
+              </sc-if>
+            </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:0 20px;pointer-events:none;background:linear-gradient(to bottom,transparent,var(--bg) 28px);z-index:1">
+      <div style="display:grid;grid-template-rows:{{ composerRows }};opacity:{{ composerOpacity }};transition:grid-template-rows .35s cubic-bezier(.2,.8,.2,1),opacity .25s;pointer-events:{{ composerPE }}">
+        <div style="overflow:hidden;min-height:0">
+          <div style="max-width:660px;margin:0 auto;padding:18px 0 14px;display:flex;flex-direction:column;gap:8px">
+            <sc-if value="{{ showChips }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ chips }}" as="c" hint-placeholder-count="2">
+                  <button onClick="{{ c.pick }}" style="height:26px;padding:0 11px;border:0;border-radius:13px;background:var(--fill2);color:var(--label2);font:inherit;font-size:12px;cursor:pointer;transition:background .15s" style-hover="background:var(--fill)" style-active="transform:scale(.97)">{{ c.label }}</button>
+                </sc-for>
+              </div>
+            </sc-if>
+            <form onSubmit="{{ send }}" style="display:flex;align-items:flex-end;gap:6px;padding:5px 5px 5px 14px;border-radius:20px;background:var(--field);box-shadow:var(--shadow)">
+              <textarea ref="{{ taRef }}" rows="1" value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onKey }}" placeholder="Décris ta mission…" style="flex:1;min-width:0;min-height:20px;max-height:40vh;padding:5px 0;border:0;background:transparent;color:var(--label);font:inherit;line-height:1.5;resize:none;overflow-y:auto"></textarea>
+              <button type="submit" aria-label="Envoyer" disabled="{{ cantSend }}" style="flex:none;width:28px;height:28px;border:0;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;cursor:pointer;transition:opacity .15s,transform .1s" style-active="transform:scale(.92)" style-disabled="opacity:.3;cursor:default">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ hasTrk }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Suivi de la mission" style="position:absolute;right:16px;bottom:{{ trkBottom }};z-index:3;width:min(268px,calc(100% - 32px));border-radius:16px;background:var(--field);box-shadow:var(--soft);overflow:hidden;transition:bottom .35s cubic-bezier(.2,.8,.2,1);animation:pop .3s cubic-bezier(.2,.8,.2,1)">
+        <button onClick="{{ toggleTrk }}" aria-expanded="{{ trkOpen }}" style="width:100%;display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:0;background:transparent;color:var(--label);font:inherit;font-size:12.5px;cursor:pointer;text-align:left" style-hover="background:var(--fill2)">
+          <span style="flex:none;width:7px;height:7px;border-radius:50%;background:{{ trkDot }}"></span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ trkStatus }}">{{ trkPhrase }}</span>
+          <span style="font-size:11.5px;color:var(--label3);font-variant-numeric:tabular-nums">{{ trkCount }}</span>
+          <svg width="8" height="8" viewBox="0 0 10 10" style="color:var(--label3);transform:{{ trkChev }};transition:transform .2s cubic-bezier(.2,.8,.2,1)"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+        <sc-if value="{{ trkWaiting }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px;padding:10px 12px;box-shadow:inset 0 .5px 0 var(--sep);background:color-mix(in srgb,var(--orange) 9%,transparent)">
+            <span style="font-size:12px;line-height:1.4">{{ trkGate }}</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end">
+              <button onClick="{{ trkDeny }}" style="height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--fill);color:var(--label);font:inherit;font-size:12px;cursor:pointer" style-active="transform:scale(.96)">Refuser</button>
+              <button onClick="{{ trkAlways }}" style="height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--fill);color:var(--label);font:inherit;font-size:12px;cursor:pointer" style-hover="background:var(--fill2)" style-active="transform:scale(.96)">Toujours autoriser</button>
+              <button onClick="{{ trkApprove }}" style="height:24px;padding:0 12px;border:0;border-radius:12px;background:var(--accent);color:#fff;font:inherit;font-size:12px;font-weight:500;cursor:pointer" style-active="transform:scale(.96)">Autoriser</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ trkOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;padding:4px 0 6px;box-shadow:inset 0 .5px 0 var(--sep);max-height:44vh;overflow-y:auto;animation:rise .2s ease-out">
+            <sc-for list="{{ trkItems }}" as="it" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:8px;min-height:24px;padding:0 12px;font-size:12px">
+                <span style="flex:none;width:12px;text-align:center;font-size:11px;font-weight:700;color:{{ it.markColor }}">{{ it.mark }}</span>
+                <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:{{ it.ink }}">{{ it.title }}</span>
+              </div>
+            </sc-for>
+            <button onClick="{{ toggleTrkDetails }}" aria-expanded="{{ trkDetails }}" style="display:flex;align-items:center;gap:6px;height:26px;margin:4px 6px 0;padding:0 6px;border:0;border-radius:7px;background:transparent;color:var(--label2);font:inherit;font-size:11.5px;cursor:pointer;text-align:left" style-hover="background:var(--fill2)">
+              <svg width="7" height="7" viewBox="0 0 10 10" style="color:var(--label3);transform:{{ trkDetChev }};transition:transform .2s cubic-bezier(.2,.8,.2,1)"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              Détails techniques
+            </button>
+            <sc-if value="{{ trkDetails }}" hint-placeholder-val="{{ false }}">
+              <dl style="margin:2px 12px 4px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;font-size:11.5px;animation:rise .2s ease-out">
+                <sc-for list="{{ trkMeta }}" as="m" hint-placeholder-count="4">
+                  <dt style="color:var(--label3)">{{ m.k }}</dt>
+                  <dd style="margin:0;text-align:right;color:{{ m.color }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ m.v }}">{{ m.v }}</dd>
+                </sc-for>
+              </dl>
+            </sc-if>
+          </div>
+        </sc-if>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;right:16px;bottom:16px;z-index:3;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <sc-if value="{{ pillOpen }}" hint-placeholder-val="{{ false }}">
+          <form onSubmit="{{ sendQueue }}" style="width:min(340px,calc(100vw - 48px));display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:var(--field);box-shadow:var(--shadow);animation:pop .22s cubic-bezier(.2,.8,.2,1)">
+            <span style="font-size:11.5px;color:var(--label3)">Ajouter une instruction pour l'agent</span>
+            <textarea ref="{{ qRef }}" rows="1" value="{{ qDraft }}" onChange="{{ onQDraft }}" onKeyDown="{{ onQKey }}" placeholder="Ex. ajoute aussi les offres en remote" style="min-height:20px;max-height:30vh;padding:4px 0;border:0;background:transparent;color:var(--label);font:inherit;line-height:1.5;resize:none;overflow-y:auto"></textarea>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="flex:1;font-size:11px;color:var(--label3)">{{ queueLabel }}</span>
+              <button type="submit" disabled="{{ cantQueue }}" style="height:24px;padding:0 11px;border:0;border-radius:12px;background:var(--accent);color:#fff;font:inherit;font-size:12px;font-weight:500;cursor:pointer" style-active="transform:scale(.96)" style-disabled="opacity:.3;cursor:default">Mettre en file</button>
+            </div>
+          </form>
+        </sc-if>
+        <div style="display:flex;align-items:center;gap:2px;padding:4px;border-radius:14px;background:var(--bar);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:var(--shadow);animation:pop .3s cubic-bezier(.2,.8,.2,1)">
+          <button onClick="{{ togglePill }}" aria-label="Ajouter une instruction" title="Ajouter une instruction" style="width:32px;height:32px;border:0;border-radius:10px;background:{{ pillBg }};color:var(--label);display:grid;place-items:center;cursor:pointer" style-hover="background:var(--fill)" style-active="transform:scale(.94)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2.8a1.6 1.6 0 012.3 2.3L7 12.6l-3.2.8.8-3.2z"></path></svg>
+          </button>
+          <span style="width:.5px;height:16px;background:var(--sep)"></span>
+          <button onClick="{{ stop }}" aria-label="Arrêter" title="Arrêter" style="width:32px;height:32px;border:0;border-radius:10px;background:transparent;color:var(--label);display:grid;place-items:center;cursor:pointer" style-hover="background:var(--fill)" style-active="transform:scale(.94)">
+            <span style="width:10px;height:10px;border-radius:2.5px;background:currentColor"></span>
+          </button>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ inSettings }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Paramètres" style="position:absolute;inset:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;animation:rise .22s ease-out">
+        <header style="flex:none;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;box-shadow:inset 0 -.5px 0 var(--sep)">
+          <button onClick="{{ closeSettings }}" aria-label="Retour" style="width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--label2);display:grid;place-items:center;cursor:pointer" style-hover="background:var(--fill)"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M6.5 2l-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+          <span style="font-weight:600;font-size:13.5px;letter-spacing:-0.012em">Paramètres</span>
+          <span style="flex:1"></span>
+          <div role="tablist" style="display:flex;gap:2px;padding:2px;border-radius:9px;background:var(--fill2)">
+            <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3">
+              <button role="tab" aria-selected="{{ tb.on }}" onClick="{{ tb.pick }}" style="height:24px;padding:0 12px;border:0;border-radius:7px;background:{{ tb.bg }};box-shadow:{{ tb.sh }};color:var(--label);font:inherit;font-size:12px;cursor:pointer;transition:background .15s">{{ tb.label }}</button>
+            </sc-for>
+          </div>
+        </header>
+        <div style="flex:1;overflow-y:auto">
+          <div style="max-width:620px;margin:0 auto;padding:24px 20px 48px;display:flex;flex-direction:column;gap:22px">
+
+            <sc-if value="{{ tabProfil }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:44px;height:44px;border-radius:50%;background:var(--fill);display:grid;place-items:center;font-size:17px;font-weight:600;color:var(--label2)">T</span>
+                <div style="display:flex;flex-direction:column"><span style="font-size:17px;font-weight:600;letter-spacing:-0.02em">Ton compte</span><span style="font-size:12px;color:var(--label3)">Formule Pro</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column"><h2 style="margin:0 0 6px 2px;font-size:11.5px;font-weight:600;color:var(--label3)">Profil</h2>
+                <div style="border-radius:14px;background:var(--layer);box-shadow:var(--layerShadow);overflow:hidden;display:flex;flex-direction:column">
+                  <label style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep)"><span style="flex:1">Nom</span><input placeholder="Ton nom" style="flex:1;min-width:0;max-width:260px;height:28px;padding:0 10px;border:0;border-radius:8px;background:var(--fill2);color:var(--label);font:inherit;font-size:12.5px;text-align:right"></input></label>
+                  <label style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep)"><span style="flex:1">E-mail</span><input type="email" placeholder="nom@exemple.com" style="flex:1;min-width:0;max-width:260px;height:28px;padding:0 10px;border:0;border-radius:8px;background:var(--fill2);color:var(--label);font:inherit;font-size:12.5px;text-align:right"></input></label>
+                  <label style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep);box-shadow:none"><span style="flex:1">Langue de l'agent</span><select style="flex:1;min-width:0;max-width:260px;height:28px;padding:0 10px;border:0;border-radius:8px;background:var(--fill2);color:var(--label);font:inherit;font-size:12.5px;text-align:right;max-width:160px;appearance:none;cursor:pointer"><option>Français</option><option>English</option></select></label>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column"><h2 style="margin:0 0 6px 2px;font-size:11.5px;font-weight:600;color:var(--label3)">Profil carrière</h2>
+                <div style="border-radius:14px;background:var(--layer);box-shadow:var(--layerShadow);overflow:hidden;display:flex;flex-direction:column">
+                  <div style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep)"><span style="flex:1">CV</span><span style="color:var(--label3);font-size:12px">Aucun fichier</span><button style="height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--fill);color:var(--label);font:inherit;font-size:12px;cursor:pointer" style-active="transform:scale(.96)">Importer</button></div>
+                  <div style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep);box-shadow:none"><span style="flex:1">LinkedIn</span><span style="color:var(--label3);font-size:12px">Non relié</span><button style="height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--fill);color:var(--label);font:inherit;font-size:12px;cursor:pointer" style-active="transform:scale(.96)">Relier</button></div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ tabUsage }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600;letter-spacing:-0.02em">Ton utilisation</span><span style="font-size:12px;color:var(--label3)">Pro</span></div>
+                <span style="color:var(--label2)">{{ weekPct }} % de ta limite hebdomadaire utilisée.</span>
+              </div>
+              <div style="border-radius:14px;background:var(--layer);box-shadow:var(--layerShadow);overflow:hidden;display:flex;flex-direction:column">
+                <sc-for list="{{ usage }}" as="u" hint-placeholder-count="2">
+                  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(80px,1.4fr) auto;align-items:center;gap:16px;padding:10px 14px;box-shadow:inset 0 -.5px 0 var(--sep)">
+                    <div style="display:flex;flex-direction:column;line-height:1.3"><span>{{ u.label }}</span><span style="font-size:11.5px;color:var(--label3)">{{ u.reset }}</span></div>
+                    <div style="height:5px;border-radius:3px;background:var(--fill2);overflow:hidden"><div style="height:100%;width:{{ u.w }};border-radius:3px;background:var(--accent)"></div></div>
+                    <span style="font-size:12px;color:var(--label2);font-variant-numeric:tabular-nums">{{ u.pct }} %</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column"><h2 style="margin:0 0 6px 2px;font-size:11.5px;font-weight:600;color:var(--label3)">Consommation plateforme · ce mois</h2>
+                <div style="border-radius:14px;background:var(--layer);box-shadow:var(--layerShadow);overflow:hidden;display:flex;flex-direction:column">
+                  <sc-for list="{{ costs }}" as="c" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep);min-height:34px"><span style="flex:1">{{ c.k }}</span><span style="font-size:12px;color:var(--label3)">{{ c.n }}</span><span style="min-width:70px;text-align:right;font-variant-numeric:tabular-nums">{{ c.v }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px;padding:0 2px">
+                <span style="font-weight:600">Réinitialisation de la limite</span>
+                <span style="font-size:12.5px;color:var(--label2)">Aucune réinitialisation pour le moment. Quand tu en obtiens une, elle apparaît ici avec sa date d'expiration.</span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ tabDispo }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column"><h2 style="margin:0 0 6px 2px;font-size:11.5px;font-weight:600;color:var(--label3)">Agents connectés</h2>
+                <div style="border-radius:14px;background:var(--layer);box-shadow:var(--layerShadow);overflow:hidden;display:flex;flex-direction:column">
+                  <sc-for list="{{ agentsList }}" as="a" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep);min-height:36px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green)"></span><span style="flex:1">{{ a.name }}</span><span style="font-size:12px;color:var(--label3)">{{ a.note }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column"><h2 style="margin:0 0 6px 2px;font-size:11.5px;font-weight:600;color:var(--label3)">Outils autorisés</h2>
+                <div style="border-radius:14px;background:var(--layer);box-shadow:var(--layerShadow);overflow:hidden;display:flex;flex-direction:column">
+                  <sc-for list="{{ toolsList }}" as="o" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep);min-height:40px">
+                      <div style="flex:1;display:flex;flex-direction:column;line-height:1.3"><span>{{ o.name }}</span><span style="font-size:11.5px;color:var(--label3)">{{ o.desc }}</span></div>
+                      <button role="switch" aria-checked="{{ o.on }}" onClick="{{ o.toggle }}" style="flex:none;width:36px;height:22px;padding:2px;border:0;border-radius:11px;background:{{ o.bg }};cursor:pointer;transition:background .2s;display:flex"><span style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transform:{{ o.x }};transition:transform .2s cubic-bezier(.2,.8,.2,1)"></span></button>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column"><h2 style="margin:0 0 6px 2px;font-size:11.5px;font-weight:600;color:var(--label3)">Domaines toujours autorisés</h2>
+                <div style="border-radius:14px;background:var(--layer);box-shadow:var(--layerShadow);overflow:hidden;display:flex;flex-direction:column">
+                  <sc-if value="{{ noDomains }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep);box-shadow:none;color:var(--label3);font-size:12.5px">Aucun. Utilise « Toujours autoriser » quand l'agent demande l'accès.</div></sc-if>
+                  <sc-for list="{{ domains }}" as="d" hint-placeholder-count="0">
+                    <div style="display:flex;align-items:center;gap:12px;min-height:40px;padding:6px 14px;box-shadow:inset 0 -.5px 0 var(--sep);min-height:36px"><span style="flex:1">{{ d.name }}</span><button onClick="{{ d.remove }}" style="height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--fill2);color:var(--red);font:inherit;font-size:12px;cursor:pointer" style-hover="background:var(--fill)">Retirer</button></div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+
+  <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ true }}">
+    <aside data-role="panel" style="flex:none;width:276px;box-sizing:border-box;padding:56px 12px 12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;position:relative;z-index:1">
+      <section style="border-radius:14px;background:var(--card);box-shadow:0 0 0 .5px var(--sep);overflow:hidden;display:flex;flex-direction:column;min-height:0">
+        <button onClick="{{ toggleConn }}" aria-expanded="{{ connOpen }}" style="display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:0;background:transparent;color:var(--label);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left">
+          <span style="flex:1">Connexions locales</span>
+          <span style="font-weight:400;font-size:11.5px;color:var(--label3)">{{ connCount }}</span>
+          <svg width="8" height="8" viewBox="0 0 10 10" style="color:var(--label3);transform:{{ connChev }};transition:transform .2s cubic-bezier(.2,.8,.2,1)"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+        <sc-if value="{{ connOpen }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;animation:rise .2s ease-out">
+            <div style="display:flex;flex-wrap:wrap;gap:4px 12px;padding:0 12px 8px;font-size:12px;color:var(--label2)">
+              <sc-for list="{{ conns }}" as="c" hint-placeholder-count="4">
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green)"></span><span style="color:{{ c.ink }}">{{ c.name }}</span></span>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:50px minmax(0,1fr) auto;gap:0 8px;padding:5px 12px;font-size:11px;color:var(--label3);box-shadow:inset 0 .5px 0 var(--sep),inset 0 -.5px 0 var(--sep)"><span>Heure</span><span>Événement</span><span>État</span></div>
+            <div style="max-height:260px;overflow-y:auto;padding:2px 0 4px">
+              <sc-for list="{{ events }}" as="e" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:50px minmax(0,1fr) auto;gap:0 8px;align-items:center;min-height:22px;padding:0 12px;font-size:11.5px">
+                  <span style="color:var(--label3);font-variant-numeric:tabular-nums">{{ e.time }}</span>
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ e.label }}">{{ e.label }}</span>
+                  <span style="color:{{ e.color }}">{{ e.state }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </section>
+      <section style="border-radius:14px;background:var(--card);box-shadow:0 0 0 .5px var(--sep);padding:9px 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;font-size:11.5px">
+        <span style="grid-column:1/-1;font-size:12.5px;font-weight:600;margin-bottom:2px">Coût</span>
+        <span style="color:var(--label3)">Plateforme</span><span style="text-align:right">0,00 €</span>
+        <span style="color:var(--label3)">Agent</span><span style="text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ activeAgent }} · BYOA</span>
+        <span style="color:var(--label3)">Registre</span><span style="text-align:right;color:var(--green)">✓ Intègre</span>
+      </section>
+    </aside>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;system&quot;,&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;system&quot;,&quot;tsType&quot;:&quot;'system'|'dark'|'light'&quot;}}">
+const SCRIPTS = {
+  fail: {
+    agent: 'codex', intro: "Je cherche les outils pour lire les trois sources, puis je crée le profil avec des TODO pour les informations manquantes.",
+    steps: [
+      { title: "Capturer la page du navigateur", tool: "browser_snapshot", cmd: "browser_snapshot --tab active", out: 'url: about:blank\nsnapshot: ""\nloading: false', ok: true },
+      { title: "Lire les trois sources du profil", tool: "career_read", cmd: "career_read --sources cv.pdf,linkedin,notes.md", out: "Erreur : l'outil career_read n'est pas disponible dans cette session.", ok: false },
+      { title: "Créer le profil avec les TODO", tool: "career_write", cmd: "career_write --file profile.md --todo", out: 'Fichier non créé : career_read et career_write indisponibles, navigateur sur about:blank.', ok: false }
+    ],
+    final: "Fichier non créé : les outils career_read et career_write ne sont pas disponibles, et le navigateur affiche about:blank. Aucune source n'a été lue ni modifiée.",
+    result: "Navigation non prouvée : aucun parcours navigateur observé"
+  },
+  diag: {
+    agent: 'codex', intro: "Je regarde tes deux dernières missions sur le serveur, en lecture seule.",
+    steps: [
+      { title: "Lister les dernières missions du serveur 4310", tool: "curl", cmd: "curl -s -m 5 http://127.0.0.1:4310/api/runs -H 'x-platform-request: 1' | python3 -c \"import json,sys; [print(r['id'][:8], r['state']) for r in json.load(sys.stdin)['runs'][:6]]\"", out: "35f072af failed\ncc3770e1 completed\n58e19dfe completed\n6f32d40d completed\nde1850a2 cancelled", ok: true },
+      { title: "Lire le journal de la mission 35f072af", tool: "curl", cmd: "curl -s -m 5 http://127.0.0.1:4310/api/runs/35f072af/events | tail -n 6", out: "20:01:52 policy.denied browser_navigate reason=permission_missing\n20:01:53 tool.result browser_snapshot url=about:blank\n20:01:59 run.failed", ok: true },
+      { title: "Vérifier l'autorisation navigateur", tool: "grep", cmd: "grep -n '\"browser\"' config/permissions.json", out: '12:  "browser": { "allowed": false, "scope": [] }', ok: true }
+    ],
+    final: "La mission a échoué parce que l'autorisation navigateur est désactivée (config/permissions.json, ligne 12). Active « browser » pour ce domaine puis relance la mission.",
+    result: null
+  },
+  job: {
+    agent: 'claude', intro: "Je lance la recherche d'offres, puis je les compare dans un tableau.",
+    steps: [
+      { title: "Rechercher les offres publiées cette semaine", tool: "web_search", cmd: "web_search --query \"développeur front-end Paris\" --since 7d --limit 25", out: "25 résultats · 3 sources (Welcome to the Jungle, LinkedIn, Indeed)", ok: true },
+      { title: "Lire et dédoublonner les annonces", tool: "browser_read", cmd: "browser_read --urls results.json --dedupe", out: "25 annonces lues · 4 doublons retirés · 21 conservées", ok: true },
+      { title: "Comparer salaire, télétravail et stack", tool: "python", cmd: "python3 compare.py --in offers.json --out comparatif.md --top 10", out: "comparatif.md écrit · 10 offres classées", ok: true }
+    ],
+    final: "J'ai retenu 10 offres sur 21 et je les ai classées dans comparatif.md (salaire, télétravail, stack). Je peux rédiger une lettre de motivation pour les trois premières.",
+    result: null
+  }
+};
+SCRIPTS.fail.meta = [['Agent', 'codex · défaut'], ['Session', 'ACP · mode default'], ['Preuves', '1 capture (about:blank)'], ['Vérification', 'Navigation non prouvée', 'var(--red)'], ['Coût', '0,00 € · BYOA'], ['Registre', '✓ Intègre', 'var(--green)']];
+SCRIPTS.diag.meta = [['Agent', 'codex · défaut'], ['Session', 'ACP · lecture seule'], ['Preuves', '3 sorties de commande'], ['Vérification', 'Sources lues', 'var(--green)'], ['Coût', '0,00 € · BYOA'], ['Registre', '✓ Intègre', 'var(--green)']];
+SCRIPTS.diag.metaLine = '✓ Vérifié · 3 preuves · 0,00 €';
+SCRIPTS.fail.metaLine = '1 preuve · 0,00 €';
+SCRIPTS.job = {
+  agent: 'claude', intro: "Je lance la recherche d'offres, puis je les compare dans un tableau.",
+  gate: 1, gateDomain: 'linkedin.com', gateLabel: "L'agent veut ouvrir linkedin.com/jobs dans le navigateur",
+  steps: [
+    { title: "Rechercher les offres publiées cette semaine", tool: "web_search", cmd: "web_search --query \"développeur front-end Paris\" --since 7d --limit 25", out: "25 résultats · 3 sources", ok: true },
+    { title: "Ouvrir les annonces sur LinkedIn", tool: "browser_navigate", cmd: "browser_navigate https://www.linkedin.com/jobs/search?keywords=front-end&location=Paris", out: "21 annonces lues · 4 doublons retirés", ok: true },
+    { title: "Comparer salaire, télétravail et stack", tool: "python", cmd: "python3 compare.py --in offers.json --out comparatif.md --top 10", out: "comparatif.md écrit · 10 offres classées", ok: true }
+  ],
+  final: "J'ai retenu 10 offres sur 21 et je les ai classées dans comparatif.md (salaire, télétravail, stack). Je peux rédiger une lettre de motivation pour les trois premières.",
+  result: null,
+  meta: [['Agent', 'claude · haiku'], ['Session', 'ACP · mode default'], ['Navigateur', 'playwright'], ['Preuves', '2 pages observées'], ['Vérification', 'Pages naviguées et observées', 'var(--green)'], ['Coût', '0,00 € · BYOA'], ['Registre', '✓ Intègre', 'var(--green)']],
+  metaLine: '✓ Vérifié · 2 preuves · 0,00 €'
+};
+const JOB_PROMPT = "Cherche des offres de développeur front-end à Paris publiées cette semaine. Compare les 10 meilleures (salaire, télétravail, stack) dans un tableau, puis rédige une lettre de motivation pour les 3 premières.";
+const CMD_SPEED = 6, TITLE_SPEED = 1.4, TEXT_SPEED = 2.5, PAUSE = 22;
+function plan(sc) {
+  let t = Math.ceil(sc.intro.length / TEXT_SPEED);
+  const steps = sc.steps.map(s => { const start = t, tt = Math.ceil(s.title.length / TITLE_SPEED), ct = Math.ceil(s.cmd.length / CMD_SPEED); t += tt + ct + PAUSE; return { start, tt, ct, end: t }; });
+  const finalStart = t;
+  return { steps, finalStart, end: finalStart + Math.ceil(sc.final.length / TEXT_SPEED) };
+}
+const PLANS = { fail: plan(SCRIPTS.fail), diag: plan(SCRIPTS.diag), job: plan(SCRIPTS.job) };
+const fmt = ticks => { const s = Math.max(1, Math.round(ticks * 0.12)); return s < 60 ? s + 's' : Math.floor(s / 60) + 'min ' + (s % 60) + 's'; };
+const clock = sec => { const h = Math.floor(sec / 3600) % 24, m = Math.floor(sec / 60) % 60, s = Math.floor(sec) % 60; return [h, m, s].map(n => String(n).padStart(2, '0')).join(':'); };
+const AGENTS = { codex: 'Codex', claude: 'Claude Code' };
+const STOP = new Set('le la les un une des de du pour et à a en je tu mon ma mes cherche crée fais fait donne peux veux'.split(' '));
+function nameOf(text) {
+  if (/emploi|offre|travail|poste|candidat/i.test(text)) return 'Emploi';
+  const w = text.toLowerCase().replace(/[^\p{L}\s'-]/gu, ' ').split(/\s+/).find(x => x.length > 3 && !STOP.has(x)) || 'Mission';
+  return w[0].toUpperCase() + w.slice(1);
+}
+
+class Component extends DCLogic {
+  state = {
+    tick: 0, now: 47820,
+    turns: [
+      { id: 'u1', kind: 'user', text: "Crée mon profil carrière à partir de mon CV, de LinkedIn et de mes notes." },
+      { id: 'a1', kind: 'agent', script: 'fail', start: -100000, t0: 47400 },
+      { id: 'u2', kind: 'user', text: "pourquoi j'ai\nMission interrompue\nÉchec\nNavigation non prouvée : aucun parcours navigateur observé\npas l'autorisation ?" },
+      { id: 'a2', kind: 'agent', script: 'diag', start: -100000, t0: 47820 }
+    ],
+    missions: [],
+    open: {}, copied: null, draft: '', qDraft: '', queue: [], pillOpen: false, panel: true, connOpen: true, empty: false, stopped: false
+  };
+  scrollRef = React.createRef(); taRef = React.createRef(); qRef = React.createRef();
+  stick = true;
+
+  componentDidMount() {
+    this.mq = window.matchMedia('(prefers-color-scheme: dark)');
+    this.mqH = () => this.setState({ sysDark: this.mq.matches });
+    this.mqH(); this.mq.addEventListener('change', this.mqH);
+    this.timer = setInterval(() => this.setState(s => ({ tick: s.tick + 1 })), 40);
+    this.keyH = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.newMission(); }
+      if (e.key === 'Escape') this.setState({ pillOpen: false });
+    };
+    window.addEventListener('keydown', this.keyH);
+  }
+  componentWillUnmount() { clearInterval(this.timer); this.mq && this.mq.removeEventListener('change', this.mqH); window.removeEventListener('keydown', this.keyH); }
+  componentDidUpdate() {
+    const el = this.scrollRef.current;
+    if (el && this.stick) el.scrollTop = el.scrollHeight;
+    [this.taRef, this.qRef].forEach(r => { const ta = r.current; if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; } });
+    if (!this.busy() && this.state.queue.length) { const [next, ...rest] = this.state.queue; this.setState({ queue: rest }, () => this.submit(next)); }
+  }
+  busy() {
+    const S = this.state;
+    return S.turns.some(t => t.kind === 'agent' && !t.denied && this.prog(t).p < PLANS[t.script].end) && !S.stopped;
+  }
+  prog(t) {
+    const P = PLANS[t.script], sc = SCRIPTS[t.script];
+    let p = this.state.tick - t.start, waiting = false;
+    if (sc.gate != null && !t.approved && !(this.state.allowed || []).includes(sc.gateDomain)) { const g = P.steps[sc.gate].start - 1; if (p >= g) { p = g; waiting = !t.denied; } }
+    return { p, waiting };
+  }
+  decide(turn, ok, always) {
+    if (always) this.setState(s => ({ allowed: [...new Set([...(s.allowed || []), SCRIPTS[turn.script].gateDomain])] }));
+    const g = PLANS[turn.script].steps[SCRIPTS[turn.script].gate].start - 1;
+    this.stick = true;
+    this.setState(s => ({ turns: s.turns.map(t => t.id !== turn.id ? t : ok ? { ...t, approved: true, start: s.tick - g } : { ...t, denied: true }) }));
+  }
+  toggle(key) { this.stick = false; this.setState(s => ({ open: { ...s.open, [key]: !s.open[key] } })); }
+  newMission() { this.stick = true; this.setState({ turns: [], empty: true, draft: '', pillOpen: false, stopped: false, queue: [] }, () => this.taRef.current && this.taRef.current.focus()); }
+
+  submit(text) {
+    text = (text ?? this.state.draft).trim();
+    if (!text) return;
+    if (this.busy()) { this.setState(s => ({ queue: [...s.queue, text], draft: '', qDraft: '', pillOpen: false })); return; }
+    const n = Date.now(), script = /emploi|offre|travail|poste|candidat/i.test(text) ? 'job' : 'diag';
+    this.stick = true;
+    this.setState(s => {
+      const first = s.empty || !s.turns.length;
+      const missions = first ? [...s.missions, { id: 'm' + n, name: nameOf(text), t: n }] : s.missions;
+      return { draft: '', empty: false, stopped: false, missions, turns: [...s.turns, { id: 'u' + n, kind: 'user', text }, { id: 'a' + n, kind: 'agent', script, start: s.tick + 8, t0: 47820 + Math.round(s.tick * 0.12) + 60 }] };
+    });
+  }
+
+  agentVals(turn) {
+    const S = this.state, sc = SCRIPTS[turn.script], P = PLANS[turn.script];
+    const { p, waiting } = this.prog(turn);
+    const running = p < P.finalStart && !(S.stopped && this.isLast(turn)) && !turn.denied;
+    const intro = sc.intro.slice(0, Math.max(0, Math.floor(p * TEXT_SPEED)));
+    const steps = []; let current = null, skill = null;
+    sc.steps.forEach((s, i) => {
+      const pl = P.steps[i];
+      if (p < pl.start) return;
+      const q = p - pl.start;
+      const titleN = Math.min(s.title.length, Math.floor(q * TITLE_SPEED));
+      const cmdN = Math.max(0, Math.min(s.cmd.length, Math.floor((q - pl.tt) * CMD_SPEED)));
+      const done = q >= pl.tt + pl.ct + PAUSE / 2;
+      if (q < pl.tt + 40 && !done) skill = s.tool;
+      if (!done) current = { title: s.title.slice(0, titleN), typing: titleN < s.title.length };
+      const key = turn.id + '-' + i, open = !!S.open[key];
+      steps.push({
+        title: s.title, tool: s.tool, cmd: s.cmd.slice(0, cmdN), cmdCaret: !done && cmdN < s.cmd.length, out: s.out, hasOut: done,
+        isRun: !done, isDone: done && s.ok, isErr: done && !s.ok, dur: done ? fmt(pl.end - pl.start) : '',
+        open, chev: open ? 'rotate(90deg)' : 'rotate(0deg)', toggle: () => this.toggle(key),
+        copyLabel: S.copied === key ? 'Copié' : 'Copier',
+        copy: e => { e.stopPropagation(); navigator.clipboard && navigator.clipboard.writeText(s.cmd).catch(() => {}); this.setState({ copied: key }); setTimeout(() => this.setState({ copied: null }), 1200); }
+      });
+    });
+    const errs = steps.filter(s => s.isErr).length, gOpen = !!S.open[turn.id];
+    const finalN = Math.max(0, Math.min(sc.final.length, Math.floor((p - P.finalStart) * TEXT_SPEED)));
+    return {
+      isUser: false, isAgent: true, hasIntro: intro.length > 0, intro, introCaret: intro.length < sc.intro.length && !S.stopped,
+      hasSkill: !!skill && running && !waiting, skill: skill || '', hasActivity: steps.length > 0, running, finished: !running,
+      summary: waiting ? 'En attente de ton accord' : running ? (current ? current.title : 'Réflexion') : 'A exécuté ' + sc.steps.length + ' commandes',
+      sumCaret: running && !!current && current.typing,
+      hasErr: errs > 0 && !running, errLabel: errs + (errs > 1 ? ' erreurs' : ' erreur'),
+      time: running ? fmt(p - P.steps[0].start) : fmt(P.finalStart - P.steps[0].start),
+      open: gOpen, chev: gOpen ? 'rotate(90deg)' : 'rotate(0deg)', toggle: () => this.toggle(turn.id), steps,
+      hasFinal: finalN > 0, final: sc.final.slice(0, finalN), finalCaret: finalN > 0 && finalN < sc.final.length,
+      hasResult: p >= P.end && !!sc.result, resultMsg: sc.result,
+      waiting, gateLabel: sc.gateLabel, approve: () => this.decide(turn, true), always: () => this.decide(turn, true, true), deny: () => this.decide(turn, false),
+      hasDenied: !!turn.denied, hasMeta: p >= P.end && !!sc.metaLine, metaLine: sc.metaLine,
+      openDetails: () => this.setState({ trk: true, trkDetails: true })
+    };
+  }
+  settingsVals() {
+    const S = this.state, tab = S.tab || 'profil', tools = S.tools || { browser: true, files: true, terminal: true, web: true };
+    const mk = (k, label) => ({ label, on: tab === k, bg: tab === k ? 'var(--field)' : 'transparent', sh: tab === k ? '0 1px 3px rgba(0,0,0,.18)' : 'none', pick: () => this.setState({ tab: k }) });
+    const T = [['browser', 'Navigateur', 'Demande ton accord par domaine'], ['files', 'Fichiers', 'Lecture et écriture dans le dossier de mission'], ['terminal', 'Terminal', 'Commandes locales'], ['web', 'Recherche web', 'Requêtes sur Internet']];
+    const allowed = S.allowed || [];
+    return {
+      inSettings: S.view === 'settings', openSettings: () => this.setState(s => ({ view: s.view === 'settings' ? 'chat' : 'settings' })), closeSettings: () => this.setState({ view: 'chat' }),
+      gearBg: S.view === 'settings' ? 'var(--fill)' : 'transparent',
+      tabs: [mk('profil', 'Profil'), mk('usage', 'Utilisation'), mk('dispo', 'Disponible')],
+      tabProfil: tab === 'profil', tabUsage: tab === 'usage', tabDispo: tab === 'dispo',
+      weekPct: 12,
+      usage: [{ label: 'Session actuelle', reset: 'Réinitialisation à 18:50', pct: 17, w: '17%' }, { label: 'Cette semaine', reset: 'Réinitialisation samedi à 11:00', pct: 12, w: '12%' }],
+      costs: [{ k: 'Workflows', n: '1', v: '0,00 €' }, { k: 'Outils plateforme', n: '2', v: '0,00 €' }, { k: 'Actions navigateur', n: '2', v: '0,00 €' }, { k: 'Modèles BYOA', n: '1', v: 'Non facturé' }],
+      agentsList: [{ name: 'Codex', note: 'Compte BYOA' }, { name: 'Claude Code', note: 'Compte BYOA' }, { name: 'Gemini CLI', note: 'Compte BYOA' }, { name: 'OpenCode', note: 'Local' }],
+      toolsList: T.map(([k, name, desc]) => ({ name, desc, on: tools[k], bg: tools[k] ? 'var(--green)' : 'var(--fill)', x: tools[k] ? 'translateX(14px)' : 'translateX(0)', toggle: () => this.setState(s => ({ tools: { ...tools, [k]: !tools[k] } })) })),
+      domains: allowed.map(d => ({ name: d, remove: () => this.setState(s => ({ allowed: (s.allowed || []).filter(x => x !== d) })) })),
+      noDomains: !allowed.length
+    };
+  }
+  glowEl(busy) {
+    const h = React.createElement, play = busy ? 'running' : 'paused';
+    const blob = (k, pos, col, anim, dur) => h('div', { key: k, style: { position: 'absolute', ...pos, width: '46%', height: '130%', borderRadius: '50%', background: `radial-gradient(closest-side, ${col}, transparent)`, filter: 'blur(28px)', animation: `${anim} ${dur}s ease-in-out infinite`, animationPlayState: play } });
+    return h('div', { 'aria-hidden': true, style: { position: 'absolute', top: 0, left: 0, right: 0, height: 300, overflow: 'hidden', pointerEvents: 'none', zIndex: 0, mixBlendMode: 'var(--blend)', opacity: busy ? 'var(--glowBusy)' : 'var(--glow)', transition: 'opacity .8s ease', WebkitMaskImage: 'linear-gradient(to bottom,#000 30%,transparent)', maskImage: 'linear-gradient(to bottom,#000 30%,transparent)' } },
+      blob('a', { left: '-8%', top: '-55%' }, 'var(--g1)', 'driftA', busy ? 6 : 14),
+      blob('b', { right: '-6%', top: '-40%' }, 'var(--g2)', 'driftB', busy ? 7 : 16),
+      blob('c', { left: '30%', top: '-20%' }, 'var(--g3)', 'driftC', busy ? 5 : 12));
+  }
+  isLast(turn) { const a = this.state.turns.filter(t => t.kind === 'agent'); return a[a.length - 1] === turn; }
+
+  renderVals() {
+    const S = this.state, busy = this.busy();
+    const agentTurns = S.turns.filter(t => t.kind === 'agent');
+    const turns = S.turns.map(t => t.kind === 'user' ? { isUser: true, isAgent: false, text: t.text } : { ...this.agentVals(t), isUser: false });
+    const events = [];
+    agentTurns.forEach(t => {
+      const sc = SCRIPTS[t.script], P = PLANS[t.script], { p, waiting } = this.prog(t);
+      if (waiting) events.push({ ts: Infinity, time: clock(t.t0 + p * 0.12), label: 'Autorisation : navigateur', state: 'En attente', color: 'var(--orange)' });
+      sc.steps.forEach((s, i) => {
+        const pl = P.steps[i]; if (p < pl.start) return;
+        const done = p - pl.start >= pl.tt + pl.ct + PAUSE / 2;
+        events.push({ ts: t.t0 + pl.start * 0.12, time: clock(t.t0 + pl.start * 0.12), label: 'Outil : ' + s.tool, state: done ? (s.ok ? 'Terminé' : 'Échec') : 'En cours', color: done ? (s.ok ? 'var(--green)' : 'var(--red)') : 'var(--orange)' });
+      });
+    });
+    events.sort((a, b) => b.ts - a.ts);
+    const last = agentTurns[agentTurns.length - 1];
+    const lastErr = last && !busy && SCRIPTS[last.script].result;
+    const missions = [...S.missions].reverse().map((m, i) => ({ name: m.name, state: 'Mission', color: busy && i === 0 ? 'var(--orange)' : 'var(--green)', bg: !S.empty && i === 0 ? 'var(--fill2)' : 'transparent', live: busy && i === 0 }))
+      .concat([{ name: 'Diagnostic', color: 'var(--green)' }, { name: 'Profil', color: 'var(--red)' }, { name: 'Capitale', color: 'var(--green)' }, { name: 'Example', color: 'var(--red)' }, { name: 'Example', color: 'var(--green)' }, { name: 'Résumé', color: 'var(--green)' }, { name: 'Audit', color: 'var(--green)' }, { name: 'Traduction', color: 'var(--green)' }, { name: 'Facture', color: 'var(--green)' }, { name: 'Scraping', color: 'var(--red)' }, { name: 'Agenda', color: 'var(--green)' }].map((m, i) => ({ ...m, state: 'Terminée', bg: !S.empty && !S.missions.length && i < 1 ? 'var(--fill2)' : 'transparent', live: false })));
+    const agentKey = last ? SCRIPTS[last.script].agent : 'codex';
+    const noChat = S.empty || !S.turns.length;
+    let trk = { hasTrk: false };
+    if (last && !noChat) {
+      const sc = SCRIPTS[last.script], P = PLANS[last.script], { p, waiting } = this.prog(last);
+      let doneN = 0;
+      const items = sc.steps.map((st, i) => {
+        const pl = P.steps[i], started = p >= pl.start, done = started && p - pl.start >= pl.tt + pl.ct + PAUSE / 2;
+        if (done) doneN++;
+        const w = waiting && i === sc.gate, den = last.denied && i === sc.gate;
+        return { title: st.title, mark: den ? '✕' : w ? '!' : done ? (st.ok ? '✓' : '✕') : started ? '•' : '○', markColor: den ? 'var(--red)' : w ? 'var(--orange)' : done ? (st.ok ? 'var(--green)' : 'var(--red)') : started ? 'var(--orange)' : 'var(--label3)', ink: started || w ? 'var(--label)' : 'var(--label3)' };
+      });
+      const failed = !busy && (sc.result || last.denied);
+      const cur = items.findIndex(x => x.mark === '•');
+      const verb = t => t ? t[0].toLowerCase() + t.slice(1) : '';
+      const trkPhrase = waiting ? 'Attend ton accord pour ' + sc.gateDomain : S.stopped && busy === false && !last.denied && !failed && doneN < items.length ? 'Mission arrêtée' : busy ? (cur >= 0 ? 'En train de ' + verb(items[cur].title) : 'Réfléchit à la suite') : last.denied ? 'Mission arrêtée, accès refusé' : failed ? 'Mission en échec · ' + doneN + ' étapes' : 'Mission terminée · ' + items.length + ' étapes';
+      trk = {
+        hasTrk: true, trkPhrase, trkItems: items, trkCount: doneN + '/' + items.length,
+        trkStatus: waiting ? 'Accord requis' : busy ? 'En cours' : last.denied ? 'Arrêtée' : failed ? 'Échec' : 'Terminée',
+        trkDot: waiting || busy ? 'var(--orange)' : failed ? 'var(--red)' : 'var(--green)',
+        trkWaiting: waiting, trkGate: sc.gateLabel, trkApprove: () => this.decide(last, true), trkAlways: () => this.decide(last, true, true), trkDeny: () => this.decide(last, false),
+        trkOpen: !!S.trk, trkChev: S.trk ? 'rotate(-90deg)' : 'rotate(90deg)', toggleTrk: () => this.setState(s => ({ trk: !s.trk })),
+        trkDetails: !!S.trkDetails, toggleTrkDetails: () => this.setState(s => ({ trkDetails: !s.trkDetails })), trkDetChev: S.trkDetails ? 'rotate(90deg)' : 'rotate(0deg)',
+        trkMeta: (sc.meta || []).map(([k, v, c]) => ({ k, v, color: c || 'var(--label)' })),
+        trkBottom: busy ? '64px' : '92px'
+      };
+    }
+    return {
+      theme: (this.props.theme ?? 'system') === 'system' ? (S.sysDark ? 'dark' : 'light') : this.props.theme,
+      glow: this.glowEl(busy),
+      ...trk, turns, empty: noChat,
+      ...this.settingsVals(), events, missions, busy,
+      title: noChat ? 'Nouvelle mission' : (S.missions.length ? S.missions[S.missions.length - 1].name : 'Profil carrière'),
+      statusLabel: noChat ? 'Prête' : busy ? 'En cours' : lastErr ? 'Échec' : 'Terminée',
+      scrollRef: this.scrollRef, taRef: this.taRef, qRef: this.qRef,
+      onScroll: e => { const el = e.currentTarget; this.stick = el.scrollHeight - el.scrollTop - el.clientHeight < 40; },
+      newMission: () => this.newMission(),
+      panelOpen: S.panel, togglePanel: () => this.setState(s => ({ panel: !s.panel })), panelBtnBg: S.panel ? 'var(--fill)' : 'transparent',
+      connOpen: S.connOpen, toggleConn: () => this.setState(s => ({ connOpen: !s.connOpen })), connChev: S.connOpen ? 'rotate(90deg)' : 'rotate(0deg)', connCount: '4 connectés',
+      conns: ['codex', 'claude', 'gemini', 'opencode'].map(k => ({ name: { codex: 'Codex', claude: 'Claude Code', gemini: 'Gemini CLI', opencode: 'OpenCode' }[k], ink: k === agentKey ? 'var(--label)' : 'var(--label2)' })),
+      activeAgent: AGENTS[agentKey],
+      composerRows: busy ? '0fr' : '1fr', composerOpacity: busy ? 0 : 1, composerPE: busy ? 'none' : 'auto',
+      showChips: noChat && !S.draft, chips: [{ label: "Recherche d'emploi", pick: () => { this.setState({ draft: JOB_PROMPT }, () => this.taRef.current && this.taRef.current.focus()); } }, { label: 'Diagnostiquer un échec', pick: () => this.setState({ draft: "Pourquoi ma dernière mission a échoué ?" }) }],
+      draft: S.draft, onDraft: e => this.setState({ draft: e.target.value }),
+      onKey: e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); this.submit(); } },
+      send: e => { e.preventDefault(); this.submit(); }, cantSend: !S.draft.trim(),
+      pillOpen: S.pillOpen, pillBg: S.pillOpen ? 'var(--fill)' : 'transparent',
+      togglePill: () => this.setState(s => ({ pillOpen: !s.pillOpen }), () => this.qRef.current && this.qRef.current.focus()),
+      stop: () => this.setState({ stopped: true, pillOpen: false }),
+      qDraft: S.qDraft, onQDraft: e => this.setState({ qDraft: e.target.value }),
+      onQKey: e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); this.submit(S.qDraft); } },
+      sendQueue: e => { e.preventDefault(); this.submit(S.qDraft); }, cantQueue: !S.qDraft.trim(),
+      queueLabel: S.queue.length ? S.queue.length + ' en file d\'attente' : 'Envoyée après la tâche en cours'
+    };
+  }
+}
+</script>
+</body>
+</html>
