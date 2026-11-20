@@ -2212,6 +2212,7 @@ fieldset.question-field label {
 }
 .side-pane-head .badge {
   flex: none;
+  align-self: center;
   height: 20px;
   padding: 0 8px;
   border-radius: 10px;
