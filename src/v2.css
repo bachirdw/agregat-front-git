@@ -1227,3 +1227,26 @@ fieldset.question-field label {
     animation: none;
   }
 }
+
+/* swarm-11 : résumé d'équipe d'une ligne de la liste, accord court, motif et jetons d'un membre */
+.mission-link small.team-summary {
+  flex: none;
+  white-space: nowrap;
+}
+.team-accord-plus > summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.team-accord-plus > small {
+  display: block;
+  margin-top: 4px;
+}
+.team-members .team-motif {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.team-members .team-jetons {
+  color: var(--muted);
+}

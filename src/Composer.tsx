@@ -4,6 +4,7 @@ import type { Attachment, Catalog, MissionInput } from "./types";
 import { ATTACHMENT_MAX_COUNT, uploadFile } from "./api";
 import { money } from "./types";
 import { Icon } from "./Icon";
+import { agentStateLabel, agentsInOrder } from "./agentStatus";
 function size(bytes: number) {
   return bytes < 1024 * 1024
     ? `${Math.max(1, Math.round(bytes / 1024))} Ko`
@@ -405,18 +406,24 @@ export function Composer({
                     }
                   >
                     <option value="auto">Auto · selon les capacités</option>
-                    {catalog?.agents.map((a) => (
+                    {/* Ready agents first; an agent under a limit or refused stays selectable (the
+                        owner may force it), with its real state read from the catalog. */}
+                    {agentsInOrder(catalog?.agents).map((a) => (
                       <option
                         key={a.id}
                         value={a.id}
                         disabled={
                           !a.installed ||
                           !a.compatible ||
-                          (!catalog.live && !a.simulated)
+                          (!catalog?.live && !a.simulated)
                         }
                       >
                         {a.name}
-                        {!a.compatible ? " · indisponible" : ""}
+                        {agentStateLabel(a)
+                          ? ` · ${agentStateLabel(a)}`
+                          : !a.compatible
+                            ? " · indisponible"
+                            : ""}
                       </option>
                     ))}
                   </select>
@@ -601,21 +608,31 @@ export function Composer({
                     <span>Autoriser les sous-agents</span>
                   </label>
                 )}
-                {/* Text of the back contract (docs/api-delegation.md section 6), default envelope. */}
-                <small id={teamHelp}>
-                  L’agent de ta mission pourra, s’il le juge utile, confier des
-                  parties du travail à d’autres agents qui travaillent en même
-                  temps. Chacun consomme ton abonnement comme une mission
-                  ordinaire : avec plusieurs agents à la fois, ta limite d’usage
-                  peut être atteinte plus vite. Autoriser n’oblige pas : pour
-                  une demande simple, un seul agent travaillera. Au plus 6
-                  sous-missions Relay pour cette mission, 3 en même temps ; une
-                  sous-mission en échec peut en plus être reprise deux fois hors
-                  de cette limite ; les sous-agents internes que les agents
-                  lancent d’eux-mêmes ne sont ni comptés ni bornés par cette
-                  limite. Sans « Autoriser les sous-agents », ton accord te sera
-                  demandé au premier lancement. Les envois restent à ton clic.
+                {/* One short sentence; the whole contract text stays below, folded (swarm
+                    request-header: one line, the detail in the body). */}
+                <small className="team-accord">
+                  Ton agent pourra se faire aider par d’autres agents, chacun
+                  sur ton abonnement.
                 </small>
+                <details className="team-accord-plus">
+                  <summary>En savoir plus</summary>
+                  {/* Text of the back contract (docs/api-delegation.md section 6), default envelope. */}
+                  <small id={teamHelp}>
+                    L’agent de ta mission pourra, s’il le juge utile, confier
+                    des parties du travail à d’autres agents qui travaillent en
+                    même temps. Chacun consomme ton abonnement comme une mission
+                    ordinaire : avec plusieurs agents à la fois, ta limite
+                    d’usage peut être atteinte plus vite. Autoriser n’oblige pas
+                    : pour une demande simple, un seul agent travaillera. Au
+                    plus 6 sous-missions Relay pour cette mission, 3 en même
+                    temps ; une sous-mission en échec peut en plus être reprise
+                    deux fois hors de cette limite ; les sous-agents internes
+                    que les agents lancent d’eux-mêmes ne sont ni comptés ni
+                    bornés par cette limite. Sans « Autoriser les sous-agents »,
+                    ton accord te sera demandé au premier lancement. Les envois
+                    restent à ton clic.
+                  </small>
+                </details>
               </Filter>
               <Filter
                 name="Mode"

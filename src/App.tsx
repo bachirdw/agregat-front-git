@@ -28,6 +28,14 @@ import { metaLine, Tracker } from "./Tracker";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
 import { RunView } from "./Mission";
+import {
+  activiteListe,
+  avecDetailsDesLignes,
+  missionsDeLaListe,
+  POINT_ACTIVITE,
+  resumeListe,
+  texteResume,
+} from "./status";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
 const ENDED_NOTICE =
   "La mission est terminée : votre message sera envoyé dans une reprise";
@@ -665,35 +673,65 @@ export default function App() {
             </button>
           </div>
           <div className="mission-list">
-            {conversations(runs).map(({ run: r, turns }) => (
-              <button
-                key={r.id}
-                className={
-                  "mission-link " +
-                  (run?.id === r.id && page === "mission" ? "active" : "")
-                }
-                onClick={() => void openRun(r.id)}
-              >
-                <i className={"dot " + r.state} />
-                <span title={r.prompt}>{r.title || r.prompt}</span>
-                <small
+            {/* Sub-missions leave the list (their mother shows her team); the full `runs` stays for the
+                counter, Consumption, the history and the agent warning. */}
+            {conversations(missionsDeLaListe(runs)).map(({ run: r, turns }) => {
+              const team = resumeListe(r, runs);
+              // A mission with a team: one activity mark, and its words are the row's only state text.
+              const activity = team && activiteListe(r, team);
+              return (
+                <button
+                  key={r.id}
                   className={
-                    finalStates.has(r.state) || ownerStates.has(r.state)
-                      ? "sr-only"
-                      : ""
+                    "mission-link " +
+                    (run?.id === r.id && page === "mission" ? "active" : "")
                   }
+                  onClick={() => void openRun(r.id)}
                 >
-                  {labels[r.state] || r.state}
-                </small>
-                {ownerStates.has(r.state) && (
-                  <small className="owner-turn" title="À vous de répondre">
-                    À vous
-                  </small>
-                )}
-                {turns > 1 && <small className="turns">{turns} tours</small>}
-                {r.simulated && <small>fictif</small>}
-              </button>
-            ))}
+                  <i
+                    className={
+                      "dot " + (activity ? POINT_ACTIVITE[activity] : r.state)
+                    }
+                    data-activite={team ? activity || "aucune" : undefined}
+                  />
+                  <span title={r.prompt}>{r.title || r.prompt}</span>
+                  {team ? (
+                    <>
+                      {!activity && (
+                        <small className="sr-only">
+                          {labels[r.state] || r.state}
+                        </small>
+                      )}
+                      <small className="team-summary">
+                        {texteResume(team, activity)}
+                      </small>
+                    </>
+                  ) : (
+                    <>
+                      <small
+                        className={
+                          finalStates.has(r.state) || ownerStates.has(r.state)
+                            ? "sr-only"
+                            : ""
+                        }
+                      >
+                        {labels[r.state] || r.state}
+                      </small>
+                      {ownerStates.has(r.state) && (
+                        <small
+                          className="owner-turn"
+                          title="À vous de répondre"
+                        >
+                          À vous
+                        </small>
+                      )}
+                    </>
+                  )}
+                  {turns > 1 && <small className="turns">{turns} tours</small>}
+                  {r.simulated && <small>fictif</small>}
+                </button>
+              );
+            })}
             {!runs.length && (
               <small className="empty">
                 Votre première mission commence ici.
@@ -906,7 +944,7 @@ export default function App() {
                   act={action}
                 >
                   <RunView
-                    run={run}
+                    run={avecDetailsDesLignes(run, runs)}
                     events={events}
                     connection={connection}
                     busy={busy}
@@ -921,7 +959,7 @@ export default function App() {
                   <SessionHistory run={run} runs={runs} />
                   <PromptBubble key={run.id} text={run.prompt} />
                   <RunView
-                    run={run}
+                    run={avecDetailsDesLignes(run, runs)}
                     events={events}
                     connection={connection}
                     busy={busy}

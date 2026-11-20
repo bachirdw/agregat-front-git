@@ -10,6 +10,7 @@ import {
   labelOf,
   libelleAutres,
   membresVisibles,
+  texteJetons,
   trierParDebut,
   variantOf,
 } from "./status";
@@ -222,6 +223,12 @@ export function TeamBlock({
           const reviews = (Array.isArray(m.relit) ? m.relit : []).filter(
             (id) => typeof id === "string",
           );
+          // Read on the sub-mission's own row (App.tsx), never in `family[]`: plain text, no cause.
+          const motif = text(m.motif);
+          const planned = text(m.agentPrevu);
+          const fallback =
+            planned && text(m.agent) && planned !== text(m.agent);
+          const tokens = texteJetons(m.usage);
           return (
             <li key={m.id} aria-label={title}>
               <div className="spread">
@@ -245,6 +252,7 @@ export function TeamBlock({
                   {labelOf(m.state)}
                 </span>
               </div>
+              {motif && <p className="team-motif">{motif}</p>}
               <div className="tags">
                 {role && (
                   <span className="badge">
@@ -253,10 +261,13 @@ export function TeamBlock({
                 )}
                 {text(m.agent) && (
                   <small>
-                    {text(m.agent)}
+                    {fallback
+                      ? `lancé sur ${text(m.agent)} (${planned} indisponible)`
+                      : text(m.agent)}
                     {text(m.modele) ? ` · ${text(m.modele)}` : ""}
                   </small>
                 )}
+                {tokens && <small className="team-jetons">{tokens}</small>}
                 {wait && (
                   <small
                     className={ownerWaits.has(text(m.attend)) ? "warning" : ""}
