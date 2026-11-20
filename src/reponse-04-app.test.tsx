@@ -82,6 +82,41 @@ describe("incidents dans le fil", () => {
 });
 
 describe("fil d'une mission hors career-ops", () => {
+  it("la ligne méta dépliée sur une mission repart repliée sur la mission suivante", async () => {
+    const done = (id: string, prompt: string) =>
+      ({
+        ...base,
+        id,
+        prompt,
+        // Deux conversations distinctes (sinon l'historique de session montre A avant B).
+        sessionId: "session-" + id,
+        state: "completed",
+        result: { simulated: true, summary: "Réponse FICTIVE.", evidence: [] },
+        usage: { platformCents: 0, currency: "EUR", byDimension: [] },
+      }) as unknown as Run;
+    const a = done("r1", "Mission FICTIVE A");
+    const b = done("r2", "Mission FICTIVE B");
+    vi.mocked(api).mockImplementation((path) => {
+      if (path === "/catalog") return Promise.resolve(catalog) as never;
+      if (path === "/runs") return Promise.resolve([a, b]) as never;
+      return Promise.resolve(String(path).includes("r2") ? b : a) as never;
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByText("Mission FICTIVE A"));
+    const meta = await screen.findByRole("button", { name: /fixture · 0,00/ });
+    fireEvent.click(meta);
+    expect(document.querySelector(".meta-details")).toBeTruthy();
+    fireEvent.click(
+      screen.getByText("Mission FICTIVE B", { selector: "span" }),
+    );
+
+    await waitFor(() =>
+      expect(document.querySelector(".prompt-bubble-text")?.textContent).toBe(
+        "Mission FICTIVE B",
+      ),
+    );
+    expect(document.querySelector(".meta-details")).toBeNull();
+  });
   it("une seule réponse : ni badges, ni carte Exécution, ni coût en colonnes", async () => {
     serve({
       ...base,

@@ -1029,6 +1029,8 @@ export default function App() {
                   <PromptBubble key={run.id} text={run.prompt} />
                   {/* reponse-04 : une seule réponse, façon Claude Code (RunView reste pour les détails). */}
                   <RunTurn
+                    // Une mission = une réponse : lignes repliées à chaque mission ouverte.
+                    key={"reponse-" + run.id}
                     run={avecDetailsDesLignes(run, runs)}
                     events={events}
                     busy={busy}
@@ -1050,7 +1052,7 @@ export default function App() {
               />
               {/* reponse-04 : la ligne méta se déplie sur place (dans RunTurn hors career-ops). */}
               {run.pack === "career-ops" && finalStates.has(run.state) && (
-                <MetaLine run={run} events={events} />
+                <MetaLine key={"meta-" + run.id} run={run} events={events} />
               )}
             </div>
           )}
