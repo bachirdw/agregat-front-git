@@ -278,6 +278,20 @@ try {
       await page.waitForTimeout(300);
       await page.screenshot({ path: join(out, name + "-haut.png") });
       shots.push(name + "-haut");
+      if (label === "apres" && state === "equipe" && width === 1440) {
+        // Vue scindée : un membre de l'équipe suivi à côté du fil (panneau Activité ouvert à 1440 px).
+        await page
+          .getByRole("button", { name: /^Voir à côté/ })
+          .first()
+          .click();
+        await page.locator(".side-pane .reponse").waitFor();
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: join(out, name + "-vue-scindee.png") });
+        shots.push(name + "-vue-scindee");
+        await page
+          .getByRole("button", { name: "Fermer la vue à côté" })
+          .click();
+      }
       if (label === "apres" && state === "reponse-agent") {
         // Ligne méta et ligne d'activité dépliées.
         for (const name of [/Vérifié|preuves/, /A exécuté/])

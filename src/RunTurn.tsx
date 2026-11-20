@@ -32,6 +32,7 @@ import {
   type Act,
 } from "./OwnerRequests";
 import { SkillSteps } from "./SkillSteps";
+import { trackerItems, trackerMarks } from "./Tracker";
 import { ownerTextsVersion, subscribeOwnerTexts } from "./ownerMessages";
 import type { Run, RunEvent } from "./types";
 import { finalStates, labels, money } from "./types";
@@ -167,6 +168,57 @@ function ActivityLine({ tools, waits }: { tools: Tool[]; waits: Wait[] }) {
               </li>
             );
           })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+// Brief 02 : les étapes d'un workflow, une ligne repliable « Étape i/n · <étape en cours> » ;
+// dépliée, la liste ✓ ✕ • ○ ! (mêmes marques que le panneau Activité).
+const stepTone: Record<string, string> = {
+  done: "completed",
+  failed: "failed",
+  running: "in_progress",
+  waiting: "in_progress",
+  pending: "",
+};
+function StepsLine({ run, events }: { run: Run; events: RunEvent[] }) {
+  const [open, setOpen] = useState(false);
+  if (!run.plan?.workflow?.steps?.length) return null;
+  const items = trackerItems(run, events);
+  const done = items.filter((i) => i.mark === "done").length;
+  const at = items.findIndex(
+    (i) => i.mark === "running" || i.mark === "waiting",
+  );
+  return (
+    <div className="activity-line">
+      <button
+        type="button"
+        className="activity-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <TerminalIcon />
+        <span>
+          {at >= 0
+            ? `Étape ${at + 1}/${items.length} · ${items[at].title}`
+            : `${done}/${items.length} ${items.length > 1 ? "étapes terminées" : "étape terminée"}`}
+        </span>
+        <Chevron />
+      </button>
+      {open && (
+        <ol className="activity-actions">
+          {items.map((item) => (
+            <li key={item.id} className={"act " + stepTone[item.mark]}>
+              <span className="mark" aria-hidden="true">
+                {trackerMarks[item.mark]}
+              </span>
+              <span className="act-text" title={item.title}>
+                {item.title}
+              </span>
+            </li>
+          ))}
         </ol>
       )}
     </div>
@@ -528,6 +580,7 @@ export function RunTurn({
       {live && <SkillChip events={events} run={run} />}
       <div className="reponse">
         <div className="reponse-activite">
+          <StepsLine run={run} events={events} />
           <ActivityLine tools={tools} waits={waits} />
           {incident && <Incident text={incident} />}
           {run.error && !live && (

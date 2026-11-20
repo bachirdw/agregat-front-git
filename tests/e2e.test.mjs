@@ -194,24 +194,30 @@ test(
       .click();
     await shot(page, "07-suggestion-remplie");
     await launch(page);
-    await page
-      .getByRole("region", { name: "Exécution", exact: true })
-      .waitFor();
+    // reponse-04 : une seule réponse (plus de carte « Exécution ») ; un workflow y montre ses étapes.
+    await page.locator(".thread .reponse").waitFor();
     await shot(page, "09-execution");
     await finished(page);
-    assert.match(
-      await page.locator(".results").innerText(),
-      /DONNÉES FICTIVES/,
-    );
-    assert.equal(await page.locator(".offer").count(), 3);
-    assert.match(await page.locator(".usage-card").innerText(), /Intègre/);
+    const results = page.getByRole("region", {
+      name: "Résultats",
+      exact: true,
+    });
+    assert.match(await results.innerText(), /Données fictives/);
+    // Les offres : un tableau replié sous le texte (plus de cartes).
+    await results.getByText(/Voir les 3 offres/).click();
+    assert.equal(await results.locator(".offers tbody tr").count(), 3);
+    // Le registre et le coût : dans la ligne méta, dépliée sur place (plus de carte en colonnes).
+    await page.locator(".thread .meta-toggle").click();
+    assert.match(await page.locator(".meta-details").innerText(), /Intègre/);
     await shot(page, "02-mission-offres-2");
     assert.ok(
       app.store.events(app.store.list()[0].id).some((e) => e.type === "step"),
     );
-    await page.locator(".timeline-heading").click();
-    await page.locator(".event-log summary").click();
-    assert.match(await page.locator(".event-log").innerText(), /step/);
+    // Le journal brut : dans les détails techniques du panneau Activité (brief 02).
+    const activity = page.getByRole("complementary", { name: "Activité" });
+    await activity.getByRole("button", { name: "Détails techniques" }).click();
+    await activity.locator(".raw-journal summary").click();
+    assert.match(await activity.locator(".raw-journal").innerText(), /step/);
     // Real HTTP SSE replay with the saved sequence, no client mocks.
     const id = app.store.list()[0].id,
       cursor = app.store.events(id)[1].seq;
@@ -840,7 +846,13 @@ test(
         .innerText(),
       /\d+\/\d+/,
     );
-    await page.locator(".meta-line").click();
+    // reponse-04 : la ligne méta se déplie sur place ; les détails du panneau s'ouvrent par leur bouton.
+    await page.locator(".thread .meta-toggle").click();
+    assert.match(
+      await page.locator(".thread .meta-details").innerText(),
+      /Agent[\s\S]*Registre/,
+    );
+    await tracker.getByRole("button", { name: "Détails techniques" }).click();
     assert.match(
       await tracker.locator(".activity-tech dl").innerText(),
       /Agent[\s\S]*Registre/,
@@ -1000,11 +1012,8 @@ test(
     const entries = await page.locator(".mission-link").allInnerTexts();
     assert.equal(entries.length, 1);
     assert.match(entries[0], /3 tours/);
-    // The back may not reload the agent session: the hint must not promise it.
-    assert.doesNotMatch(
-      await page.locator(".composer-note").innerText(),
-      /même session/,
-    );
+    // reponse-04 : plus de texte d'aide sous le composer (rien ne promet de recharger la session).
+    assert.equal(await page.locator(".composer-note").count(), 0);
     await shot(page, "relance-reelle-fil");
     // Reloaded, the thread of the latest turn still holds every turn.
     await page.reload();

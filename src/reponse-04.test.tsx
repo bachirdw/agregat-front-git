@@ -197,6 +197,36 @@ describe("réponse de l'agent : texte d'abord", () => {
     expect(list.textContent).toMatch(/✓\s*browser_navigate/);
     expect(list.textContent).toMatch(/✕\s*browser_navigate/);
   });
+  it("workflow (brief 02) : une ligne repliable « Étape i/n · titre », dépliée en ✓ • ○", () => {
+    const workflow = {
+      ...run,
+      state: "running",
+      mode: "workflow",
+      result: undefined,
+      plan: {
+        steps: [],
+        workflow: {
+          title: "Recette FICTIVE",
+          steps: [
+            { id: "a", title: "Chercher", kind: "tool" },
+            { id: "b", title: "Relire", kind: "agent" },
+            { id: "c", title: "Classer", kind: "tool" },
+          ],
+        },
+      },
+      steps: [
+        { step_id: "a", state: "succeeded", attempt: 1 },
+        { step_id: "b", state: "running", attempt: 1 },
+      ],
+    } as unknown as Run;
+    const { container } = turn({ run: workflow, events: [] });
+    const line = screen.getByRole("button", { name: /Étape 2\/3 · Relire/ });
+    fireEvent.click(line);
+    const list = container.querySelector(".activity-actions")!;
+    expect(list.textContent).toMatch(/✓\s*Chercher/);
+    expect(list.textContent).toMatch(/•\s*Relire/);
+    expect(list.textContent).toMatch(/○\s*Classer/);
+  });
   it("aucun badge, ni carte Exécution, ni Synthèse, ni coût en colonnes dans la réponse", () => {
     const { container } = turn();
     expect(container.querySelector(".badge")).toBeNull();
