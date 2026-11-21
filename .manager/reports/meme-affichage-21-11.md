@@ -44,7 +44,8 @@ et la mission « hi » où son message apparaissait deux fois. « Je veux que ç
 - Vu dans l'aperçu 5174 (Chrome) sur la mission réelle `48087a51` en cours, sans rien envoyer : consigne réelle
   dans la bulle, texte de l'agent une seule fois, « Réflexion… », étapes du Skill repliées, champ de chat.
 - **Non vérifié** : une mission career-ops terminée réelle (résultat privé et offres) ; le champ du bas qui
-  répond à une vraie question (testé seulement en unitaire) ; E2E non relancé.
+  répond à une vraie question (testé seulement en unitaire).
+- E2E contre `agregat-back-reponse-04` (23:15) : 18/18 ; captures restaurées après.
 
 ## Dette laissée
 - `CareerThread` (`Career.tsx`) et `RunView` (`Mission.tsx`) ne sont plus affichés mais restent exportés : des
