@@ -17,6 +17,11 @@
     (4316/4317) : agents réels, mode propriétaire, délais longs, espace career-ops `~/Downloads/career-ops-essai`
     (jamais le vrai `agregat-career-ops`) ; base `.data` de ce worktree, vide au départ ;
   - front Vite sur localhost:5173 depuis ce worktree (sert les sources : pas besoin de rebuild).
+  - **14:26 : l'API 4310 est désormais gérée par le manager du back** (session `agregat-back-c8`) : il a ajouté trois
+    commits `[e160-01]` sur `reponse-04-format` (tête `480ecc4`, cherry-pick de `swarm-20-11`, correctif E160 des
+    étapes outil refusées) et relancé l'API par `nohup`, même dossier, mêmes variables. **Ne pas relancer `back`
+    par `preview_start`** (conflit de port). Un second correctif suit sur la même branche (mission refusée « Skill
+    inconnu » quand le pack choisi automatiquement n'a pas son Skill) ; le manager prévient avant de relancer.
 
 ## Règles données par le propriétaire (à garder)
 - **Le back a toujours la priorité** : le front suit le contrat du back le plus récent. On ne touche pas aux arbres du
