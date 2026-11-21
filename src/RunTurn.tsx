@@ -36,7 +36,7 @@ import { texteAnnonce } from "./status";
 import { trackerItems, trackerMarks } from "./Tracker";
 import { ownerTextsVersion, subscribeOwnerTexts } from "./ownerMessages";
 import type { Run, RunEvent } from "./types";
-import { finalStates, labels, money } from "./types";
+import { finalStates, labels, money, ownerStates } from "./types";
 
 const plural = (n: number, one: string, many: string) =>
   `${n} ${n > 1 ? many : one}`;
@@ -252,6 +252,64 @@ function FileCard({ path }: { path: string }) {
   );
 }
 
+// Permissions the owner never answered (back: `permission_resolved` with reason `expired`): the card
+// leaves `run.permissions`, so the thread keeps a line naming the action.
+function expiredPermissions(events: RunEvent[]) {
+  const titles = new Map<string, string>();
+  const out: string[] = [];
+  for (const event of events) {
+    const data = event.data ?? {};
+    if (event.type === "permission") {
+      const tool = data.tool as { title?: unknown } | undefined;
+      titles.set(
+        String(data.id),
+        typeof tool?.title === "string" && tool.title
+          ? tool.title
+          : "action de l’agent",
+      );
+    } else if (
+      event.type === "permission_resolved" &&
+      data.reason === "expired"
+    )
+      out.push(titles.get(String(data.id)) ?? "action de l’agent");
+  }
+  return out;
+}
+// The back's workflow failure (« Étapes en échec : review (failed : …) ; report (skipped : …) »)
+// said with the step titles of the plan, without step ids nor states; any other error is kept.
+export function plainRunError(run: Run) {
+  const error = run.error ?? "";
+  const list = error.match(/^Étapes en échec : ([\s\S]+)$/)?.[1];
+  if (!list) return error;
+  const titles = new Map(
+    (run.plan?.workflow?.steps ?? []).map((s) => [s.id, s.title]),
+  );
+  const failed: string[] = [];
+  let skipped = 0;
+  for (const part of list.split(" ; ")) {
+    const m = part.match(/^(\S+) \(([a-z_]+)(?: : ([\s\S]*))?\)$/);
+    if (!m) return error;
+    const [, id, state, why] = m;
+    if (state === "skipped") skipped++;
+    else
+      failed.push(
+        `Étape « ${titles.get(id) ?? id} » en échec` +
+          (why ? ` : ${why.replace(/MCP error -?\d+:\s*/g, "")}` : ""),
+      );
+  }
+  return [
+    ...failed.map((f) => f + "."),
+    skipped
+      ? plural(
+          skipped,
+          "étape suivante non faite.",
+          "étapes suivantes non faites.",
+        )
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 // Coût et unités d'une mission, mots du back.
 function usageRows(run: Run): [string, string][] {
   if (!run.usage) return [["Coût plateforme", "Non mesuré"]];
@@ -569,14 +627,19 @@ export function RunTurn({
   const tools = items.filter((i): i is Tool => i.kind === "tool");
   const owners = items.filter((i): i is Owner => i.kind === "owner");
   const live = !finalStates.has(run.state);
+  // The mission waits for the owner: the agent is neither thinking nor writing.
+  const ownerTurn = ownerStates.has(run.state);
   const incomplete = run.error?.match(
     /^Mission incomplète\s*:\s*([\s\S]+)/,
   )?.[1];
   // After a stop or a failure only: on a completed mission the back would replay the last message
-  // (a new agent turn, a duplicate bubble); the follow-up goes through the composer.
+  // (a new agent turn, a duplicate bubble); the follow-up goes through the composer. A sub-mission
+  // is relaunched by its chief (the back refuses its resume, 409).
   const resumable =
     ["failed", "cancelled", "interrupted"].includes(run.state) &&
-    (run.mode === "workflow" || !!run.resumable);
+    (run.mode === "workflow" || !!run.resumable) &&
+    !run.famille;
+  const expired = expiredPermissions(events);
   // Le texte de l'agent tant qu'il n'y a pas de réponse finale (en cours, ou fin sans résultat).
   const transcript =
     live || !run.result
@@ -586,7 +649,12 @@ export function RunTurn({
           .filter((text) => text.trim())
           .join("\n\n")
       : "";
-  const label = live ? waitingLabel(items) : null;
+  // RunTurn shows no thoughts: a trailing thought keeps « Réflexion… » (else the turn looks stuck).
+  const label =
+    live && !ownerTurn
+      ? (waitingLabel(items) ??
+        (items.at(-1)?.kind === "thought" ? "Réflexion…" : null))
+      : null;
   const failedMembers = (Array.isArray(run.family) ? run.family : []).filter(
     (m) => ["failed", "interrupted"].includes(String(m?.state)),
   ).length;
@@ -605,10 +673,13 @@ export function RunTurn({
               text={
                 incomplete
                   ? `Mission incomplète : ${incomplete}`
-                  : `${labels[run.state] || run.state} : ${run.error}`
+                  : `${labels[run.state] || run.state} : ${plainRunError(run)}`
               }
             />
           )}
+          {expired.map((title, i) => (
+            <Incident key={i} text={`Accord expiré sans réponse : ${title}`} />
+          ))}
           {failedMembers > 0 && (
             <Incident
               text={`${plural(failedMembers, "sous-agent a échoué", "sous-agents ont échoué")} : détail dans le panneau Activité.`}
@@ -624,7 +695,9 @@ export function RunTurn({
         {transcript && (
           <div className="reponse-texte">
             <Markdown text={transcript} />
-            {live && <span className="stream-caret" aria-hidden="true" />}
+            {live && !ownerTurn && (
+              <span className="stream-caret" aria-hidden="true" />
+            )}
           </div>
         )}
         {label && <Waiting label={label} />}

@@ -1,6 +1,7 @@
 // reponse-04 : la réponse de l'agent dans l'application (données FICTIVES).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -8,7 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import App from "./App";
-import { api, ApiError } from "./api";
+import { api, API_UNREACHABLE, ApiError, watchRun } from "./api";
 import type { Catalog, Run } from "./types";
 
 vi.mock("./api", async (importOriginal) => ({
@@ -115,6 +116,30 @@ describe("raccourci Nouvelle mission", () => {
     });
     field.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
+  });
+});
+
+// 21/11 (test complet) : « API locale inaccessible » restait affiché après la reconnexion du flux.
+describe("reconnexion", () => {
+  it("le message « API locale inaccessible » s'efface quand le flux revient", async () => {
+    let handlers: { connection: (ok: boolean) => void } | undefined;
+    vi.mocked(watchRun).mockImplementation((_id, h) => {
+      handlers = h as typeof handlers;
+      return () => {};
+    });
+    vi.mocked(api).mockImplementation((path) => {
+      if (path === "/catalog") return Promise.resolve(catalog) as never;
+      if (path === "/runs") return Promise.resolve([base]) as never;
+      if (String(path).endsWith("/cancel"))
+        return Promise.reject(new ApiError(API_UNREACHABLE, 0)) as never;
+      return Promise.resolve(base) as never;
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByText("Mission FICTIVE"));
+    fireEvent.click(await screen.findByRole("button", { name: "Arrêter" }));
+    await screen.findByText(/API locale inaccessible/);
+    act(() => handlers!.connection(true));
+    expect(screen.queryByText(/API locale inaccessible/)).toBeNull();
   });
 });
 

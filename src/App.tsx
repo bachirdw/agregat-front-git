@@ -9,6 +9,7 @@ import type { Catalog, MissionInput, Run, RunEvent } from "./types";
 import { finalStates, labels, ownerStates } from "./types";
 import {
   api,
+  API_UNREACHABLE,
   ApiError,
   appendEvent,
   sendOwnerMessage,
@@ -212,10 +213,13 @@ export default function App() {
     }
   }, [theme]);
   useEffect(() => {
+    // A mission opens at its latest content, as useFollow keeps it (both used to race: the mission
+    // opened at the top or at the bottom by turns).
+    const bottom = (page === "home" && starting) || page === "mission";
     scroll.current?.scrollTo({
-      top: page === "home" && starting ? scroll.current.scrollHeight : 0,
+      top: bottom ? scroll.current.scrollHeight : 0,
     });
-    lastScrollTop.current = 0;
+    lastScrollTop.current = scroll.current?.scrollTop ?? 0;
     lastScrollSize.current = "";
     setComposerCompact(false);
     document.title = `agre agent · ${titles[page]}`;
@@ -391,6 +395,8 @@ export default function App() {
         if (active && current.current === id) {
           setRun(next);
           syncList(next);
+          // The API answers again: its « inaccessible » message no longer holds.
+          setError((old) => (old === API_UNREACHABLE ? "" : old));
           setConnection((old) =>
             old.includes("perdue")
               ? "API reconnectée · journal synchronisé"
@@ -424,6 +430,7 @@ export default function App() {
           setConnection(
             ok ? "Flux en direct" : "Connexion perdue · reconnexion…",
           );
+          if (ok) setError((old) => (old === API_UNREACHABLE ? "" : old));
           if (!ok && !timer)
             timer = setTimeout(() => {
               timer = undefined;
@@ -919,6 +926,9 @@ export default function App() {
             // not a request to reopen the composer or resume following output.
             if (resized) {
               lastScrollTop.current = el.scrollTop;
+              // Back at the bottom after the dock resized: « Revenir en bas » must go.
+              if (el.scrollHeight - el.scrollTop - el.clientHeight <= 2)
+                follow(e);
               return;
             }
             follow(e);

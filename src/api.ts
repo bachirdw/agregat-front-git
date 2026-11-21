@@ -1,5 +1,7 @@
 import type { Attachment, MissionInput, RunEvent } from "./types";
 import { money } from "./types";
+export const API_UNREACHABLE =
+  "API locale inaccessible. Vérifiez que le backend est démarré.";
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -30,16 +32,10 @@ export async function api<T>(
     });
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw new ApiError(
-      "API locale inaccessible. Vérifiez que le backend est démarré.",
-      0,
-    );
+    throw new ApiError(API_UNREACHABLE, 0);
   }
   if ([502, 503, 504].includes(response.status))
-    throw new ApiError(
-      "API locale inaccessible. Vérifiez que le backend est démarré.",
-      response.status,
-    );
+    throw new ApiError(API_UNREACHABLE, response.status);
   let data;
   try {
     data = await response.json();
@@ -105,10 +101,7 @@ export async function uploadFile(
     });
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw new ApiError(
-      "API locale inaccessible. Vérifiez que le backend est démarré.",
-      0,
-    );
+    throw new ApiError(API_UNREACHABLE, 0);
   }
   let data;
   try {

@@ -155,6 +155,43 @@ describe("accord d'envoi", () => {
     ).toBe(false);
     expect(screen.getByRole("timer").textContent).toMatch(/Expire dans \d+ s/);
   });
+  // 21/11 (test complet) : la carte montrait « Outil : read » et le JSON brut de l'outil.
+  it("permission : l'action dite simplement, le détail technique replié", () => {
+    const { container } = render(
+      <OwnerRequests
+        run={run({
+          permissions: [
+            {
+              ...sendPermission,
+              actionClass: "execute",
+              capability: "read",
+              tool: {
+                title: "Lire un fichier FICTIF",
+                toolCallId: "permission-FICTIVE",
+                kind: "read",
+              },
+              options: [
+                { optionId: "ok", name: "Autoriser", kind: "allow_once" },
+              ],
+            },
+          ],
+        })}
+        busy={false}
+        act={vi.fn(async () => {})}
+      />,
+    );
+    const card = container.querySelector(".approval")!;
+    expect(card.textContent).toMatch(/Type d’action : lecture/);
+    expect(card.textContent).not.toMatch(/Outil : read/);
+    const fold = card.querySelector<HTMLDetailsElement>("details")!;
+    expect(fold.open).toBe(false);
+    expect(fold.querySelector("summary")!.textContent).toBe(
+      "Détails techniques",
+    );
+    expect(fold.querySelector("pre")!.textContent).toContain(
+      "permission-FICTIVE",
+    );
+  });
 });
 
 describe("question de l'agent", () => {

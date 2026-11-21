@@ -1184,8 +1184,31 @@ table.activity-log {
 .question-field fieldset label,
 fieldset.question-field label {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 8px;
+}
+/* 21/11 (test complet) : les cases héritaient de `input { width: 100%; min-height: 38px }` (carrés de
+   38 px centrés au-dessus du libellé) et le champ long de la règle du composer (sans cadre ni fond). */
+.question-field input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+.question-field textarea {
+  min-height: 76px;
+  max-height: 40dvh;
+  padding: 8px 10px;
+  border: 1px solid var(--sep);
+  border-radius: 9px;
+  background: var(--fill2);
+  overflow-y: auto;
+  resize: vertical;
 }
 .thread {
   padding-bottom: 96px;
@@ -1595,8 +1618,14 @@ fieldset.question-field label {
   margin: 0 -4px;
   overflow-x: auto;
 }
+/* 21/11 (test complet) : `table-layout: fixed` et `overflow-wrap: anywhere` (style.css) donnaient des
+   colonnes égales, des en-têtes superposés et des mots coupés au milieu. Colonnes à leur contenu,
+   bornées, et défilement horizontal du conteneur quand le tableau est plus large que le fil. */
 .md-table table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  overflow-wrap: normal;
   border: 0;
   border-collapse: collapse;
   background: transparent;
@@ -1608,9 +1637,17 @@ fieldset.question-field label {
   font-weight: 500;
   color: var(--muted);
   text-align: left;
-  white-space: nowrap;
   box-shadow: inset 0 -0.5px 0 var(--sep);
   background: transparent;
+}
+.md-table th,
+.md-table td {
+  min-width: 6em;
+  max-width: 26em;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  vertical-align: top;
 }
 .md-table td {
   padding: 8px 12px 8px 4px;
@@ -2057,6 +2094,11 @@ fieldset.question-field label {
   backdrop-filter: saturate(180%) blur(20px);
   box-shadow: var(--shadow);
   color: var(--label);
+}
+/* Pendant une mission, le composer est replié mais sa réserve (--dock-h) est gardée pour que le texte
+   ne saute pas : le bouton se pose en bas, pas à la hauteur de l'ancien composer, au milieu du texte. */
+.run-active .jump-bottom {
+  bottom: 24px;
 }
 /* Équipe dans le panneau Activité (logique swarm, Team.tsx) : une tuile par membre. */
 .activity-panel .team {

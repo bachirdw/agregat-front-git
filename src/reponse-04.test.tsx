@@ -312,6 +312,89 @@ describe("réponse de l'agent : texte d'abord", () => {
       off();
     }
   });
+  // 21/11 (test complet) : une pensée de l'agent effaçait « Réflexion… » et RunTurn ne montre pas les
+  // pensées : la mission semblait bloquée.
+  it("pendant une pensée de l'agent, « Réflexion… » reste affiché", () => {
+    turn({
+      run: { ...run, state: "running", result: undefined } as Run,
+      events: [
+        ev(1, "agent", {
+          sessionUpdate: "agent_thought_chunk",
+          content: { type: "text", text: "Je réfléchis (FICTIF)" },
+        }),
+      ],
+    });
+    expect(screen.getByRole("status").textContent).toMatch(/Réflexion…/);
+  });
+  it("quand la mission attend ta réponse : ni « Réflexion… » ni curseur", () => {
+    const { container } = turn({
+      run: {
+        ...run,
+        state: "awaiting_owner",
+        result: undefined,
+      } as Run,
+      events: [
+        ev(1, "agent", {
+          sessionUpdate: "agent_message_chunk",
+          content: { type: "text", text: "Texte FICTIF" },
+        }),
+      ],
+    });
+    expect(screen.queryByText("Réflexion…")).toBeNull();
+    expect(container.querySelector(".stream-caret")).toBeNull();
+  });
+  it("une sous-mission ne propose pas « Reprendre » : c'est le chef qui relance", () => {
+    turn({
+      run: {
+        ...run,
+        state: "failed",
+        resumable: true,
+        famille: { mere: "m1", rang: 1 },
+      } as unknown as Run,
+    });
+    expect(screen.queryByRole("button", { name: /Reprendre/ })).toBeNull();
+  });
+  it("un accord expiré sans réponse laisse une ligne dans le fil", () => {
+    const { container } = turn({
+      events: [
+        ...events,
+        ev(5, "permission", {
+          id: "p1",
+          tool: { title: "Lire un fichier FICTIF" },
+        }),
+        ev(6, "permission_resolved", { id: "p1", reason: "expired" }),
+      ],
+    });
+    expect(container.querySelector(".incident")!.textContent).toMatch(
+      /Accord expiré sans réponse : Lire un fichier FICTIF/,
+    );
+  });
+  it("échec d'un workflow : étapes dites par leur titre, sans état technique", () => {
+    const { container } = turn({
+      run: {
+        ...run,
+        state: "failed",
+        mode: "workflow",
+        error:
+          "Étapes en échec : review (failed : Refusée par l’utilisateur) ; report (skipped : Dépendance en échec)",
+        plan: {
+          steps: [],
+          workflow: {
+            title: "Recette FICTIVE",
+            steps: [
+              { id: "review", title: "Relire le brouillon", kind: "agent" },
+              { id: "report", title: "Rapport", kind: "tool" },
+            ],
+          },
+        },
+      } as unknown as Run,
+    });
+    const text = container.querySelector(".incident")!.textContent!;
+    expect(text).toMatch(
+      /Étape « Relire le brouillon » en échec : Refusée par l’utilisateur\. 1 étape suivante non faite\./,
+    );
+    expect(text).not.toMatch(/failed|skipped|review \(/);
+  });
   it("« Données fictives » reste visible sous une réponse simulée", () => {
     turn();
     expect(screen.getByText("Données fictives")).toBeTruthy();

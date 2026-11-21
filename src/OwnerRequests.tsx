@@ -45,6 +45,16 @@ export function OwnerRequests({
 }
 
 const expiring = (p: Permission) => Number.isFinite(p.expiresAt);
+// ACP tool kinds, said simply; any other value (a tool name, « other ») stays in the technical fold.
+const capabilityLabels: Record<string, string> = {
+  read: "lecture",
+  edit: "modification de fichier",
+  delete: "suppression",
+  move: "déplacement de fichier",
+  search: "recherche",
+  execute: "commande sur ta machine",
+  fetch: "accès au web",
+};
 
 // The owner's mission agreement (`send_grant`) holds until the mission ends; there is no route
 // to take it back, so nothing here offers to.
@@ -84,12 +94,24 @@ function PermissionCard({
             : "Votre accord est requis · permission ponctuelle"}
         </small>
         <h2>{p.tool.title || (send ? "Envoi" : "Autorisation agent")}</h2>
-        {p.capability && (
+        {capabilityLabels[p.capability ?? ""] ? (
           <p className="request-meta">
-            Outil : <code>{p.capability}</code>
+            Type d’action : {capabilityLabels[p.capability ?? ""]}
           </p>
+        ) : (
+          p.capability &&
+          p.capability !== "other" && (
+            <p className="request-meta">
+              Outil : <code>{p.capability}</code>
+            </p>
+          )
         )}
-        {!send && <pre>{JSON.stringify(p.tool, null, 2)}</pre>}
+        {!send && (
+          <details className="fold">
+            <summary>Détails techniques</summary>
+            <pre>{JSON.stringify(p.tool, null, 2)}</pre>
+          </details>
+        )}
         <small role="timer">
           {expiring(p)
             ? expired
