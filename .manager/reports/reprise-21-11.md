@@ -166,8 +166,11 @@ verts ; suite complète, `tsc`, build et prettier verts au commit.
   - Vérifié sur `bd54ee7a` (Chrome) : groupes « Étape 1 » et « Étape 2 », motifs, 4 notes « gardée en mémoire »,
     pas de `decoupage` (le chef ne l'a pas donné).
   - Signalé au manager : la « Relecture… (suite 1) » est à l'étape 1 (une suite n'a pas de prérequis selon son
-    contrat), donc affichée avant la relecture qu'elle continue (étape 2). Proposition : une suite hérite de l'étape
-    du membre qu'elle continue. Réponse attendue.
+    contrat), donc affichée avant la relecture qu'elle continue (étape 2). **Décision du manager** : une suite
+    (`famille.continue`) ou une reprise (`famille.reprend`) prendra au moins l'étape du membre qu'elle continue
+    (`numero` = le plus grand des deux). La forme du contrat est inchangée, rien à faire côté front. Petit lot back à
+    venir ; le manager prévient quand il est sur 4310 (relancée seulement sans mission en cours). Il approuve aussi
+    l'ajustement front (titres d'étape à partir de deux étapes ou d'un libellé).
 - **Pièces jointes, `e174-01`** (sur 4310 depuis 22:36, `docs/api-attachments.md`) :
   - `POST /api/files` ne remplace plus `cv.md` par défaut ;
   - le front envoie `x-skill: career-ops` seulement si career-ops est choisi : pack ou Skill de la mission ouverte,
