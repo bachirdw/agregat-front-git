@@ -144,8 +144,7 @@
   il veut dire « aucun pack, chemin général », sans détection d'après le prompt.
   **À faire dès que le manager confirme le passage sur 4310** : renommer l'option « Auto · selon l’objectif » en
   « Aucun · chemin général ». Pas avant : d'ici là, elle fait encore l'ancienne détection.
-- Suggestion du manager, à valider par le propriétaire : ranger le réglage « Pack » dans un pli « avancé », puisque
-  le pack suit le Skill choisi.
+- Réglage « Pack » rangé dans le dernier réglage « Avancé » (validé par le propriétaire), 472/472.
 - Vérifications : 471/471.
 
 ## État des vérifications (21/11, 13:15)

@@ -123,4 +123,16 @@ describe("Skill choisi explicitement", () => {
     expect(visa.disabled).toBe(true);
     expect(visa.textContent).toContain("à activer dans Skills");
   });
+
+  it("le réglage Pack est rangé dans le pli « Avancé », en dernier : le pack suit le Skill", () => {
+    composer({ skills: ["offer-evaluation"], pack: "najah" });
+    const pills = [...document.querySelectorAll(".filter > summary")].map(
+      (summary) => summary.getAttribute("aria-label"),
+    );
+    expect(pills.some((label) => label!.startsWith("Pack"))).toBe(false);
+    expect(pills.at(-1)).toBe("Avancé Najah FICTIF");
+    const advanced = screen.getByLabelText("Pack").closest("details.filter")!;
+    expect(advanced.querySelector("summary")!.textContent).toContain("Avancé");
+    expect(advanced.textContent).toContain("Le pack suit le Skill choisi");
+  });
 });

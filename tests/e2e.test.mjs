@@ -185,8 +185,8 @@ test(
       "Agent",
       "Modèle",
       "Skill",
-      "Pack",
       "Mode",
+      "Avancé",
     ].entries()) {
       const summary = page
         .locator(".filter summary")

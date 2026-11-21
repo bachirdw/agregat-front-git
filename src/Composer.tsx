@@ -499,32 +499,6 @@ export function Composer({
             : "Aucun Skill disponible."}
         </small>
       </Filter>
-      <Filter name="Pack" value={pack?.name || "Auto"}>
-        <label>
-          Domain Pack
-          <select
-            aria-label="Pack"
-            value={input.pack}
-            disabled={disabled}
-            onChange={(e) =>
-              set({
-                pack: e.target.value,
-                workflow: "auto",
-              })
-            }
-          >
-            <option value="auto">Auto · selon l’objectif</option>
-            {catalog?.packs.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <small>
-          {pack?.description || "Le plan expliquera le pack retenu."}
-        </small>
-      </Filter>
       <Filter name="Équipe" value={input.team ? "Allumée" : "Éteinte"}>
         <label className="check">
           <input
@@ -653,6 +627,35 @@ export function Composer({
         <small>
           Devise : {catalog?.pricing.currency || "EUR"}. Le coût fournisseur
           BYOA est inconnu et non refacturé.
+        </small>
+      </Filter>
+      {/* skill-explicite : le pack suit le Skill choisi ; le choisir à la main devient un réglage avancé
+          (décision du propriétaire, 21/11). */}
+      <Filter name="Avancé" value={pack?.name || "Auto"}>
+        <label>
+          Domain Pack
+          <select
+            aria-label="Pack"
+            value={input.pack}
+            disabled={disabled}
+            onChange={(e) =>
+              set({
+                pack: e.target.value,
+                workflow: "auto",
+              })
+            }
+          >
+            <option value="auto">Auto · selon l’objectif</option>
+            {catalog?.packs.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <small>
+          Le pack suit le Skill choisi ; ne le change ici que pour forcer un
+          pack. {pack?.description || "Le plan expliquera le pack retenu."}
         </small>
       </Filter>
     </div>
