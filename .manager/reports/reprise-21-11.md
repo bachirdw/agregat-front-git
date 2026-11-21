@@ -122,6 +122,16 @@
   - les cartes de fichiers ont « Ouvrir » et « Télécharger ».
 - **Vérifications** : 446/446, et banc isolé sur 4330 vu dans le navigateur.
 
+## Équipe et notes du panneau Activité (21/11, 18:25) : `equipe-05.md`
+- Maquette « Panneau equipe v6 » :
+  - l'équipe en liste verticale (groupée par `phase`, dépliée au clic) ;
+  - « Ce que l’équipe a appris » à la place du carnet en paragraphes.
+- Commits `fc6d187` (code et tests) et `762b035` (maquette, captures, rapport).
+- Vérifications : 462/462, build OK.
+- Champs demandés au back : `plan_summary`, `phase`, `reason`, notes structurées (`title`, `what`, `fix`), et lien
+  note → leçon.
+- Écart : panneau gardé à 344 px (380 décalerait les seuils de mise en page).
+
 ## État des vérifications (21/11, 13:15)
 - `npm test` : 26 fichiers, 430/430.
 - `npm run build` : OK.
