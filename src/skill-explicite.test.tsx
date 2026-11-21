@@ -173,4 +173,24 @@ describe("Skill choisi explicitement", () => {
     expect(settings.textContent).toContain("Pack · aucun");
     expect(settings.textContent).not.toContain("Pack · auto");
   });
+
+  // Réponse du manager du back (lecture de 4310, a50b247) : en mode Workflow, « auto » choisit un DAG d'après
+  // le prompt SEULEMENT parmi ceux du pack choisi ; sans pack, chemin général.
+  it("workflow « auto » : choisi dans le pack selon l'objectif ; sans pack, l'aide dit le chemin général", () => {
+    composer({ mode: "workflow" });
+    const workflow = screen.getByLabelText("Workflow") as HTMLSelectElement;
+    expect(workflow.options[0].textContent).toBe(
+      "Auto · choisi dans le pack selon l’objectif",
+    );
+    expect(workflow.closest("details.filter")!.textContent).toContain(
+      "Sans pack choisi : chemin général.",
+    );
+    cleanup();
+    composer({ mode: "workflow", pack: "najah" });
+    expect(
+      screen.getByLabelText("Workflow").closest("details.filter")!.textContent,
+    ).toContain(
+      "Choisi parmi les workflows de Najah FICTIF, d’après l’objectif.",
+    );
+  });
 });

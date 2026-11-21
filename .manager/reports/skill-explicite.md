@@ -40,8 +40,14 @@ choisi (`pack` explicite, un Skill d'un pack dans `skills`, ou l'espace). Pas en
   missions).
 - Tests : 2 de plus, en échec avant, puis verts ; 474/474 ; build OK. Vu dans l'aperçu 5173 sur l'API 4310 : options
   et aide justes.
-- Question ouverte au manager : en mode Workflow, le choix du workflow garde « Auto · proposé selon l’objectif ».
-  Je ne sais pas si le back choisit encore un DAG d'après le prompt ; à renommer selon sa réponse.
+- Workflow « auto », d'après la réponse du manager (lecture de 4310 a50b247, `index.js` 918-931 et `packs.js`
+  `proposeDag`) :
+  - le back choisit un DAG d'après les mots du prompt, mais seulement parmi ceux du pack choisi ; sinon, le DAG par
+    défaut de ce pack ;
+  - sans pack, le chemin général.
+  L'option devient « Auto · choisi dans le pack selon l’objectif ». L'aide dit « Sans pack choisi : chemin
+  général. », ou « Choisi parmi les workflows de <pack>, d’après l’objectif. ». 1 test de plus, en échec avant ;
+  475/475. Vu dans l'aperçu 5173, mode remis à « Agent unique » ensuite.
 
 ## Pas fait, volontairement
 - Un seul Skill par mission dans l'interface. L'API accepte toujours une liste ; les missions déjà faites avec

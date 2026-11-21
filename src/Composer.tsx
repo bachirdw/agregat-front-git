@@ -591,7 +591,11 @@ export function Composer({
               disabled={disabled}
               onChange={(e) => set({ workflow: e.target.value })}
             >
-              <option value="auto">Auto · proposé selon l’objectif</option>
+              {/* Back (skill-explicite-01, packs.js proposeDag) : « auto » choisit un DAG d'après le
+                  prompt seulement parmi ceux du pack choisi ; sans pack, chemin général. */}
+              <option value="auto">
+                Auto · choisi dans le pack selon l’objectif
+              </option>
               {workflows.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.title}
@@ -599,6 +603,11 @@ export function Composer({
               ))}
             </select>
           </label>
+          <small>
+            {pack
+              ? `Choisi parmi les workflows de ${pack.name}, d’après l’objectif.`
+              : "Sans pack choisi : chemin général."}
+          </small>
         </Filter>
       )}
       <Filter

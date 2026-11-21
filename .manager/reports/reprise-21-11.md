@@ -148,7 +148,8 @@
 - Contrat confirmé par le manager : sans choix, garder `pack: "auto"` (pas `core`) ; après `skill-explicite-01`,
   il veut dire « aucun pack, chemin général », sans détection d'après le prompt.
   `skill-explicite-01` est en service sur 4310 depuis 20:47 (a50b247). L'option est renommée « Aucun · chemin
-  général » (474/474). Reste une question au manager : le choix du workflow « Auto · proposé selon l’objectif ».
+  général » (474/474). Workflow « auto » : « Auto · choisi dans le pack selon l’objectif », avec une aide qui dit le
+  chemin général sans pack (475/475).
 - Réglage « Pack » rangé dans le dernier réglage « Avancé » (validé par le propriétaire), 472/472.
 - Vérifications : 471/471.
 
