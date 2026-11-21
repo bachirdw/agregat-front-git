@@ -35,12 +35,13 @@
     laissé ouvert).
 - **Back, mes branches (locales, jamais poussées)** :
   - `fichiers-21-11` (`b63323c`, dossier `~/Downloads/agregat-back-fichiers`) : route `GET /api/runs/:id/file`.
-    **Le manager la relit et la durcit en ce moment** :
-    - 4 fichiers modifiés non commités dans ce dossier (`server.js`, `run-files.js`, test, doc) ;
-    - une branche `fichiers-integ-21-11` (`c375f82`) existe pour l'intégration.
-    La doc durcie ajoute : refus des liens physiques (`nlink` > 1), relecture des nœuds contre les courses, refus d'un
-    dossier de mission qui est un lien ou trop large, espace career-ops configuré fermé, `O_NONBLOCK`.
-    **Ne plus toucher ce dossier** : c'est maintenant le travail du manager.
+    **Relue, durcie et intégrée par le manager**, en service sur 4310 depuis 21:3x :
+    - `reponse-04-format` est à `faf6c98` ; commits de relecture `8b73a90` et `a817390` dans ce dossier ;
+    - 4 défauts corrigés : tube nommé, course lstat/ouverture (409), lien physique (403), dossier de mission qui est
+      un lien ou trop large (403) ;
+    - tout espace privé est fermé, même en mode propriétaire ;
+    - suite complète du back verte (2 013/2 016, 0 échec).
+    Ce dossier appartient désormais au manager : ne plus y toucher.
   - `reponse-04-format` : créée par une session d'avant, elle est maintenant la branche du manager (API 4310).
     Lecture seule.
 - Le manager a demandé de **ne modifier ni `docs/api-equipe-vue.md` ni ses fichiers back** en attendant ses lots.
@@ -139,8 +140,13 @@ verts ; suite complète, `tsc`, build et prettier verts au commit.
 ## 5. Contrats du back suivis par le front
 - **Message à l'agent** : `POST /api/runs/:id/message` (`docs/api-message.md`) ; 409 pour une mission finie ou un
   workflow, 404 pour un back ancien : repli sur la reprise.
-- **Fichiers** : `GET /api/runs/:id/file?path=…[&download=1]` (`docs/api-fichiers.md` sur `fichiers-21-11`) ; **pas
-  encore sur 4310**.
+- **Fichiers** : `GET /api/runs/:id/file?path=…[&download=1]` (`docs/api-fichiers.md`), **en service sur 4310**
+  (21:3x). Contrat inchangé pour le front ; seuls des refus 403 et 404 et un cas 409 (« Fichier remplacé pendant la
+  lecture : réessayer ») s'ajoutent, affichés tels quels sous la carte.
+  - Vérifié dans Chrome sur `bd54ee7a` : « Ouvrir » affiche `publications-relay.md` en Markdown.
+  - Vérifié par `curl` : les 4 fichiers en `download=1` répondent 200, `attachment` avec le bon nom et le bon type.
+  - Questions laissées au propriétaire par le manager : borne plus forte (seulement sous le dossier des missions),
+    pièces jointes d'une mission non privée servies par la route, API sans authentification.
 - **Équipe v6**, noms choisis par le manager, lot `equipe-v6-01` (branche `equipe-v6-01`, `d5f9f57`) codé, **pas encore
   intégré ni sur 4310** :
   - `decoupage` (1-300) sur la mère et dans `equipe` des lignes de la liste ;
@@ -201,8 +207,6 @@ verts ; suite complète, `tsc`, build et prettier verts au commit.
 
 ## 8. Reste à faire
 1. **Attendre le manager** :
-   - intégration de `fichiers-21-11` (relecture de sécurité en cours) ; ensuite, vérifier Ouvrir et Télécharger sur
-     4310 ;
    - intégration de `equipe-v6-01` ; ensuite, comparer ses exemples JSON avec le front (`decoupage`, `etape`, `motif`,
      `titre`, `situation`, `regle`, `lecon`) et refaire les captures.
 2. **Questions encore ouvertes au propriétaire** :
