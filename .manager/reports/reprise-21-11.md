@@ -28,6 +28,9 @@
   `passation-reprise-21-11-a815c6`, même commit que `bold-goldstine`. Il sert donc directement les sources de cette
   branche. L'API 4310 reste celle du manager du back : ne pas la relancer.
 
+- **21/11 soir** : branche `claude/passation-reprise-21-11-a815c6` poussée sur `origin` à la demande du propriétaire
+  (« pousse la branche pour que je voie le rendu »). `main` n'est pas touché.
+
 ## Règles données par le propriétaire (à garder)
 - **Le back a toujours la priorité** : le front suit le contrat du back le plus récent. On ne touche pas aux arbres du
   manager, on économise l'usage et la machine (tests en `nice`, `--maxWorkers=2`, pas de revue multi-agents), et on
