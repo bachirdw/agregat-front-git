@@ -110,6 +110,18 @@
   - vu dans l'aperçu sur la mission réelle `bd54ee7a` (rien envoyé) ;
   - E2E non relancé.
 
+## Fichiers lisibles et discussion complète (21/11, après-midi) : `fichiers-fil-21-11.md`
+- **Back** :
+  - branche **locale** `fichiers-21-11` (`b63323c`), dossier `~/Downloads/agregat-back-fichiers`, partie de
+    `480ecc4` ;
+  - route `GET /api/runs/:id/file`, doc `docs/api-fichiers.md` ;
+  - non poussée, **non intégrée** à l'API 4310 du manager.
+- **Front** :
+  - `9dbefbd` et `4881c38` ;
+  - le fil garde le texte des tours d'avant, les questions de l'agent et les réponses du propriétaire ;
+  - les cartes de fichiers ont « Ouvrir » et « Télécharger ».
+- **Vérifications** : 446/446, et banc isolé sur 4330 vu dans le navigateur.
+
 ## État des vérifications (21/11, 13:15)
 - `npm test` : 26 fichiers, 430/430.
 - `npm run build` : OK.
