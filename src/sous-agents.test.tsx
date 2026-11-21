@@ -256,4 +256,12 @@ describe("journal de la mission : événements de la famille", () => {
       ],
     ]);
   });
+  // Back swarm-15 (docs/api-lecons.md § 8) : `lecon_gardee { id }`, l'identifiant seul, aucun texte.
+  it("une leçon gardée par l'équipe donne une ligne sans identifiant technique", () => {
+    const rows = activityRows([ev(1, "lecon_gardee", { id: "l-abc123" })]);
+    expect(rows.map((r) => [r.label, r.status, r.tone])).toEqual([
+      ["Leçon gardée pour les prochaines missions", "Gardée", ""],
+    ]);
+    expect(rows[0].label).not.toContain("l-abc123");
+  });
 });

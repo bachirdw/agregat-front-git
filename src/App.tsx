@@ -278,6 +278,17 @@ export default function App() {
       navRef.current?.querySelector("button")?.focus(),
     );
   };
+  // Window narrowed under 760px: the panel would become an overlay over the whole thread (the wheel
+  // then scrolled the panel), so it closes. Reopened by hand there, it stays open.
+  useEffect(() => {
+    let wide = innerWidth > 760;
+    const fit = () => {
+      if (wide && innerWidth <= 760) setPanel(false);
+      wide = innerWidth > 760;
+    };
+    addEventListener("resize", fit);
+    return () => removeEventListener("resize", fit);
+  }, []);
   // Window narrowed with both open: the sidebar gives way so the thread keeps its width.
   useEffect(() => {
     if (!panel || !side) return;

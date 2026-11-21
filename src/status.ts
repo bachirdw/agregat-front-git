@@ -413,3 +413,30 @@ export function texteJetons(usage: unknown): string {
   const n = Math.round(total);
   return `${new Intl.NumberFormat("fr-FR").format(n)} ${n > 1 ? "jetons" : "jeton"}`;
 }
+
+/** « 412 000 jetons · coût annoncé 1,84 USD » from the agent's own `usage` event (back swarm-14,
+ * docs/api-delegation.md 9.14): numbers and currency as announced, never converted; "" when nothing. */
+export function texteAnnonce(usage: unknown): string {
+  const cout =
+    usage && typeof usage === "object"
+      ? (usage as { cout?: unknown }).cout
+      : undefined;
+  const montant =
+    cout && typeof cout === "object"
+      ? (cout as { montant?: unknown }).montant
+      : undefined;
+  const devise =
+    cout && typeof cout === "object"
+      ? (cout as { devise?: unknown }).devise
+      : undefined;
+  const prix =
+    typeof montant === "number" &&
+    Number.isFinite(montant) &&
+    montant >= 0 &&
+    typeof devise === "string" &&
+    devise.trim() &&
+    devise.trim().length <= 12
+      ? `coût annoncé ${new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(montant)} ${devise.trim()}`
+      : "";
+  return [texteJetons(usage), prix].filter(Boolean).join(" · ");
+}

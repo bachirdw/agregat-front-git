@@ -32,6 +32,7 @@ import {
   type Act,
 } from "./OwnerRequests";
 import { SkillSteps } from "./SkillSteps";
+import { texteAnnonce } from "./status";
 import { trackerItems, trackerMarks } from "./Tracker";
 import { ownerTextsVersion, subscribeOwnerTexts } from "./ownerMessages";
 import type { Run, RunEvent } from "./types";
@@ -296,8 +297,17 @@ export function MetaLine({ run, events }: { run: Run; events: RunEvent[] }) {
   const sessionMode = (session?.modes as { current?: string } | undefined)
     ?.current;
   const data = provenanceText(run, events);
+  const announced = texteAnnonce(lastEvent(events, "usage")?.data);
   const rows: [string, string][] = [
     ...usageRows(run),
+    ...(announced
+      ? [
+          [
+            "Annoncé par l’agent",
+            `${announced} (non mesuré par la plateforme)`,
+          ] as [string, string],
+        ]
+      : []),
     [
       "Agent",
       `${run.agent} · ${run.model || "modèle par défaut du fournisseur"} (non confirmé par ACP)`,
@@ -306,7 +316,9 @@ export function MetaLine({ run, events }: { run: Run; events: RunEvent[] }) {
       "Compte",
       run.simulated
         ? "Démonstrateur · aucun modèle appelé"
-        : "BYOA · consommation fournisseur inconnue, non refacturée",
+        : announced
+          ? "BYOA · consommation annoncée par l’agent, non refacturée"
+          : "BYOA · consommation fournisseur inconnue, non refacturée",
     ],
     [
       "Registre",

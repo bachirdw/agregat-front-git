@@ -222,6 +222,8 @@ export function activityRows(events: RunEvent[], run?: Run | null) {
       info("Enveloppe des sous-agents atteinte", "Signalé");
     else if (event.type === "delegation_extended")
       info("Enveloppe des sous-agents étendue", "Accordé");
+    else if (event.type === "lecon_gardee")
+      info("Leçon gardée pour les prochaines missions", "Gardée");
     else if (event.type === "family_waiting")
       add(
         {

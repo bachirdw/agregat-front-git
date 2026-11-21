@@ -186,6 +186,40 @@ describe("réponse de l'agent : texte d'abord", () => {
       expect(keys).toContain(key);
     expect(list.textContent).toContain("Intègre");
   });
+  // Back swarm-14 (docs/api-delegation.md 9.14) : événement `usage`, chiffres annoncés par l'agent lui-même.
+  it("les jetons et le coût annoncés par l'agent (événement usage) s'ajoutent au détail, sans conversion", () => {
+    const { container } = turn({
+      run: { ...run, simulated: false } as Run,
+      events: [
+        ...events,
+        ev(5, "usage", {
+          tours: 3,
+          jetons: { entree: 400000, sortie: 12000, total: 412000 },
+          cout: { montant: 1.84, devise: "USD" },
+          contexte: { utilise: 90000, taille: 200000 },
+        }),
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /fixture · 0,00/ }));
+    const list = container.querySelector(".meta-details")!;
+    const keys = [...list.querySelectorAll("dt")].map((d) => d.textContent);
+    expect(keys).toContain("Annoncé par l’agent");
+    expect(list.textContent).toMatch(/412\s000 jetons · coût annoncé 1,84 USD/);
+    expect(list.textContent).toContain("consommation annoncée par l’agent");
+  });
+  it("sans événement usage, ni ligne « Annoncé par l’agent » ni chiffre inventé", () => {
+    const { container } = turn({
+      run: { ...run, simulated: false } as Run,
+      events: [
+        ...events,
+        ev(5, "usage", { tours: 0, jetons: null, cout: null }),
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /fixture · 0,00/ }));
+    const list = container.querySelector(".meta-details")!;
+    expect(list.textContent).not.toContain("Annoncé par l’agent");
+    expect(list.textContent).toContain("consommation fournisseur inconnue");
+  });
   it("la ligne d'activité résume les actions, repliée, puis les liste avec ✓ et ✕", () => {
     const { container } = turn();
     const line = screen.getByRole("button", { name: /A exécuté 3 actions/ });

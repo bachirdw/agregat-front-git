@@ -178,6 +178,28 @@ describe("panneau Activité dans l'application", () => {
     expect(panel()).toBeTruthy();
     expect(container.querySelector(".sidebar")).toBeTruthy();
   });
+  // Sous 760px le panneau devient une surcouche pleine largeur : resté ouvert après un rétrécissement, il
+  // cachait le fil et la roue faisait défiler le panneau (e2e « défilement », 21/11).
+  it("fenêtre rétrécie sous 760px : le panneau se ferme ; rouvert à la main, il reste ouvert", async () => {
+    width(1440);
+    serve(base);
+    render(<App />);
+    await openMission();
+    expect(panel()).toBeTruthy();
+    width(375);
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(panel()).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Afficher l’activité" }),
+    );
+    expect(panel()).toBeTruthy();
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(panel()).toBeTruthy();
+  });
   it("la ligne des sous-agents du fil ouvre le panneau", async () => {
     serve({
       ...base,
