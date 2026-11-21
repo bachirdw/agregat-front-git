@@ -1,5 +1,12 @@
 import { useState } from "react";
-import type { Catalog, Agent, Skill, Run } from "./types";
+import type { Catalog, Agent, Skill, Run, SkillImportAnswer } from "./types";
+import { ApiError } from "./api";
+import {
+  CompatibilityPanel,
+  FindingLine,
+  UpdatePanel,
+  type SkillRequest,
+} from "./SkillDetails";
 import { agentStatus, labels, money, readinessLabel } from "./types";
 import { UsageCard } from "./Mission";
 export function Agents({
@@ -150,12 +157,15 @@ function SkillCard({
   skill,
   busy,
   act,
+  request,
 }: {
   skill: Skill;
   busy: boolean;
   act: (path: string, body: unknown) => Promise<void>;
+  request: SkillRequest;
 }) {
   const [reviewed, setReviewed] = useState(false);
+  const notice = skill.notification;
   const base = "/skills/" + skill.id;
   return (
     <article className="card skill-card">
@@ -170,6 +180,19 @@ function SkillCard({
             {skillLabels[skill.state] || skill.state}
           </span>
         </div>
+        {notice && (
+          <span
+            className={
+              "badge skill-notice " +
+              (notice.type === "mise-a-jour" ? "update" : "warning")
+            }
+            title={notice.texte}
+          >
+            {notice.type === "mise-a-jour"
+              ? "Mise à jour conseillée"
+              : "Problème connu"}
+          </span>
+        )}
         <small>
           v{skill.version} ·{" "}
           {skill.origin === "third-party" ? "Import tiers" : "Embarqué"}
@@ -191,20 +214,10 @@ function SkillCard({
             : "Contenu modifié · réimporter ou réinstaller après revue"}
         </small>
         {skill.findings?.map((f, i) => (
-          <p
-            className={
-              "finding " + (f.level === "danger" ? "danger" : "warning")
-            }
-            key={i}
-          >
-            {f.level === "danger"
-              ? "Danger"
-              : f.level === "warning"
-                ? "Attention"
-                : f.level}{" "}
-            · {f.message}
-          </p>
+          <FindingLine key={i} finding={f} />
         ))}
+        <CompatibilityPanel skill={skill} />
+        <UpdatePanel skill={skill} busy={busy} request={request} />
         {skill.state === "quarantined" && (
           <>
             <p>
@@ -281,18 +294,160 @@ function SkillCard({
     </article>
   );
 }
+// skills-nuit-22-11 : compte rendu d'un import, ou refus d'un dépôt à plusieurs Skills (une case par
+// candidat, 30 au plus par appel) ou d'un plugin (agents et serveurs MCP décrits, jamais lancés).
+function ImportOutcome({
+  outcome,
+  chosen,
+  setChosen,
+  busy,
+  importSkills,
+}: {
+  outcome: SkillImportAnswer;
+  chosen: string[];
+  setChosen: (paths: string[]) => void;
+  busy: boolean;
+  importSkills: (extra?: Record<string, unknown>) => Promise<void>;
+}) {
+  const candidates = outcome.candidats ?? [];
+  const plugin = outcome.plugin;
+  const remaining = outcome.restants ?? [];
+  const toggle = (path: string, on: boolean) =>
+    setChosen(on ? [...chosen, path] : chosen.filter((p) => p !== path));
+  return (
+    <div className="card card-pad import-outcome" aria-live="polite">
+      {outcome.error && (
+        <p className="danger" role="alert">
+          {outcome.error}
+        </p>
+      )}
+      {outcome.message && <p role="status">{outcome.message}</p>}
+      {(outcome.rapport ?? []).length > 0 && (
+        <ul className="import-report">
+          {outcome.rapport!.map((r, i) => (
+            <li key={i}>
+              {r.id || r.chemin || r.demande} · {r.statut}
+              {r.raison ? ` : ${r.raison}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+      {plugin && (
+        <div className="import-plugin">
+          <strong>Plugin « {plugin.nom || "sans nom"} »</strong>
+          {plugin.description && <small>{plugin.description}</small>}
+          {(plugin.skills?.length ?? 0) > 0 && (
+            <small>{plugin.skills!.length} Skill(s) dans le plugin</small>
+          )}
+          {(plugin.agents ?? []).map((a) => (
+            <small key={"a" + a.nom}>
+              Agent {a.nom}
+              {a.description ? ` (${a.description})` : ""} · non lancé
+            </small>
+          ))}
+          {(plugin.mcp ?? []).map((m) => (
+            <small key={"m" + m.nom}>
+              Serveur MCP {m.nom}
+              {m.transport ? ` (${m.transport})` : ""} · non lancé
+            </small>
+          ))}
+          {outcome.error && (
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() => void importSkills({ plugin: true })}
+            >
+              Importer le plugin
+            </button>
+          )}
+        </div>
+      )}
+      {candidates.length > 0 && (
+        <fieldset className="import-candidates">
+          <legend>Choisissez les Skills à importer (30 au plus)</legend>
+          {candidates.map((c) => (
+            <label key={c.chemin} className="check">
+              <input
+                type="checkbox"
+                disabled={!c.id || !!c.erreur}
+                checked={chosen.includes(c.chemin)}
+                onChange={(e) => toggle(c.chemin, e.target.checked)}
+              />
+              <span>
+                {c.id || c.chemin}
+                {c.description ? ` · ${c.description}` : ""}
+                {c.erreur ? ` · non importable : ${c.erreur}` : ""}
+              </span>
+            </label>
+          ))}
+          {outcome.tronque && (
+            <small>
+              Recherche tronquée : collez l’adresse d’un dossier plus précis.
+            </small>
+          )}
+          <button
+            className="primary"
+            disabled={busy || !chosen.length || chosen.length > 30}
+            onClick={() => void importSkills({ choix: chosen })}
+          >
+            Importer la sélection ({chosen.length})
+          </button>
+        </fieldset>
+      )}
+      {remaining.length > 0 && (
+        <button
+          disabled={busy}
+          onClick={() => void importSkills({ choix: remaining.slice(0, 30) })}
+        >
+          Importer la suite ({remaining.length} restants)
+        </button>
+      )}
+    </div>
+  );
+}
 export function Skills({
   catalog,
   busy,
   act,
+  request,
 }: {
   catalog: Catalog;
   busy: boolean;
   act: (path: string, body: unknown) => Promise<void>;
+  // skills-nuit-22-11 : returns the back's answer (report, candidates of a refusal…); without it
+  // (older callers), the actions go through `act`.
+  request?: SkillRequest;
 }) {
   const [git, setGit] = useState(""),
     [subdir, setSubdir] = useState(""),
     [filter, setFilter] = useState("Tous");
+  const send: SkillRequest =
+    request ?? ((path, body) => act(path, body).then(() => undefined));
+  // The last import: the back's answer, or its refusal with candidates or a plugin to choose from.
+  const [outcome, setOutcome] = useState<SkillImportAnswer | null>(null);
+  const [chosen, setChosen] = useState<string[]>([]);
+  const target = { git: git.trim(), subdir: subdir.trim() || "." };
+  const importSkills = async (extra: Record<string, unknown> = {}) => {
+    try {
+      const answer = (await send("/skills/import", {
+        ...target,
+        ...extra,
+      })) as SkillImportAnswer | undefined;
+      setOutcome(
+        answer && typeof answer === "object" && !Array.isArray(answer)
+          ? answer
+          : null,
+      );
+      setChosen([]);
+    } catch (e) {
+      const data = (e as ApiError).data as SkillImportAnswer | undefined;
+      setOutcome({
+        ...(data && typeof data === "object" ? data : {}),
+        error: e instanceof Error ? e.message : String(e),
+      });
+      setChosen([]);
+    }
+  };
   const visible = catalog.skills.filter(
     (s) =>
       filter === "Tous" ||
@@ -319,13 +474,17 @@ export function Skills({
             className="card card-pad import-form"
             onSubmit={(e) => {
               e.preventDefault();
-              void act("/skills/import", {
-                git: git.trim(),
-                subdir: subdir.trim() || ".",
-              });
+              void importSkills();
             }}
           >
             <strong>Importer depuis GitHub</strong>
+            <small className="import-help">
+              Collez l’adresse telle quelle, copiée depuis GitHub : le dépôt, un
+              dossier (…/tree/main/skills/nom), un fichier SKILL.md
+              (…/blob/…/SKILL.md) ou un lien figé sur un commit. Le sous-dossier
+              est facultatif : laissez-le vide (ou « . ») si l’adresse vise déjà
+              le dossier.
+            </small>
             <label>
               Dépôt GitHub
               <input
@@ -350,6 +509,15 @@ export function Skills({
               Importer en quarantaine
             </button>
           </form>
+          {outcome && (
+            <ImportOutcome
+              outcome={outcome}
+              chosen={chosen}
+              setChosen={setChosen}
+              busy={busy}
+              importSkills={importSkills}
+            />
+          )}
           <div className="segmented skill-filters">
             {["Tous", "Installés", "Quarantaine", "Rejetés"].map((f) => (
               <button
@@ -370,6 +538,7 @@ export function Skills({
               skill={s}
               busy={busy}
               act={act}
+              request={send}
             />
           ))}
           {!visible.length && (

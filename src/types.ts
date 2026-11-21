@@ -40,8 +40,150 @@ export interface Skill {
   hash: string;
   license?: string;
   files?: number;
-  findings: { level: string; message: string }[];
-  source?: { url: string; sha: string };
+  findings: SkillFinding[];
+  source?: {
+    url: string;
+    sha: string;
+    ref?: string | null;
+    subdir?: string;
+    adresse?: string;
+  };
+  description?: string;
+  // skills-nuit-22-11 (back docs/api-skills-import.md) : fiche de compatibilité, problèmes constatés,
+  // notification et mise à jour proposée. Absents tant que le back n'a rien à dire.
+  compatibilite?: SkillCompatibility | null;
+  problemes?: SkillProblem[];
+  notification?: {
+    niveau: string;
+    type: "mise-a-jour" | "probleme" | string;
+    texte: string;
+  } | null;
+  miseAJour?: SkillUpdate | null;
+}
+export interface SkillFinding {
+  level: string;
+  message: string;
+  rule?: string;
+  file?: string;
+}
+export interface SkillSource {
+  fichier: string;
+  ligne: number;
+  extrait?: string;
+  depot?: boolean;
+}
+export interface SkillNeed {
+  type: string;
+  nom: string;
+  verdict: string;
+  fournisseur?: string | null;
+  note?: string | null;
+  occurrences?: number;
+  sources?: SkillSource[];
+  usage?: string;
+}
+export interface SkillDependency {
+  id: string;
+  chemin?: string;
+  adresse?: string;
+  memeImport?: boolean;
+  registre?: {
+    etat: string;
+    memeSource?: boolean;
+    integre?: boolean;
+    source?: string;
+  } | null;
+  sources?: SkillSource[];
+  occurrences?: number;
+}
+export interface SkillCompatibility {
+  empreinte?: string;
+  licence?: { texte?: string; type?: string; fichier?: string } | null;
+  plugin?: {
+    nom?: string;
+    description?: string;
+    roles?: { nom: string; description?: string; fichier?: string }[];
+  } | null;
+  besoins?: SkillNeed[];
+  dependances?: SkillDependency[];
+  tronque?: boolean;
+}
+export interface SkillProblem {
+  cause: string;
+  n: number;
+  derniere: string;
+  type: string;
+  aussi?: string[];
+}
+export interface SkillChange {
+  sha: string;
+  date?: string;
+  titre: string;
+  pertinent?: boolean;
+  correspond?: string | null;
+  probleme?: string | null;
+  version?: string | null;
+}
+export interface SkillUpdate {
+  source: "git" | "local" | "integre" | string;
+  depot?: string | null;
+  reference?: string | null;
+  disponible: boolean | null;
+  versionLocale?: string | null;
+  versionDistante?: string | null;
+  changements?: SkillChange[];
+  tronque?: boolean;
+  raison?: string;
+  marche?: string;
+  verifieLe?: string;
+  conseillee?: boolean;
+  candidat?: {
+    hash: string;
+    version?: string;
+    etat: string;
+    sha?: string;
+    importeLe?: string;
+    findings?: SkillFinding[];
+  } | null;
+  precedentes?: { hash: string; version?: string; sha?: string }[];
+}
+// Réponses du back aux routes des Skills : la liste seule, ou un objet qui la porte (import par
+// choix ou plugin, vérification, mise à jour).
+export interface SkillImportReport {
+  demande: string;
+  id?: string | null;
+  chemin?: string;
+  adresse?: string;
+  statut: string;
+  raison?: string;
+}
+export interface SkillCandidate {
+  id: string | null;
+  chemin: string;
+  description?: string;
+  adresse?: string;
+  ref?: string;
+  erreur?: string;
+}
+export interface SkillPlugin {
+  nom?: string;
+  description?: string;
+  skills?: string[];
+  agents?: { nom: string; description?: string }[];
+  mcp?: { nom: string; transport?: string; statut?: string }[];
+}
+export interface SkillImportAnswer {
+  skills?: Skill[];
+  message?: string;
+  error?: string;
+  importes?: number;
+  refuses?: number;
+  rapport?: SkillImportReport[];
+  restants?: string[];
+  candidats?: SkillCandidate[];
+  tronque?: boolean;
+  plugin?: SkillPlugin;
+  marche?: string;
 }
 export interface StepDefinition {
   id: string;
@@ -138,6 +280,8 @@ export interface FamilyMember {
   // `famille.agentPrevu`), never sent in `family[]`: plain text only.
   motif?: string;
   agentPrevu?: string;
+  // Back equipe-essai-01 (E192) : the chief chose this member's agent instead of the owner's.
+  agentImpose?: boolean;
   // A run state, or a state held by the platform: en_file, attend_accord, attend_prerequis.
   state?: string;
   attend?: string | null;

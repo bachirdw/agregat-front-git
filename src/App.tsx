@@ -622,6 +622,35 @@ export default function App() {
       // The action already displayed the error; keep the draft for retry.
     }
   };
+  // The Skills routes answer the list, or (skills-nuit-22-11) an object that carries it.
+  const applySkills = (response: unknown) => {
+    const skills = Array.isArray(response)
+      ? (response as Catalog["skills"])
+      : Array.isArray((response as { skills?: unknown } | null)?.skills)
+        ? (response as { skills: Catalog["skills"] }).skills
+        : null;
+    if (!skills) return;
+    setCatalog((old) => (old ? { ...old, skills } : old));
+    setInput((old) => ({
+      ...old,
+      skills: old.skills.filter((id) =>
+        skills.some((s) => s.id === id && s.active && s.integrity),
+      ),
+    }));
+  };
+  // skills-nuit-22-11 : import, vérification et mise à jour d'un Skill ; la réponse (compte rendu,
+  // candidats d'un refus…) revient au menu Skills, qui l'affiche sur place.
+  const skillRequest = async (path: string, body: unknown) => {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await api<unknown>(path, body);
+      applySkills(response);
+      return response;
+    } finally {
+      setBusy(false);
+    }
+  };
   const action = async (path: string, body: unknown, throwOnError = false) => {
     if (busy) return;
     setBusy(true);
@@ -629,14 +658,7 @@ export default function App() {
     try {
       const response = await api<unknown>(path, body);
       if (path.startsWith("/skills")) {
-        const skills = response as Catalog["skills"];
-        setCatalog((old) => (old ? { ...old, skills } : old));
-        setInput((old) => ({
-          ...old,
-          skills: old.skills.filter((id) =>
-            skills.some((s) => s.id === id && s.active && s.integrity),
-          ),
-        }));
+        applySkills(response);
       } else if (path.endsWith("/resume")) {
         const resumed = response as Run;
         rememberResume(resumed.id, path.split("/")[2]);
@@ -1152,7 +1174,12 @@ export default function App() {
                 />
               )}{" "}
               {page === "skills" && (
-                <Skills catalog={catalog} busy={busy} act={action} />
+                <Skills
+                  catalog={catalog}
+                  busy={busy}
+                  act={action}
+                  request={skillRequest}
+                />
               )}{" "}
               {page === "packs" && (
                 <Packs

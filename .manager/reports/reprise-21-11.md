@@ -22,6 +22,11 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 09:40 — lot `skills-nuit-22-11`** (rapport du même nom), demandé par le manager du back pour le
+> propriétaire : import par adresse collée (candidats, plugin, suite), fiche de compatibilité, constats `info` en
+> gris, mise à jour sur problème (badge, Vérifier, Mettre à jour, revue du candidat, installer, revenir), « agent
+> choisi par le chef ». API 4310 à `a669962`. 506/506, build vert ; écritures sur 4310 non essayées.
+>
 > **21/11, 23:25 — lot `sous-agents-internes-21-11`** (rapport du même nom) : les sous-agents que Codex lance
 > lui-même (hors plateforme, back `natifs-01`) sont lus dans le flux et affichés dans la réponse et le panneau ;
 > les 173 mises à jour nues de leurs commandes ne sont plus des étapes « Outil » sans fin. 497/497, build vert.

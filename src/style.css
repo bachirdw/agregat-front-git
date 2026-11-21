@@ -1048,6 +1048,97 @@ footer small {
 .finding {
   border-radius: 8px;
   padding: 9px;
+  /* Les constats citent des adresses longues (dépendances à importer) : elles passent à la ligne. */
+  overflow-wrap: anywhere;
+}
+/* skills-nuit-22-11 : un constat « info » est une information, ni orange ni rouge. */
+.finding.info {
+  background: var(--fill);
+  color: var(--muted);
+}
+.finding.danger {
+  background: var(--fill);
+}
+.badge.update {
+  background: var(--fill);
+  color: var(--accentText);
+  box-shadow: inset 0 0 0 1px currentColor;
+  font-weight: 600;
+}
+.skill-notice {
+  margin-top: 4px;
+}
+.skill-fold {
+  border-top: 1px solid var(--sep);
+  padding-top: 8px;
+}
+.skill-fold > summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.compat,
+.skill-update,
+.import-outcome,
+.import-plugin,
+.import-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  min-width: 0;
+}
+.compat ul,
+.skill-update ul,
+.import-report {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding-left: 0;
+  list-style: none;
+}
+.compat-need {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  overflow-wrap: anywhere;
+}
+.compat-name {
+  font-weight: 500;
+}
+.compat-verdict {
+  color: var(--muted);
+}
+.compat-todo {
+  color: var(--orange);
+}
+.compat-where {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+.skill-changes .pertinent {
+  font-weight: 500;
+}
+.skill-change-why {
+  color: var(--accentText);
+}
+.skill-steps {
+  border-radius: 8px;
+  padding: 9px;
+  background: var(--fill);
+}
+.import-help {
+  color: var(--muted);
+}
+.import-candidates {
+  border: 0;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.import-candidates legend {
+  font-weight: 500;
+  margin-bottom: 4px;
 }
 .check {
   display: flex;

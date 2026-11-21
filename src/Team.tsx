@@ -294,6 +294,8 @@ function TeamRow({
                   {fallback
                     ? `lancé sur ${agent} (${planned} indisponible)`
                     : agent}
+                  {/* skills-nuit-22-11 (back equipe-essai-01) : le chef a choisi cet agent. */}
+                  {m.agentImpose === true ? " · agent choisi par le chef" : ""}
                   {model ? ` · ${model}` : ""}
                 </dd>
               </>

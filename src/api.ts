@@ -6,6 +6,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    // skills-nuit-22-11 : the parsed body of a refusal (`candidats`, `plugin`, `marche`…), when any.
+    public data?: unknown,
   ) {
     super(message);
   }
@@ -46,6 +48,7 @@ export async function api<T>(
     throw new ApiError(
       plainBackError(data.error) || `Erreur HTTP ${response.status}`,
       response.status,
+      data,
     );
   return data as T;
 }
