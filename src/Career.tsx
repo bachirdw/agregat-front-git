@@ -56,6 +56,9 @@ export type Tool = {
   output?: string;
   at?: string;
   endAt?: string;
+  // sous-agents-internes-21-11 : known only by a bare status update (no title, no input, no end):
+  // Codex sends its internal subagents' commands this way (173 on 48087a51, 21/11).
+  bare?: boolean;
 };
 // Message the owner sent while the mission ran (`owner_message`): one item per message id.
 export type Owner = {
@@ -267,6 +270,7 @@ export function activity(
           status: "pending",
           callKind: u.kind ? String(u.kind) : undefined,
           refused: update === "tool_call_update" && u.status === "failed",
+          bare: update === "tool_call_update" && !u.title && !u.rawInput,
           at: e.at,
         };
         tools.set(id, tool);
@@ -298,6 +302,7 @@ export function activity(
       if (u.status && !active(String(u.status))) tool.endAt = e.at;
       if (u.title) tool.title = String(u.title);
       if (u.rawInput !== undefined) tool.input = u.rawInput;
+      if (u.title || u.rawInput !== undefined) tool.bare = false;
       tool.output = toolOutput(u) ?? tool.output;
       continue;
     }
@@ -448,7 +453,84 @@ export function mainArgument(input: unknown): string | undefined {
     return `${args.fields.length} champ${args.fields.length > 1 ? "s" : ""}`;
   return undefined;
 }
+// sous-agents-internes-21-11 : a call that is an activity of one of the agent's own subagents
+// (back docs/api-delegation.md 5.1, profiles.js `nativeSubagents`). Codex: « Start / Interact with /
+// Complete subagent <nom> » with rawInput.agentPath and activityKind. Claude Code: an `Agent` call
+// with rawInput.subagent_type.
+type NativeActivity = {
+  name: string;
+  activity: "started" | "interacted" | "completed" | "failed";
+};
+export function nativeActivity(tool: Tool): NativeActivity | null {
+  const input = (tool.input ?? {}) as Record<string, unknown>;
+  if (
+    typeof input.agentPath === "string" &&
+    typeof input.activityKind === "string"
+  ) {
+    const name =
+      input.agentPath.split("/").filter(Boolean).pop() || input.agentPath;
+    const kind = input.activityKind;
+    if (kind === "started" || kind === "interacted" || kind === "completed")
+      return { name, activity: kind };
+    return null;
+  }
+  if (tool.toolName === "Agent" && typeof input.subagent_type === "string")
+    return {
+      name: input.subagent_type,
+      activity:
+        tool.status === "failed"
+          ? "failed"
+          : active(tool.status)
+            ? "started"
+            : "completed",
+    };
+  return null;
+}
+export type NativeMember = {
+  name: string;
+  state: "running" | "done" | "failed";
+  exchanges: number;
+};
+// The agent's own subagents seen in the stream, by name in order of first appearance, and the
+// number of bare actions (sent without name nor end) that came with them.
+export function nativeSubagents(items: Item[]) {
+  const members = new Map<string, NativeMember>();
+  let bare = 0;
+  for (const item of items) {
+    if (item.kind !== "tool") continue;
+    if (item.bare) {
+      bare++;
+      continue;
+    }
+    const seen = nativeActivity(item);
+    if (!seen) continue;
+    const member = members.get(seen.name) ?? {
+      name: seen.name,
+      state: "running" as const,
+      exchanges: 0,
+    };
+    if (seen.activity === "started" || seen.activity === "interacted") {
+      member.exchanges++;
+      member.state = "running";
+    } else member.state = seen.activity === "failed" ? "failed" : "done";
+    members.set(seen.name, member);
+  }
+  return { members: [...members.values()], bare: members.size ? bare : 0 };
+}
+const nativeVerbs = {
+  started: "lancé",
+  interacted: "relancé",
+  completed: "terminé",
+  failed: "en échec",
+};
 export function describeTool(tool: Tool) {
+  const native = nativeActivity(tool);
+  if (native)
+    return {
+      name: `Sous-agent ${native.name} · ${nativeVerbs[native.activity]}`,
+      summary: "",
+      params: undefined,
+    };
   if (tool.refused)
     return {
       name: toolNameFromId(tool.id) ?? "outil inconnu",

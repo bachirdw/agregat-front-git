@@ -33,8 +33,10 @@ export function trackerItems(run: Run, events: RunEvent[]): TrackerItem[] {
       title: step.title,
       mark: stepMark(run.steps?.find((s) => s.step_id === step.id)?.state),
     }));
+  // Bare actions (no name, never ended) are not steps: they stay counted with the agent's internal
+  // subagents in the thread (sous-agents-internes-21-11).
   return activity(events).flatMap((item) =>
-    item.kind === "tool"
+    item.kind === "tool" && !item.bare
       ? [
           {
             id: item.id,

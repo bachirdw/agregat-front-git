@@ -21,6 +21,7 @@ import {
   actionsDuration,
   CareerOffers,
   isCareerRun,
+  nativeSubagents,
   usePrivateResult,
   describeTool,
   isActiveTool,
@@ -820,6 +821,68 @@ function AnswerBubble({ answer }: { answer: Entry & { kind: "answer" } }) {
   );
 }
 
+// sous-agents-internes-21-11 : les sous-agents que l'agent lance lui-même, vus dans son flux. La
+// plateforme ne les compte ni ne les borne (back docs/api-delegation.md 5.1) : ni Arrêter, ni Suivre.
+const agentNames: Record<string, string> = {
+  codex: "Codex",
+  claude: "Claude Code",
+};
+const memberStates = {
+  running: "en cours",
+  done: "terminé",
+  failed: "en échec",
+};
+function InternalSubagents({
+  run,
+  items,
+  live,
+}: {
+  run: Run;
+  items: Item[];
+  live: boolean;
+}) {
+  const { members, bare } = useMemo(() => nativeSubagents(items), [items]);
+  if (!members.length) return null;
+  const agent = agentNames[run.agent] ?? run.agent ?? "l’agent";
+  return (
+    <div
+      className="internes"
+      role="group"
+      aria-label={`Sous-agents internes de ${agent}`}
+    >
+      <span className="internes-titre">
+        {plural(members.length, "sous-agent interne", "sous-agents internes")}{" "}
+        de {agent}
+      </span>
+      <ul>
+        {members.map((m) => {
+          // Mission over without a seen end: the platform cannot say it finished.
+          const state =
+            m.state === "running" && !live
+              ? "sans fin vue"
+              : memberStates[m.state];
+          return (
+            <li key={m.name} className={"internes-" + m.state}>
+              <b aria-hidden="true">
+                {m.state === "done" ? "✓" : m.state === "failed" ? "✕" : "•"}
+              </b>
+              <span>
+                {m.name} · {state}
+                {m.exchanges > 1 ? ` · ${m.exchanges} échanges` : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <small>
+        {bare > 0 &&
+          `${plural(bare, "action sans détail", "actions sans détail")} · `}
+        {members.length > 1 ? "lancés" : "lancé"} par l’agent lui-même : modèle
+        et consommation non transmis
+      </small>
+    </div>
+  );
+}
 // Message joint au tour de la réponse (`via: "with_answer"`) qui dit la même chose que cette réponse :
 // le propriétaire l'a écrit deux fois (champ du bas puis formulaire), le fil ne le montre qu'une fois.
 function echoedAnswers(entries: Entry[]) {
@@ -857,7 +920,13 @@ export function RunTurn({
   const waits = useMemo(() => ownerWaits(events), [events]);
   // Re-render when this page learns the text of a message it sent (private mission).
   useSyncExternalStore(subscribeOwnerTexts, ownerTextsVersion);
-  const tools = items.filter((i): i is Tool => i.kind === "tool");
+  // Bare actions (no name, never ended, sent for the agent's internal subagents) are counted on the
+  // subagents line, not as running tools (they kept « Exécution… » on forever).
+  const shownItems = useMemo(
+    () => items.filter((i) => i.kind !== "tool" || !i.bare),
+    [items],
+  );
+  const tools = shownItems.filter((i): i is Tool => i.kind === "tool");
   const live = !finalStates.has(run.state);
   // La réponse finale (run.result) remplace seulement le dernier morceau de texte de l'agent, celui
   // qui l'a écrite, s'il n'est suivi d'aucun échange : le texte des tours d'avant reste dans le fil.
@@ -895,7 +964,7 @@ export function RunTurn({
   // RunTurn shows no thoughts: a trailing thought keeps « Réflexion… » (else the turn looks stuck).
   const label =
     live && !ownerTurn
-      ? (waitingLabel(items) ??
+      ? (waitingLabel(shownItems) ??
         (items.at(-1)?.kind === "thought" ? "Réflexion…" : null))
       : null;
   const failedMembers = (Array.isArray(run.family) ? run.family : []).filter(
@@ -921,6 +990,7 @@ export function RunTurn({
         <div className="reponse-activite">
           <StepsLine run={run} events={events} />
           <ActivityLine tools={tools} waits={waits} />
+          <InternalSubagents run={run} items={items} live={live} />
           {incident && <Incident text={incident} />}
           {connection?.includes("perdue") && <Incident text={connection} />}
           {run.error && !live && (

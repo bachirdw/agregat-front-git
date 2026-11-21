@@ -22,6 +22,11 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **21/11, 23:25 — lot `sous-agents-internes-21-11`** (rapport du même nom) : les sous-agents que Codex lance
+> lui-même (hors plateforme, back `natifs-01`) sont lus dans le flux et affichés dans la réponse et le panneau ;
+> les 173 mises à jour nues de leurs commandes ne sont plus des étapes « Outil » sans fin. 497/497, build vert.
+> Piste pour le manager : exposer ces sous-agents en champ structuré pendant la mission.
+>
 > **21/11, 23:10 — lot `meme-affichage-21-11`** (rapport `meme-affichage-21-11.md`) : décision du
 > propriétaire, « une mission s'affiche toujours de la même façon ». career-ops passe sur `RunTurn` (consigne et
 > résultat privés lus par leurs routes, offres enregistrées dans la réponse) ; un message joint à une réponse

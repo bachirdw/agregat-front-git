@@ -1806,6 +1806,50 @@ fieldset.question-field label {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* sous-agents-internes-21-11 : les sous-agents lancés par l'agent lui-même, une ligne discrète comme
+   l'activité, l'état écrit (jamais la couleur seule). */
+.internes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.internes-titre {
+  color: var(--label);
+  font-weight: 500;
+}
+.internes ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.internes li {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  overflow-wrap: anywhere;
+}
+.internes li b {
+  width: 10px;
+  flex: none;
+  text-align: center;
+  font-weight: 600;
+}
+.internes-running b {
+  color: var(--accent);
+}
+.internes-done b {
+  color: var(--green);
+}
+.internes-failed b {
+  color: var(--red);
+}
 .incident {
   display: flex;
   align-items: baseline;
