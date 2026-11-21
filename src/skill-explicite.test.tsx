@@ -135,4 +135,42 @@ describe("Skill choisi explicitement", () => {
     expect(advanced.querySelector("summary")!.textContent).toContain("Avancé");
     expect(advanced.textContent).toContain("Le pack suit le Skill choisi");
   });
+
+  // skill-explicite-01 en service sur l'API 4310 (21/11, 20:47) : `pack: "auto"` sans Skill = aucun pack,
+  // chemin général, plus aucune détection d'après le prompt.
+  it("sans pack choisi : « Aucun · chemin général », jamais « selon l’objectif »", () => {
+    composer();
+    const pack = screen.getByLabelText("Pack") as HTMLSelectElement;
+    expect(pack.value).toBe("auto");
+    expect(pack.options[0].textContent).toBe("Aucun · chemin général");
+    const advanced = pack.closest("details.filter")!;
+    expect(advanced.querySelector("summary")!.getAttribute("aria-label")).toBe(
+      "Avancé Aucun",
+    );
+    expect(advanced.textContent).toContain(
+      "Sans pack, la mission suit le chemin général",
+    );
+    expect(document.body.textContent).not.toMatch(/selon l.objectif/);
+  });
+  it("réglages d'une mission : « Pack · aucun » plutôt que la valeur brute « auto »", () => {
+    render(
+      <Composer
+        catalog={catalog}
+        input={input}
+        onChange={vi.fn()}
+        onPlan={vi.fn()}
+        busy={false}
+        reply
+        sessionSettings={{
+          agent: "claude",
+          model: "",
+          pack: "auto",
+          skills: [],
+        }}
+      />,
+    );
+    const settings = screen.getByLabelText("Réglages de la mission");
+    expect(settings.textContent).toContain("Pack · aucun");
+    expect(settings.textContent).not.toContain("Pack · auto");
+  });
 });

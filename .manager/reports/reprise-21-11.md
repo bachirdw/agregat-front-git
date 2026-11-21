@@ -147,8 +147,8 @@
   dit le Skill.
 - Contrat confirmé par le manager : sans choix, garder `pack: "auto"` (pas `core`) ; après `skill-explicite-01`,
   il veut dire « aucun pack, chemin général », sans détection d'après le prompt.
-  **À faire dès que le manager confirme le passage sur 4310** : renommer l'option « Auto · selon l’objectif » en
-  « Aucun · chemin général ». Pas avant : d'ici là, elle fait encore l'ancienne détection.
+  `skill-explicite-01` est en service sur 4310 depuis 20:47 (a50b247). L'option est renommée « Aucun · chemin
+  général » (474/474). Reste une question au manager : le choix du workflow « Auto · proposé selon l’objectif ».
 - Réglage « Pack » rangé dans le dernier réglage « Avancé » (validé par le propriétaire), 472/472.
 - Vérifications : 471/471.
 

@@ -631,7 +631,7 @@ export function Composer({
       </Filter>
       {/* skill-explicite : le pack suit le Skill choisi ; le choisir à la main devient un réglage avancé
           (décision du propriétaire, 21/11). */}
-      <Filter name="Avancé" value={pack?.name || "Auto"}>
+      <Filter name="Avancé" value={pack?.name || "Aucun"}>
         <label>
           Domain Pack
           <select
@@ -645,7 +645,9 @@ export function Composer({
               })
             }
           >
-            <option value="auto">Auto · selon l’objectif</option>
+            {/* Contrat du back skill-explicite-01 (API 4310 depuis le 21/11, 20:47) : `auto` = aucun pack,
+                chemin général, plus aucune détection d'après le prompt. */}
+            <option value="auto">Aucun · chemin général</option>
             {catalog?.packs.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -655,7 +657,9 @@ export function Composer({
         </label>
         <small>
           Le pack suit le Skill choisi ; ne le change ici que pour forcer un
-          pack. {pack?.description || "Le plan expliquera le pack retenu."}
+          pack.{" "}
+          {pack?.description ||
+            "Sans pack, la mission suit le chemin général : aucun pack n’est choisi d’après l’objectif."}
         </small>
       </Filter>
     </div>
@@ -812,7 +816,12 @@ export function Composer({
               >
                 <span>Agent · {sessionSettings.agent}</span>
                 <span>Modèle · {sessionSettings.model || "Défaut"}</span>
-                <span>Pack · {sessionSettings.pack}</span>
+                <span>
+                  Pack ·{" "}
+                  {sessionSettings.pack === "auto"
+                    ? "aucun"
+                    : sessionSettings.pack}
+                </span>
                 <span>
                   Skills ·{" "}
                   {sessionSettings.skills.length

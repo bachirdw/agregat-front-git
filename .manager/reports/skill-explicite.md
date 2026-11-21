@@ -24,10 +24,26 @@ choisi (`pack` explicite, un Skill d'un pack dans `skills`, ou l'espace). Pas en
 - Test : 1 de plus dans `src/skill-explicite.test.tsx`, en échec avant le déplacement, puis vert. Suite : 472/472 ;
   build OK.
 
+## Pack « auto » renommé (skill-explicite-01 en service sur 4310 depuis 20:47, `reponse-04-format` a50b247)
+- Contrat confirmé par le manager du back : `pack: "auto"` (ou absent) avec `skills: []`, c'est aucun Skill et le
+  chemin général, sans détection d'après le prompt. Un pack ne joue que s'il est choisi :
+  - pack explicite ;
+  - Skill d'un pack dans `skills` ;
+  - espace ;
+  - en mode workflow, un DAG qui appartient à un seul pack.
+- Libellés changés :
+  - l'option du réglage Pack devient « Aucun · chemin général » ;
+  - la pastille affiche « Avancé Aucun » ;
+  - l'aide dit « Sans pack, la mission suit le chemin général : aucun pack n’est choisi d’après l’objectif. » ;
+  - les réglages d'une mission affichent « Pack · aucun » au lieu de la valeur brute « auto ».
+- Le front envoie toujours `pack: "auto"` sans choix, comme le manager le demande (compatible avec les anciennes
+  missions).
+- Tests : 2 de plus, en échec avant, puis verts ; 474/474 ; build OK. Vu dans l'aperçu 5173 sur l'API 4310 : options
+  et aide justes.
+- Question ouverte au manager : en mode Workflow, le choix du workflow garde « Auto · proposé selon l’objectif ».
+  Je ne sais pas si le back choisit encore un DAG d'après le prompt ; à renommer selon sa réponse.
+
 ## Pas fait, volontairement
-- Le réglage « Pack » garde son option « Auto · selon l’objectif ». Elle reste vraie tant que l'API 4310 n'a pas
-  `skill-explicite-01`. À renommer (« Aucun · chemin général ») quand le manager confirmera le contrat à
-  l'intégration.
 - Un seul Skill par mission dans l'interface. L'API accepte toujours une liste ; les missions déjà faites avec
   plusieurs Skills s'affichent comme avant.
 
