@@ -67,7 +67,9 @@ const initial: MissionInput = {
   browser: "auto",
   browserDomains: "",
   budgetCents: 0,
-  mode: "workflow",
+  // 21/11 : agent unique par défaut. En workflow, une mission finie ne reçoit pas de message de suite
+  // (canReply) ; le workflow reste un choix dans les réglages.
+  mode: "agent",
   workflow: "auto",
   attachments: [],
 };
@@ -318,7 +320,9 @@ export default function App() {
   }, []);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      // ⌘K on a Mac (Ctrl+K there edits the text field), Ctrl+K elsewhere.
+      const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+      if ((mac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         newMission();
       }
@@ -1036,7 +1040,15 @@ export default function App() {
               ) : (
                 <>
                   <SessionHistory run={run} runs={runs} />
-                  <PromptBubble key={run.id} text={run.prompt} />
+                  <PromptBubble
+                    key={run.id}
+                    text={run.prompt}
+                    attachments={
+                      Array.isArray(run.attachments)
+                        ? run.attachments.length
+                        : 0
+                    }
+                  />
                   {/* reponse-04 : une seule réponse, façon Claude Code (RunView reste pour les détails). */}
                   <RunTurn
                     // Une mission = une réponse : lignes repliées à chaque mission ouverte.

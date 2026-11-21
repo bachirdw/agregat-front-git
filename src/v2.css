@@ -1988,8 +1988,10 @@ fieldset.question-field label {
 .composer-spacer {
   flex: 1;
 }
+/* Ancré sur le dock du composer (positionné), pas sur le bouton : sur mobile, un menu parti du bouton
+   dépassait le bord droit de l'écran. */
 .session-menu {
-  position: relative;
+  position: static;
 }
 .session-menu > summary {
   display: block;
@@ -2016,7 +2018,8 @@ fieldset.question-field label {
   bottom: calc(100% + 8px);
   left: 0;
   z-index: 60;
-  width: min(560px, calc(100vw - 48px));
+  width: min(560px, 100%);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2028,6 +2031,18 @@ fieldset.question-field label {
 }
 .session-menu-body .filters {
   flex-wrap: wrap;
+}
+/* Dans le menu, chaque fenêtre de réglage s'ouvre au-dessus du menu, alignée sur lui : une pastille en
+   début de ligne envoyait sa fenêtre (alignée à droite) hors de l'écran, entre 1101 et 1180 px. */
+.session-menu-body .filter {
+  position: static;
+}
+.session-menu-body .popover,
+.session-menu-body .filter:nth-last-child(-n + 3) .popover {
+  left: 0;
+  right: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 /* « Revenir en bas » : bouton rond de 32 px, une flèche, au-dessus du composer. */
 .jump-bottom {
@@ -2276,4 +2291,11 @@ fieldset.question-field label {
     background: var(--bg);
     backdrop-filter: none;
   }
+}
+/* Fichiers joints à la mission, sous le texte de la bulle (le back ne garde que leur nombre). */
+.prompt-attachments {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
 }

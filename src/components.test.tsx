@@ -406,6 +406,9 @@ describe("rendu fiable", () => {
       /Type refusé/,
     );
     expect(fetcher).toHaveBeenCalledTimes(1);
+    // 21/11 : la puce d'erreur se ferme (avant : elle restait jusqu'au fichier suivant).
+    fireEvent.click(screen.getByRole("button", { name: "Fermer le message" }));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
   it("résultat : la portée de vérification est distincte du succès de l’outil", () => {
     const run = {

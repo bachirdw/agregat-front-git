@@ -294,6 +294,24 @@ describe("réponse de l'agent : texte d'abord", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
   });
+  // 21/11 : sur une mission terminée, « Reprendre la session » renvoyait le même message (nouveau tour
+  // d'agent, bulle en double). La suite passe par le composer ; « Reprendre » sert après un arrêt.
+  it("« Reprendre la session » : pas sur une mission terminée, oui après un échec ou un arrêt", () => {
+    const { unmount } = turn({ run: { ...run, resumable: true } as Run });
+    expect(
+      screen.queryByRole("button", { name: "Reprendre la session" }),
+    ).toBeNull();
+    unmount();
+    for (const state of ["failed", "cancelled", "interrupted"]) {
+      const { unmount: off } = turn({
+        run: { ...run, state, resumable: true } as Run,
+      });
+      expect(
+        screen.getByRole("button", { name: "Reprendre la session" }),
+      ).toBeTruthy();
+      off();
+    }
+  });
   it("« Données fictives » reste visible sous une réponse simulée", () => {
     turn();
     expect(screen.getByText("Données fictives")).toBeTruthy();
@@ -372,6 +390,18 @@ describe("pastille de skill (skill-chip-01)", () => {
 });
 
 describe("message de l'utilisateur", () => {
+  // 21/11 (test complet) : rien dans le fil ne disait qu'un fichier était joint. Le back ne garde que
+  // l'identifiant : la bulle dit le nombre, sans inventer de nom.
+  it("fichiers joints : la bulle dit combien, sans nom inventé", () => {
+    const { rerender } = render(
+      <PromptBubble text="Mission FICTIVE" attachments={2} />,
+    );
+    expect(screen.getByText("2 fichiers joints")).toBeTruthy();
+    rerender(<PromptBubble text="Mission FICTIVE" attachments={1} />);
+    expect(screen.getByText("1 fichier joint")).toBeTruthy();
+    rerender(<PromptBubble text="Mission FICTIVE" />);
+    expect(screen.queryByText(/joint/)).toBeNull();
+  });
   it("bulle tronquée à ~170 caractères, « Afficher tout » puis « Réduire »", () => {
     const text = "Mission FICTIVE ".repeat(30).trim();
     render(<PromptBubble text={text} />);
@@ -411,6 +441,83 @@ const input: MissionInput = {
   workflow: "auto",
   attachments: [],
 };
+// 21/11 (capture du propriétaire) : dix pastilles empilées sur cinq lignes à l'accueil. La maquette v5
+// (01-nouvelle-mission.png) n'en montre aucune ; le brief 04 les range derrière un seul bouton discret.
+describe("composer de l'accueil", () => {
+  const home = (over: Partial<MissionInput> = {}) =>
+    render(
+      <Composer
+        catalog={catalog}
+        input={{ ...input, ...over }}
+        onChange={vi.fn()}
+        onPlan={vi.fn()}
+        busy={false}
+      />,
+    );
+  it("les réglages passent derrière un seul bouton « Auto · défaut », fermé par défaut", () => {
+    const { container } = home();
+    const menu = container.querySelector<HTMLDetailsElement>(
+      "details.session-menu",
+    )!;
+    expect(menu.querySelector("summary")!.textContent).toBe("Auto · défaut");
+    expect(menu.open).toBe(false);
+    expect(menu.querySelector(".filters")).toBeTruthy();
+    expect(container.querySelector(".composer-bottom > .filters")).toBeNull();
+    expect(screen.getByLabelText("Agent", { selector: "select" })).toBeTruthy();
+  });
+  it("Échap et un clic ailleurs ferment le menu des réglages", () => {
+    const { container } = home();
+    const menu = container.querySelector<HTMLDetailsElement>(
+      "details.session-menu",
+    )!;
+    menu.open = true;
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(menu.open).toBe(false);
+    menu.open = true;
+    fireEvent.pointerDown(document.body);
+    expect(menu.open).toBe(false);
+  });
+  it("budget hors bornes : un message visible, et l'envoi ne part pas en silence", () => {
+    const onPlan = vi.fn();
+    const { container } = render(
+      <Composer
+        catalog={catalog}
+        input={{ ...input, prompt: "Mission FICTIVE" }}
+        onChange={vi.fn()}
+        onPlan={onPlan}
+        busy={false}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Budget maximum"), {
+      target: { value: "1001" },
+    });
+    expect(container.querySelector("form")!.noValidate).toBe(true);
+    fireEvent.submit(container.querySelector("form")!);
+    expect(onPlan).not.toHaveBeenCalled();
+    const alerts = screen
+      .getAllByRole("alert")
+      .map((a) => a.textContent)
+      .join(" ");
+    expect(alerts).toMatch(/Budget invalide : entre 0 et 1 000/);
+  });
+  it("la pastille Navigateur dit son libellé, pas la valeur technique", () => {
+    home({ browser: "isolated" });
+    expect(
+      document.querySelector('summary[aria-label^="Navigateur"]')!.textContent,
+    ).toMatch(/Navigateur\s*Chrome isolé/);
+  });
+  it("limite de 8 000 caractères atteinte : un message le dit", () => {
+    home({ prompt: "x".repeat(8000) });
+    expect(screen.getByText(/8 000 caractères au plus/)).toBeTruthy();
+  });
+  it("le bouton dit le modèle choisi et l'équipe allumée", () => {
+    const { container } = home({ model: "modele-FICTIF", team: true });
+    expect(
+      container.querySelector(".session-menu > summary")!.textContent,
+    ).toBe("Auto · modele-FICTIF · équipe");
+  });
+});
+
 describe("composer d'une mission", () => {
   it("un seul bouton discret « agent · modèle » à la place des pastilles, et plus de texte d'aide", () => {
     const { container } = render(
@@ -436,6 +543,27 @@ describe("composer d'une mission", () => {
     expect(menu.open).toBe(false);
     expect(within(menu).getByText("Skills · career-ops")).toBeTruthy();
     expect(container.querySelector(".composer-note")).toBeNull();
+  });
+  it("mission qu'on ne peut pas poursuivre : le menu ne montre pas les pastilles de l'accueil", () => {
+    const { container } = render(
+      <Composer
+        catalog={catalog}
+        input={input}
+        onChange={vi.fn()}
+        onPlan={vi.fn()}
+        busy={false}
+        disabled
+        sessionSettings={{
+          agent: "fixture",
+          model: "",
+          pack: "najah",
+          skills: [],
+        }}
+      />,
+    );
+    const menu = container.querySelector("details.session-menu")!;
+    expect(within(menu as HTMLElement).getByText("Pack · najah")).toBeTruthy();
+    expect(menu.querySelector(".filters")).toBeNull();
   });
 });
 

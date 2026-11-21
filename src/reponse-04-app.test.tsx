@@ -81,6 +81,43 @@ describe("incidents dans le fil", () => {
   });
 });
 
+// 21/11 (test complet) : sur Mac, Ctrl+K (« effacer jusqu'à la fin de la ligne » dans un champ) était
+// capturé comme ⌘K et vidait la mission. « Nouvelle mission » (⌘K ou bouton) repart d'une page vierge,
+// comme voulu depuis front-02 (tests d'App.test.tsx sur les pièces jointes).
+describe("raccourci Nouvelle mission", () => {
+  it("depuis une mission, ⌘K ouvre une mission vide", async () => {
+    serve(base);
+    render(<App />);
+    fireEvent.change(await screen.findByLabelText("Objectif de la mission"), {
+      target: { value: "Brouillon FICTIF" },
+    });
+    fireEvent.click(await screen.findByText("Mission FICTIVE"));
+    await screen.findByRole("button", { name: "Arrêter" });
+    fireEvent.keyDown(document.body, { key: "k", metaKey: true });
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText("Objectif de la mission") as HTMLTextAreaElement)
+          .value,
+      ).toBe(""),
+    );
+  });
+  it("sur Mac, Ctrl+K reste au champ de saisie", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    serve(base);
+    render(<App />);
+    const field = await screen.findByLabelText("Objectif de la mission");
+    fireEvent.change(field, { target: { value: "Brouillon FICTIF" } });
+    const event = new KeyboardEvent("keydown", {
+      key: "k",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    field.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+});
+
 describe("fil d'une mission hors career-ops", () => {
   it("la ligne méta dépliée sur une mission repart repliée sur la mission suivante", async () => {
     const done = (id: string, prompt: string) =>

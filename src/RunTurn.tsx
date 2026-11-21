@@ -572,10 +572,11 @@ export function RunTurn({
   const incomplete = run.error?.match(
     /^Mission incomplète\s*:\s*([\s\S]+)/,
   )?.[1];
+  // After a stop or a failure only: on a completed mission the back would replay the last message
+  // (a new agent turn, a duplicate bubble); the follow-up goes through the composer.
   const resumable =
-    (run.mode === "workflow" &&
-      ["failed", "cancelled", "interrupted"].includes(run.state)) ||
-    (run.resumable && finalStates.has(run.state));
+    ["failed", "cancelled", "interrupted"].includes(run.state) &&
+    (run.mode === "workflow" || !!run.resumable);
   // Le texte de l'agent tant qu'il n'y a pas de réponse finale (en cours, ou fin sans résultat).
   const transcript =
     live || !run.result

@@ -268,6 +268,8 @@ export interface Opportunity {
 export interface Run {
   id: string;
   prompt: string;
+  // Ids of the files joined to the mission (back: uuids only, no name).
+  attachments?: unknown[];
   title?: string;
   finishedAt?: string;
   sessionId?: string | null;

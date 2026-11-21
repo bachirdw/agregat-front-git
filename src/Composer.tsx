@@ -63,6 +63,57 @@ function AttachMenu({
     </details>
   );
 }
+// Le menu « agent · modèle » se ferme comme ses fenêtres : Échap (après la fenêtre ouverte dedans,
+// s'il y en a une) ou un clic ailleurs.
+function SessionMenu({
+  summary,
+  children,
+}: {
+  summary: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: Event) => {
+      if (!ref.current?.contains(e.target as Node))
+        ref.current?.removeAttribute("open");
+    };
+    const escape = (e: KeyboardEvent) => {
+      const menu = ref.current;
+      if (e.key !== "Escape" || !menu?.open) return;
+      if (menu.querySelector("details.filter[open]")) return;
+      menu.open = false;
+      menu.querySelector("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", escape);
+    };
+  }, []);
+  return (
+    <details className="session-menu" ref={ref}>
+      <summary>{summary}</summary>
+      <div className="session-menu-body">{children}</div>
+    </details>
+  );
+}
+const browserLabels: Record<string, string> = {
+  auto: "Auto",
+  playwriter: "Ton Chrome",
+  isolated: "Chrome isolé",
+  fixture: "Fictif",
+};
+const PROMPT_MAX = 8000;
+const BUDGET_INVALID =
+  "Budget invalide : entre 0 et 1 000, au centime près. Corrige-le dans les réglages.";
+// Budget saisi : un nombre de 0 à 1 000 (arrondi au centime), sinon null.
+function budgetValue(text: string) {
+  if (!text.trim()) return null;
+  const n = Number(text);
+  return Number.isFinite(n) && n >= 0 && n <= 1000 ? n : null;
+}
 function Filter({
   name,
   value,
@@ -251,10 +302,15 @@ export function Composer({
     };
   });
   const [budget, setBudget] = useState(String(input.budgetCents / 100));
+  const [triedBudget, setTriedBudget] = useState(false);
   useEffect(
     () => setBudget(String(input.budgetCents / 100)),
     [input.budgetCents],
   );
+  // The field may hold an invalid amount the pill does not show: the mission must not leave with
+  // the last valid budget, nor be blocked silently (native validation cannot show its bubble in a
+  // closed menu, so the form is noValidate and the message is ours).
+  const budgetInvalid = budgetValue(budget) === null;
   const set = (patch: Partial<MissionInput>) =>
     onChange({ ...input, ...patch });
   const agent = catalog?.agents.find((a) => a.id === input.agent);
@@ -350,7 +406,10 @@ export function Composer({
         </label>
         <small>Modes annoncés par la dernière session ACP.</small>
       </Filter>
-      <Filter name="Navigateur" value={input.browser || "auto"}>
+      <Filter
+        name="Navigateur"
+        value={browserLabels[input.browser || "auto"] ?? "Auto"}
+      >
         <label>
           Navigateur de la mission
           <select
@@ -557,14 +616,15 @@ export function Composer({
             step="0.01"
             value={budget}
             disabled={disabled}
+            aria-invalid={budgetInvalid}
             onChange={(e) => {
               setBudget(e.target.value);
-              const n = Number(e.target.value);
-              if (Number.isFinite(n) && n >= 0 && n <= 1000)
-                set({ budgetCents: Math.round(n * 100) });
+              const n = budgetValue(e.target.value);
+              if (n !== null) set({ budgetCents: Math.round(n * 100) });
             }}
           />
         </label>
+        {budgetInvalid && <small role="alert">{BUDGET_INVALID}</small>}
         <small>
           Devise : {catalog?.pricing.currency || "EUR"}. Le coût fournisseur
           BYOA est inconnu et non refacturé.
@@ -574,6 +634,10 @@ export function Composer({
   );
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (budgetInvalid && !reply) {
+      setTriedBudget(true);
+      return;
+    }
     if (input.prompt.trim() && !busy && !uploading && !disabled && catalog)
       onPlan();
   };
@@ -582,6 +646,7 @@ export function Composer({
       <form
         className={"composer" + (dragging ? " dragging" : "")}
         data-compact={compact}
+        noValidate
         onSubmit={submit}
         onClick={() => {
           if (compact) onOpen?.();
@@ -625,7 +690,14 @@ export function Composer({
             )}
             {fileError && (
               <span className="chip error" role="alert">
-                {fileError}
+                <span>{fileError}</span>
+                <button
+                  type="button"
+                  aria-label="Fermer le message"
+                  onClick={() => setFileError("")}
+                >
+                  <Icon name="close" />
+                </button>
               </span>
             )}
           </div>
@@ -646,7 +718,7 @@ export function Composer({
           value={disabled ? "" : input.prompt}
           rows={reply || compact || sessionSettings ? 1 : 3}
           disabled={disabled}
-          maxLength={8000}
+          maxLength={PROMPT_MAX}
           onFocus={onOpen}
           onChange={(e) => {
             onOpen?.();
@@ -667,6 +739,16 @@ export function Composer({
           <button className="compact-expand" type="button" onClick={onOpen}>
             Afficher les réglages
           </button>
+        )}
+        {!disabled && input.prompt.length >= PROMPT_MAX && (
+          <p className="agent-warning" role="status">
+            8 000 caractères au plus : la fin du texte collé a été coupée.
+          </p>
+        )}
+        {triedBudget && budgetInvalid && !reply && !disabled && (
+          <p className="agent-warning" role="alert">
+            {BUDGET_INVALID}
+          </p>
         )}
         {agentWarning && !reply && !disabled && (
           <p className="agent-warning" role="alert">
@@ -690,31 +772,42 @@ export function Composer({
             onPick={() => fileRef.current?.click()}
           />
           {sessionSettings && !compact ? (
-            // reponse-04 : dans une mission, les pastilles et les réglages passent derrière un seul
-            // bouton discret « agent · modèle » (maquette v5).
-            <details className="session-menu">
-              <summary>
-                {sessionSettings.agent} · {sessionSettings.model || "défaut"}
-              </summary>
-              <div className="session-menu-body">
-                <div
-                  className="session-settings"
-                  aria-label="Réglages de la mission"
-                >
-                  <span>Agent · {sessionSettings.agent}</span>
-                  <span>Modèle · {sessionSettings.model || "Défaut"}</span>
-                  <span>Pack · {sessionSettings.pack}</span>
-                  <span>
-                    Skills ·{" "}
-                    {sessionSettings.skills.length
-                      ? sessionSettings.skills.join(", ")
-                      : "aucun"}
-                  </span>
-                  <small>Réglages de cette session</small>
-                </div>
-                {!reply && filtersRow}
+            // reponse-04 : dans une mission, les réglages de la session derrière un seul bouton
+            // discret « agent · modèle » (maquette v5). Une mission se poursuit ou est close : les
+            // pastilles de l'accueil (brouillon d'une autre mission) n'ont rien à faire ici.
+            <SessionMenu
+              summary={`${sessionSettings.agent} · ${sessionSettings.model || "défaut"}`}
+            >
+              <div
+                className="session-settings"
+                aria-label="Réglages de la mission"
+              >
+                <span>Agent · {sessionSettings.agent}</span>
+                <span>Modèle · {sessionSettings.model || "Défaut"}</span>
+                <span>Pack · {sessionSettings.pack}</span>
+                <span>
+                  Skills ·{" "}
+                  {sessionSettings.skills.length
+                    ? sessionSettings.skills.join(", ")
+                    : "aucun"}
+                </span>
+                <small>Réglages de cette session</small>
               </div>
-            </details>
+            </SessionMenu>
+          ) : !reply && !compact ? (
+            // Accueil : la maquette v5 ne montre aucune pastille ; le brief 04 les range derrière un
+            // seul bouton discret « agent · modèle » (avant : dix pastilles empilées sur cinq lignes).
+            <SessionMenu
+              summary={[
+                agent?.name || "Auto",
+                input.model || "défaut",
+                input.team ? "équipe" : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            >
+              {filtersRow}
+            </SessionMenu>
           ) : (
             !reply && filtersRow
           )}

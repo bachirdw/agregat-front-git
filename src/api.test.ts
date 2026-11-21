@@ -217,3 +217,41 @@ describe("pièces jointes", () => {
     ).toEqual({ ...base, attachments: ["u1"] });
   });
 });
+
+// 21/11 (test complet) : le refus du back s'affichait en jargon (« 70 c > budget 0 c »).
+describe("messages d'erreur du back", () => {
+  it("le refus de budget est dit en euros, avec quoi faire", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: "Budget insuffisant : estimation 70 c > budget 0 c",
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+    const error = (await api("/runs", { prompt: "FICTIF" }).catch(
+      (e: unknown) => e,
+    )) as ApiError;
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.message).toMatch(
+      /^Budget insuffisant : cette mission est estimée à 0,70\s€, au-dessus de ton budget de 0,00\s€\. Augmente le budget dans les réglages/,
+    );
+    expect(error.message).not.toMatch(/ c\b|>/);
+  });
+  it("un message inconnu reste tel quel", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: "Refus FICTIF" }), {
+          status: 400,
+        }),
+      ),
+    );
+    expect(
+      ((await api("/runs", {}).catch((e: unknown) => e)) as ApiError).message,
+    ).toBe("Refus FICTIF");
+  });
+});

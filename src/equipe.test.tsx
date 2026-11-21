@@ -128,10 +128,13 @@ async function launchFromApp(toggle: boolean) {
   return call![1];
 }
 
+// 21/11 : l'accueil part en agent unique par défaut (en workflow, une mission finie ne reçoit pas de
+// message de suite) ; le reste du corps est celui d'avant.
+const appBody = { ...todayBody, mode: "agent" };
 describe("interrupteur « Équipe d’agents » du composer", () => {
   it("éteint par défaut, expliqué en français simple ; lancement inchangé", async () => {
     const body = await launchFromApp(false);
-    expect(body).toEqual(todayBody);
+    expect(body).toEqual(appBody);
     const help = screen.getByText(/confier des parties du travail/);
     expect(help.textContent).toMatch(/en même temps/);
     expect(help.textContent).toMatch(/consomme ton abonnement/);
@@ -140,7 +143,7 @@ describe("interrupteur « Équipe d’agents » du composer", () => {
   it("allumé : la requête porte multiAgent et l'accord du bouton", async () => {
     const body = await launchFromApp(true);
     expect(body).toEqual({
-      ...todayBody,
+      ...appBody,
       multiAgent: true,
       delegation: { accepted: true, via: "bouton" },
     });

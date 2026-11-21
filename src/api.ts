@@ -1,4 +1,5 @@
 import type { Attachment, MissionInput, RunEvent } from "./types";
+import { money } from "./types";
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -47,10 +48,20 @@ export async function api<T>(
   }
   if (!response.ok)
     throw new ApiError(
-      data.error || `Erreur HTTP ${response.status}`,
+      plainBackError(data.error) || `Erreur HTTP ${response.status}`,
       response.status,
     );
   return data as T;
+}
+// Known back messages written for developers, said to the owner; any other text is kept.
+function plainBackError(text: unknown) {
+  if (typeof text !== "string") return "";
+  const budget = text.match(
+    /^Budget insuffisant : estimation (\d+) c > budget (\d+) c$/,
+  );
+  if (budget)
+    return `Budget insuffisant : cette mission est estimée à ${money(Number(budget[1]))}, au-dessus de ton budget de ${money(Number(budget[2]))}. Augmente le budget dans les réglages (bouton sous le champ de saisie).`;
+  return text;
 }
 export const ATTACHMENT_TYPES: Record<string, string> = {
   pdf: "application/pdf",

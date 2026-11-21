@@ -839,6 +839,13 @@ it("l'envoi lance la mission directement, sans plan à confirmer", async () => {
       expect.anything(),
     ),
   );
+  // 21/11 (test complet de l'interface) : en mode Workflow par défaut, une mission finie ne pouvait
+  // pas recevoir de message de suite. Par défaut, un agent unique, avec qui la conversation continue.
+  expect(api).toHaveBeenCalledWith(
+    "/runs",
+    expect.objectContaining({ mode: "agent" }),
+    expect.anything(),
+  );
   expect(vi.mocked(api).mock.calls.some(([path]) => path === "/plan")).toBe(
     false,
   );
