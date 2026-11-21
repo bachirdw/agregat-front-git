@@ -1,7 +1,7 @@
 // swarm-09 relecture : the « Équipe » block against hostile or mistyped member fields (back
 // api-equipe-vue.md, swarm-07). Every value below is FICTIF.
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { TeamBlock } from "./Team";
 import type { Run } from "./types";
 import appSource from "./App.tsx?raw";
@@ -17,6 +17,11 @@ const mother = (family: unknown[], patch: Record<string, unknown> = {}) =>
     ...patch,
   }) as unknown as Run;
 const row = (title: string) => screen.getByRole("listitem", { name: title });
+// equipe-05 : le détail d'un membre est dans sa ligne dépliée.
+const expand = (title: string) => {
+  fireEvent.click(row(title).querySelector("button.team-row-head")!);
+  return row(title);
+};
 
 describe("swarm-09 relecture : bloc Équipe", () => {
   it("« réessayer à » seulement pour une heure valide, jamais le texte brut", () => {
@@ -32,7 +37,7 @@ describe("swarm-09 relecture : bloc Équipe", () => {
         ])}
       />,
     );
-    const r = row("Reprise FICTIVE");
+    const r = expand("Reprise FICTIVE");
     expect(r.querySelector("details")!.open).toBe(true);
     expect(r.textContent).not.toContain("réessayer");
     expect(r.textContent).not.toContain("texte-brut-fictif");
@@ -81,9 +86,8 @@ describe("swarm-09 relecture : bloc Équipe", () => {
         )}
       />,
     );
-    expect(screen.getByText(/^Chef :/).textContent).toBe(
-      "Chef : agent inconnu · État inconnu",
-    );
+    // equipe-05 : plus de ligne « Chef » ; un état de mère mal typé ne plante rien.
+    expect(screen.queryByText(/^Chef :/)).toBeNull();
     for (const title of ["Proto FICTIF", "Constructeur FICTIF"]) {
       expect(row(title).textContent).toContain("État inconnu");
       expect(row(title).textContent).not.toMatch(
@@ -91,11 +95,11 @@ describe("swarm-09 relecture : bloc Équipe", () => {
       );
     }
     // An array `cause` reads as a failure without detail, never as its raw value.
-    const failed = row("Échec mal typé FICTIF");
+    const failed = expand("Échec mal typé FICTIF");
     expect(failed.querySelector("summary")!.textContent).toBe("Échec : erreur");
     expect(failed.textContent).not.toMatch(/42|durée/);
     // A completed member shows its result in full as text, never a failure fold.
-    const done = row("Long FICTIF");
+    const done = expand("Long FICTIF");
     expect(done.querySelectorAll("details")).toHaveLength(1);
     expect(done.querySelector("details p")!.textContent).toBe(long);
     expect(done.textContent).not.toContain("ne s'affiche pas");
@@ -125,7 +129,7 @@ describe("swarm-09 relecture : bloc Équipe", () => {
         ])}
       />,
     );
-    const r = row("Rôle FICTIF");
+    const r = expand("Rôle FICTIF");
     expect(r.textContent).toContain("__proto__");
     expect(r.textContent).toContain("Verdict : __proto__");
   });
@@ -148,7 +152,10 @@ describe("swarm-09 relecture : bloc Équipe", () => {
       />,
     );
     const r = row("Fini FICTIF");
-    expect(r.textContent).toContain("durée 1 h 05");
+    expect(
+      r.querySelector(".team-row-sub")!.textContent!.endsWith("1 h 05"),
+    ).toBe(true);
+    expand("Fini FICTIF");
     expect(r.textContent).not.toMatch(/depuis|dernière action|outil_fictif/);
   });
 });

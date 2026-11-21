@@ -546,7 +546,12 @@ export function ActivityPanel({
         )}
         {run && Number(run.carnet?.total) > 0 && (
           <section className="activity-section activity-carnet">
-            <CarnetBlock run={run} />
+            <CarnetBlock
+              run={run}
+              lessonsKept={
+                events.filter((event) => event.type === "lecon_gardee").length
+              }
+            />
           </section>
         )}
         {run && cells.length > 0 && (

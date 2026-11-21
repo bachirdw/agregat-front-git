@@ -160,6 +160,258 @@ function Failure({ member }: { member: FamilyMember }) {
   );
 }
 
+// equipe-05 : raison d'une tâche à partir du code `pourquoi` du chef (back docs/api-delegation.md,
+// `mission_lancer`) quand ni `reason` ni `motif` n'est écrit.
+const reasonLabels: Record<string, string> = {
+  parallele: "Menée en même temps que d’autres tâches pour gagner du temps.",
+  specialite: "Confiée à un agent spécialisé dans ce type de tâche.",
+  regard_independant:
+    "Un regard indépendant sur le travail des autres membres.",
+  contexte_trop_long:
+    "Séparée pour ne pas surcharger le contexte de l’agent principal.",
+  demande_proprietaire: "Lancée parce que tu as demandé des sous-agents.",
+};
+const capital = (value: string) =>
+  value ? value[0].toUpperCase() + value.slice(1) : value;
+const failedStates = new Set(["failed", "interrupted"]);
+function TeamRow({
+  member,
+  open,
+  toggle,
+  titleOf,
+  openRun,
+  onOpenSide,
+  onCancel,
+  busy,
+}: {
+  member: FamilyMember;
+  open: boolean;
+  toggle: () => void;
+  titleOf: (id: string) => string;
+  openRun?: (id: string) => void;
+  onOpenSide?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  busy: boolean;
+}) {
+  const m = member;
+  const title = text(m.titre) || "Sous-mission";
+  const state = text(m.state);
+  const final = finalStates.has(state);
+  const role = text(m.role);
+  const agent = text(m.agent);
+  const model = text(m.modele);
+  const duration = dureeOf(m);
+  const elapsed = final
+    ? duration === null
+      ? ""
+      : formatDuree(duration)
+    : seconds(m.depuis);
+  const wait = own(waitLabels, text(m.attend));
+  // Une seule table d'états (swarm-09, status.ts) : la pastille en prend la couleur, et le libellé reste
+  // écrit (lecteur d'écran toujours ; à l'écran dès que l'état n'est ni « terminé » ni « en cours »).
+  const variant = variantOf(m.state, m.attend);
+  const label = labelOf(m.state);
+  const said =
+    variant === "fini" || variant === "encours" || (wait && variant !== "echec")
+      ? ""
+      : label;
+  const sub = [
+    role ? capital(own(roleLabels, role.toLowerCase()) || role) : "",
+    [agent, model].filter(Boolean).join(" "),
+    elapsed ? (final ? elapsed : `depuis ${elapsed}`) : "",
+    said,
+  ].filter(Boolean);
+  const reviews = (Array.isArray(m.relit) ? m.relit : []).filter(
+    (id) => typeof id === "string",
+  );
+  const reason =
+    text(m.reason) ||
+    text(m.motif) ||
+    own(reasonLabels, text(m.pourquoi)) ||
+    "";
+  const planned = text(m.agentPrevu);
+  const fallback = planned && agent && planned !== agent;
+  const jetons = texteJetons(m.usage).replace(/ jetons?$/, "");
+  const lastTool = final ? "" : text(m.dernierOutil);
+  const idle = seconds(m.inactiveDepuis);
+  const result = state === "completed" ? text(m.resultat) : "";
+  const failed =
+    final && state !== "completed" && !!m.cause && typeof m.cause === "object";
+  const show = onOpenSide ?? openRun;
+  const detailId = `team-detail-${m.id}`;
+  return (
+    <li className={"team-row" + (open ? " open" : "")} aria-label={title}>
+      <button
+        type="button"
+        className="team-row-head"
+        aria-expanded={open}
+        aria-controls={detailId}
+        onClick={toggle}
+      >
+        <span className={"team-dot " + CLASSE_ETAT[variant]}>
+          <span className="sr-only">{label}</span>
+        </span>
+        <span className="team-row-title">{title}</span>
+        <Chevron />
+        <span />
+        <span className="team-row-sub">
+          {sub.join(" · ")}
+          {wait && (
+            <span className={ownerWaits.has(text(m.attend)) ? "warning" : ""}>
+              {sub.length ? " · " : ""}
+              {wait}
+            </span>
+          )}
+        </span>
+      </button>
+      {open && (
+        <div
+          id={detailId}
+          className="team-row-body"
+          role="group"
+          aria-label={`Détail de ${title}`}
+        >
+          {reason && (
+            <p
+              className={
+                "team-reason" + (reason === text(m.motif) ? " team-motif" : "")
+              }
+            >
+              {reason}
+            </p>
+          )}
+          {text(m.continue) && (
+            <p className="team-reason">
+              Suite de « {titleOf(text(m.continue))} ».
+            </p>
+          )}
+          {reviews.length > 0 && (
+            <p className="team-reason">
+              Relit {reviews.map((id) => `« ${titleOf(id)} »`).join(", ")}.
+            </p>
+          )}
+          <dl className="team-kv">
+            {agent && (
+              <>
+                <dt>Modèle</dt>
+                <dd>
+                  {fallback
+                    ? `lancé sur ${agent} (${planned} indisponible)`
+                    : agent}
+                  {model ? ` · ${model}` : ""}
+                </dd>
+              </>
+            )}
+            {jetons && (
+              <>
+                <dt>Jetons</dt>
+                <dd className="num team-jetons">{jetons}</dd>
+              </>
+            )}
+            {lastTool && (
+              <>
+                <dt>Dernière action</dt>
+                <dd>
+                  {lastTool}
+                  {idle ? `, il y a ${idle}` : ""}
+                </dd>
+              </>
+            )}
+          </dl>
+          {m.verdict && typeof m.verdict === "object" && (
+            <Verdict verdict={m.verdict} />
+          )}
+          {failed && <Failure member={m} />}
+          {result && !show && (
+            <details className="team-pli">
+              <summary>Résultat</summary>
+              <p>{result}</p>
+            </details>
+          )}
+          {(show || (onCancel && !final)) && (
+            <div className="team-actions">
+              {show && (
+                <button
+                  type="button"
+                  className="team-button"
+                  aria-label={`${final ? "Voir le résultat de" : "Suivre"} ${title}`}
+                  onClick={() => show(m.id)}
+                >
+                  {final ? "Voir le résultat" : "Suivre en direct"}
+                </button>
+              )}
+              {onCancel && !final && (
+                <button
+                  type="button"
+                  className="team-button"
+                  aria-label={`Arrêter ${title}`}
+                  disabled={busy}
+                  onClick={() => onCancel(m.id)}
+                >
+                  <span className="stop-square" aria-hidden="true" />
+                  Arrêter
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg
+      className="team-chevron"
+      width="8"
+      height="8"
+      viewBox="0 0 10 10"
+      aria-hidden="true"
+    >
+      <path
+        d="M3.5 2l3 3-3 3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// Étapes du découpage (`phase`, demandée au back) : groupes dans l'ordre de leur numéro ; un membre sans
+// étape, quand d'autres en ont une, va dans un dernier groupe. Sans aucune étape : une seule liste.
+function phasesOf(members: FamilyMember[]) {
+  const valid = (m: FamilyMember) =>
+    !!m.phase &&
+    typeof m.phase === "object" &&
+    Number.isFinite(m.phase.index) &&
+    !!text(m.phase.label);
+  if (!members.some(valid)) return [{ label: "", members }];
+  const groups = new Map<number, { label: string; members: FamilyMember[] }>();
+  const rest: FamilyMember[] = [];
+  for (const m of members) {
+    if (!valid(m)) {
+      rest.push(m);
+      continue;
+    }
+    const index = m.phase!.index;
+    const group = groups.get(index) ?? {
+      label: `${index}. ${text(m.phase!.label)}`,
+      members: [],
+    };
+    group.members.push(m);
+    groups.set(index, group);
+  }
+  const ordered = [...groups.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, g]) => g);
+  return rest.length
+    ? [...ordered, { label: "Autres tâches", members: rest }]
+    : ordered;
+}
+
 export function TeamBlock({
   run,
   openRun,
@@ -169,13 +421,15 @@ export function TeamBlock({
 }: {
   run: Run;
   openRun?: (id: string) => void;
-  // reponse-04 (panneau Activité) : voir un membre à côté du fil (vue scindée), arrêter un membre en
-  // cours (route ordinaire d'annulation d'une mission). Absents : rien n'est ajouté.
+  // reponse-04 (panneau Activité) : « Voir le résultat » ouvre un membre à côté du fil (vue scindée) ;
+  // « Arrêter » passe par la route ordinaire d'annulation d'une mission. Absents : rien n'est ajouté.
   onOpenSide?: (id: string) => void;
   onCancel?: (id: string) => void;
   busy?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
+  // Une seule ligne ouverte à la fois (maquette v6).
+  const [openId, setOpenId] = useState<string | null>(null);
   const family = (Array.isArray(run.family) ? run.family : []).filter(
     (m) => m && typeof m.id === "string",
   );
@@ -187,169 +441,71 @@ export function TeamBlock({
   );
   const titleOf = (id: string) =>
     text(family.find((m) => m.id === id)?.titre) || "sous-mission";
-  const done = family.filter((m) => finalStates.has(text(m.state))).length;
-  const waiting = family.filter(
-    (m) => !finalStates.has(text(m.state)) && waitsForOwner(m),
-  ).length;
-  // Held by the platform before starting (a free place or a prerequisite): not working yet.
-  const held = family.filter(
+  const done = family.filter((m) => text(m.state) === "completed").length;
+  const failed = family.filter((m) => failedStates.has(text(m.state))).length;
+  const stopped = family.filter((m) => text(m.state) === "cancelled").length;
+  const open = family.filter((m) => !finalStates.has(text(m.state)));
+  const waiting = open.filter(waitsForOwner).length;
+  // Retenu par la plateforme avant de démarrer (une place, un prérequis) : ne travaille pas encore.
+  const held = open.filter(
     (m) =>
-      !finalStates.has(text(m.state)) &&
       !waitsForOwner(m) &&
       (heldStates.has(text(m.state)) || heldWaits.has(text(m.attend))),
   ).length;
-  const working = family.length - done - waiting - held;
+  const working = open.length - waiting - held;
+  const counts = [
+    working > 0 && { tone: "info", text: `${working} en cours` },
+    waiting > 0 && { tone: "warning", text: `${waiting} en attente de toi` },
+    held > 0 && {
+      tone: "",
+      text: `${held} en attente d’une place ou d’un prérequis`,
+    },
+    done > 0 && {
+      tone: "success",
+      text: plural(done, "terminée", "terminées"),
+    },
+    failed > 0 && { tone: "danger", text: `${failed} en échec` },
+    stopped > 0 && { tone: "", text: plural(stopped, "arrêtée", "arrêtées") },
+  ].filter((c): c is { tone: string; text: string } => !!c);
+  const summary = text(run.plan_summary);
   return (
-    <section className="card card-pad team" aria-label="Équipe">
-      <div className="spread">
+    <section className="team" aria-label="Équipe">
+      <div className="team-head">
         <strong>Équipe</strong>
         <small role="status">
-          {plural(family.length, "membre", "membres")} · {working} en cours ·{" "}
-          {held > 0 && `${held} en attente d’une place ou d’un prérequis · `}
-          {plural(done, "finie", "finies")} · {waiting} en attente de toi
+          {counts.map((c, i) => (
+            <span key={c.text} className={c.tone || undefined}>
+              {i > 0 ? " · " : ""}
+              {c.text}
+            </span>
+          ))}
         </small>
       </div>
-      <p className="team-chef">
-        Chef : {text(run.agent) || "agent inconnu"} ·{" "}
-        <span className={CLASSE_ETAT[variantOf(run.state)]}>
-          {labelOf(run.state)}
-        </span>
-      </p>
-      <ul className="team-members">
-        {visibles.map((m) => {
-          const title = text(m.titre) || "Sous-mission";
-          const state = text(m.state);
-          const final = finalStates.has(state);
-          const duration = dureeOf(m);
-          const elapsed = final
-            ? duration === null
-              ? ""
-              : formatDuree(duration)
-            : seconds(m.depuis);
-          const lastTool = final ? "" : text(m.dernierOutil);
-          const idle = seconds(m.inactiveDepuis);
-          const result = state === "completed" ? text(m.resultat) : "";
-          const failed =
-            final &&
-            state !== "completed" &&
-            !!m.cause &&
-            typeof m.cause === "object";
-          const role = text(m.role);
-          const wait = own(waitLabels, text(m.attend));
-          const reviews = (Array.isArray(m.relit) ? m.relit : []).filter(
-            (id) => typeof id === "string",
-          );
-          // Read on the sub-mission's own row (App.tsx), never in `family[]`: plain text, no cause.
-          const motif = text(m.motif);
-          const planned = text(m.agentPrevu);
-          const fallback =
-            planned && text(m.agent) && planned !== text(m.agent);
-          const tokens = texteJetons(m.usage);
-          return (
-            <li key={m.id} aria-label={title}>
-              <div className="spread">
-                {openRun ? (
-                  <button
-                    type="button"
-                    className="team-open"
-                    aria-label={`Ouvrir la sous-mission ${title}`}
-                    title={title}
-                    onClick={() => openRun(m.id)}
-                  >
-                    {title}
-                  </button>
-                ) : (
-                  <strong title={title}>{title}</strong>
-                )}
-                <span
-                  className={
-                    "badge " + CLASSE_ETAT[variantOf(m.state, m.attend)]
-                  }
-                >
-                  {labelOf(m.state)}
-                </span>
-              </div>
-              {motif && <p className="team-motif">{motif}</p>}
-              <div className="tags">
-                {role && (
-                  <span className="badge">
-                    {own(roleLabels, role.toLowerCase()) || role}
-                  </span>
-                )}
-                {text(m.agent) && (
-                  <small>
-                    {fallback
-                      ? `lancé sur ${text(m.agent)} (${planned} indisponible)`
-                      : text(m.agent)}
-                    {text(m.modele) ? ` · ${text(m.modele)}` : ""}
-                  </small>
-                )}
-                {tokens && <small className="team-jetons">{tokens}</small>}
-                {wait && (
-                  <small
-                    className={ownerWaits.has(text(m.attend)) ? "warning" : ""}
-                  >
-                    {wait}
-                  </small>
-                )}
-                {text(m.continue) && (
-                  <small>suite de « {titleOf(text(m.continue))} »</small>
-                )}
-                {reviews.length > 0 && (
-                  <small>
-                    relit {reviews.map((id) => `« ${titleOf(id)} »`).join(", ")}
-                  </small>
-                )}
-                {elapsed && (
-                  <small className="team-duree">
-                    {final ? `durée ${elapsed}` : `depuis ${elapsed}`}
-                  </small>
-                )}
-                {lastTool && (
-                  <small className="team-action">
-                    dernière action {lastTool}
-                    {idle ? ` il y a ${idle}` : ""}
-                  </small>
-                )}
-              </div>
-              {(onOpenSide || (onCancel && !final)) && (
-                <div className="team-actions">
-                  {onOpenSide && (
-                    <button
-                      type="button"
-                      aria-label={`Voir à côté ${title}`}
-                      onClick={() => onOpenSide(m.id)}
-                    >
-                      Voir à côté
-                    </button>
-                  )}
-                  {onCancel && !final && (
-                    <button
-                      type="button"
-                      aria-label={`Arrêter ${title}`}
-                      disabled={busy}
-                      onClick={() => onCancel(m.id)}
-                    >
-                      <span className="stop-square" aria-hidden="true" />
-                      Arrêter
-                    </button>
-                  )}
-                </div>
-              )}
-              {m.verdict && typeof m.verdict === "object" && (
-                <Verdict verdict={m.verdict} />
-              )}
-              {result && (
-                <details className="team-pli">
-                  <summary>Résultat</summary>
-                  <p>{result}</p>
-                </details>
-              )}
-              {failed && <Failure member={m} />}
-            </li>
-          );
-        })}
-      </ul>
+      {summary && <p className="team-plan">{summary}</p>}
+      {phasesOf(visibles).map((phase, i) => (
+        <div className="team-phase" key={phase.label || i}>
+          {phase.label && (
+            <div className="team-phase-head" aria-hidden="true">
+              {phase.label}
+            </div>
+          )}
+          <ul className="team-list" aria-label={phase.label || "Sous-agents"}>
+            {phase.members.map((m) => (
+              <TeamRow
+                key={m.id}
+                member={m}
+                open={openId === m.id}
+                toggle={() => setOpenId(openId === m.id ? null : m.id)}
+                titleOf={titleOf}
+                openRun={openRun}
+                onOpenSide={onOpenSide}
+                onCancel={onCancel}
+                busy={busy}
+              />
+            ))}
+          </ul>
+        </div>
+      ))}
       {caches > 0 && (
         <button
           type="button"
@@ -370,51 +526,197 @@ function hour(value: string) {
     : date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function CarnetBlock({ run }: { run: Run }) {
+// Une note du carnet en trois parties (maquette v6). Nouveau format (`title`, `what`, `fix`) pris tel
+// quel ; sinon le texte : la forme des leçons du back (docs/api-lecons.md : « ligne 1 le titre, ligne 2
+// la règle ») donne la règle à « Ce qu'il faut faire » ; dans la ligne 1, la première phrase est le
+// titre et le reste « Ce qui s'est passé ». Un titre trop long est raccourci, et la ligne entière
+// passe alors dans « Ce qui s'est passé » : rien n'est perdu.
+const TITLE_MAX = 160;
+export function noteParts(note: CarnetNote): {
+  title: string;
+  what: string;
+  fix: string;
+} {
+  if (text(note.title).trim())
+    return {
+      title: text(note.title).trim(),
+      what: text(note.what).trim(),
+      fix: text(note.fix).trim(),
+    };
+  const lines = text(note.texte)
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const first = lines[0] ?? "";
+  const fix = lines.slice(1).join("\n");
+  const sentence = first.match(/^(.+?[.!?…])\s+(\S[\s\S]*)$/);
+  let title = sentence ? sentence[1] : first;
+  let what = sentence ? sentence[2] : "";
+  if (title.length > TITLE_MAX) {
+    const cut = title.slice(0, TITLE_MAX);
+    title =
+      cut.slice(
+        0,
+        cut.lastIndexOf(" ") > 80 ? cut.lastIndexOf(" ") : TITLE_MAX,
+      ) + "…";
+    what = first;
+  }
+  return { title, what, fix };
+}
+// Catégories des leçons durables du back (méthode, piège) : « Ce que l'équipe a appris ».
+const learnedCategories = new Set(["piege", "methode"]);
+
+function NoteRow({
+  note,
+  open,
+  toggle,
+}: {
+  note: CarnetNote;
+  open: boolean;
+  toggle: () => void;
+}) {
+  const { title, what, fix } = noteParts(note);
+  const category = text(note.categorie);
+  const at = text(note.a);
+  const who = [
+    text(note.auteur) || "membre",
+    learnedCategories.has(category)
+      ? ""
+      : own(categoryLabels, category) || category,
+  ].filter(Boolean);
+  const mark = category === "piege" ? "!" : category === "methode" ? "✓" : "·";
+  const body = !!(what || fix);
+  const head = (
+    <>
+      <span
+        className={"team-note-mark " + (category || "note")}
+        aria-hidden="true"
+      >
+        {mark}
+      </span>
+      <span className="team-row-title">
+        {category && (
+          <span className="sr-only">
+            {own(categoryLabels, category) || category} :{" "}
+          </span>
+        )}
+        {title || "Note sans texte"}
+      </span>
+      {body ? <Chevron /> : <span />}
+      <span />
+      <span className="team-row-sub team-who">
+        <span className="team-who-name">{who.join(" · ")}</span>
+        {at && hour(at) && (
+          <span className="team-who-time">
+            {who.length ? " · " : ""}
+            <time dateTime={at}>{hour(at)}</time>
+          </span>
+        )}
+      </span>
+    </>
+  );
+  return (
+    <li className={"team-row" + (open ? " open" : "")}>
+      {body ? (
+        <button
+          type="button"
+          className="team-row-head"
+          aria-expanded={open}
+          onClick={toggle}
+        >
+          {head}
+        </button>
+      ) : (
+        <div className="team-row-head">{head}</div>
+      )}
+      {open && body && (
+        <div className="team-row-body team-note-body">
+          {what && (
+            <div>
+              <span>Ce qui s’est passé</span>
+              <p>{what}</p>
+            </div>
+          )}
+          {fix && (
+            <div>
+              <span>Ce qu’il faut faire</span>
+              <p>{fix}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+// « Ce que l'équipe a appris » (remplace le carnet en paragraphes) : les pièges et les méthodes du
+// carnet ; les autres notes (décisions, découvertes, questions) restent lisibles, repliées à part.
+// `lessonsKept` : leçons que le back a gardées pour la suite (événements `lecon_gardee`) ; la ligne
+// d'aide ne dit « gardées en mémoire » que dans ce cas (le back ne relie pas encore une note à sa leçon).
+export function CarnetBlock({
+  run,
+  lessonsKept = 0,
+}: {
+  run: Run;
+  lessonsKept?: number;
+}) {
+  const [openN, setOpenN] = useState<string | null>(null);
   const total = Number(run.carnet?.total) || 0;
   if (total <= 0) return null;
   const notes: CarnetNote[] = (
     Array.isArray(run.carnet?.notes) ? run.carnet!.notes! : []
   ).filter((note) => note && typeof note === "object");
+  const keyOf = (note: CarnetNote, i: number) => String(note.n ?? `i${i}`);
+  const learned = notes.filter(
+    (note) => learnedCategories.has(text(note.categorie)) || !!text(note.title),
+  );
+  const others = notes.filter((note) => !learned.includes(note));
+  const row = (note: CarnetNote, i: number) => {
+    const key = keyOf(note, i);
+    return (
+      <NoteRow
+        key={key}
+        note={note}
+        open={openN === key}
+        toggle={() => setOpenN(openN === key ? null : key)}
+      />
+    );
+  };
   return (
-    <section className="card card-pad team-carnet" aria-label="Carnet d’équipe">
-      <div className="spread">
-        <strong>Carnet d’équipe</strong>
+    <section className="team team-carnet" aria-label="Ce que l’équipe a appris">
+      <div className="team-head">
+        <strong>Ce que l’équipe a appris</strong>
         <small>
-          {notes.length && notes.length < total
-            ? `${plural(notes.length, "note affichée", "notes affichées")} sur ${total}`
-            : plural(total, "note", "notes")}
+          {notes.length === 0
+            ? plural(total, "note", "notes")
+            : notes.length < total
+              ? `${notes.length} sur ${total} notes`
+              : learned.length || ""}
         </small>
       </div>
-      {notes.length > 0 ? (
-        <ol className="team-notes">
-          {notes.map((note, i) => {
-            const category = text(note.categorie);
-            const at = text(note.a);
-            return (
-              <li key={note.n ?? i}>
-                <div className="tags">
-                  <strong>{text(note.auteur) || "membre"}</strong>
-                  {text(note.role) && (
-                    <span className="badge">
-                      {own(roleLabels, text(note.role).toLowerCase()) ||
-                        text(note.role)}
-                    </span>
-                  )}
-                  {category && (
-                    <span className="badge">
-                      {own(categoryLabels, category) || category}
-                    </span>
-                  )}
-                  {at && hour(at) && <time dateTime={at}>{hour(at)}</time>}
-                </div>
-                <p>{text(note.texte)}</p>
-              </li>
-            );
-          })}
-        </ol>
-      ) : (
+      <p className="team-help">
+        Obstacles rencontrés et contournés.
+        {lessonsKept > 0 &&
+          ` ${plural(lessonsKept, "leçon gardée", "leçons gardées")} en mémoire pour les prochaines missions.`}
+      </p>
+      {notes.length === 0 && (
         <small>Texte des notes non transmis par la plateforme.</small>
+      )}
+      {learned.length > 0 && (
+        <ul className="team-list" aria-label="Obstacles et méthodes">
+          {learned.map((note) => row(note, notes.indexOf(note)))}
+        </ul>
+      )}
+      {notes.length > 0 && learned.length === 0 && (
+        <small>Aucun obstacle ni méthode noté pour l’instant.</small>
+      )}
+      {others.length > 0 && (
+        <details className="team-others">
+          <summary>Autres notes du carnet · {others.length}</summary>
+          <ul className="team-list" aria-label="Autres notes du carnet">
+            {others.map((note) => row(note, notes.indexOf(note)))}
+          </ul>
+        </details>
       )}
     </section>
   );

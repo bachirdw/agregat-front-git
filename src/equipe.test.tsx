@@ -266,6 +266,12 @@ const family = [
   member(ids.g, "Accord FICTIF", "attend_accord", "accord"),
 ];
 
+// equipe-05 : le détail d'un membre (raison, modèle, verdict, échec, résultat) est dans sa ligne dépliée.
+const expand = (title: string) => {
+  const row = screen.getByRole("listitem", { name: title });
+  fireEvent.click(row.querySelector("button.team-row-head")!);
+  return row;
+};
 const view = (patch: Partial<Run>, openRun?: (id: string) => void) =>
   render(
     <RunView
@@ -279,19 +285,19 @@ const view = (patch: Partial<Run>, openRun?: (id: string) => void) =>
   );
 
 describe("bloc « Équipe » d'une mission", () => {
-  it("une ligne par membre : titre, rôle, agent, état, attente", () => {
+  it("une ligne par membre : titre, rôle, agent, état (écrit pour le lecteur d'écran), attente", () => {
     view({ family, activity: { agents: 4, awaitingOwner: 2 } } as never);
     const block = screen.getByRole("region", { name: "Équipe" });
     const rows = within(block).getAllByRole("listitem", { name: /.+/ });
     expect(rows).toHaveLength(7);
     const row = (title: string) =>
       rows.find((r) => r.getAttribute("aria-label") === title)!;
-    expect(row("Recherche FICTIVE").textContent).toContain("chercheur");
+    expect(row("Recherche FICTIVE").textContent).toContain("Chercheur");
     expect(row("Recherche FICTIVE").textContent).toContain("agent-fictif-a");
     // Same label as the states already shown by the interface.
     expect(row("Recherche FICTIVE").textContent).toContain("Terminée");
     expect(row("Rédaction FICTIVE").textContent).toContain("En cours");
-    expect(row("Rédaction FICTIVE").textContent).toContain("rédacteur");
+    expect(row("Rédaction FICTIVE").textContent).toContain("Rédacteur");
     expect(row("Rédaction FICTIVE").textContent).toContain(
       "attend ton clic sur une carte d’envoi",
     );
@@ -314,22 +320,23 @@ describe("bloc « Équipe » d'une mission", () => {
     expect(block.textContent).not.toMatch(/Modèle/i);
     expect(block.textContent).not.toMatch(/suite de/);
   });
-  it("compteur en tête : en cours, finies, en attente de toi", () => {
+  it("compteur en tête : en attente de toi, retenus, terminées (seulement les nombres non nuls)", () => {
     view({ family } as never);
     const block = screen.getByRole("region", { name: "Équipe" });
     const counter = within(block).getByRole("status");
     expect(counter.textContent).toBe(
       // Relecture : en file et attente d'un prérequis ne sont pas « en cours » (aucun membre ne travaille ici
       // sans attendre le propriétaire).
-      "7 membres · 0 en cours · 2 en attente d’une place ou d’un prérequis · 2 finies · 3 en attente de toi",
+      "3 en attente de toi · 2 en attente d’une place ou d’un prérequis · 2 terminées",
     );
+    expect(within(counter).getByText(/terminées/).className).toBe("success");
   });
   it("vérificateur : verdict, ce qu'il relit, points bloquants dépliables", () => {
     view({ family } as never);
-    const row = screen.getByRole("listitem", { name: "Vérification FICTIVE" });
-    expect(row.textContent).toContain("vérificateur");
+    const row = expand("Vérification FICTIVE");
+    expect(row.textContent).toContain("Vérificateur");
     expect(row.textContent).toContain(
-      "relit « Recherche FICTIVE », « Rédaction FICTIVE »",
+      "Relit « Recherche FICTIVE », « Rédaction FICTIVE ».",
     );
     expect(row.textContent).toContain("Verdict : à corriger");
     const details = row.querySelector("details")!;
@@ -373,13 +380,13 @@ describe("bloc « Équipe » d'une mission", () => {
         }),
       ],
     } as never);
-    const v1 = screen.getByRole("listitem", { name: "V1 FICTIVE" });
+    const v1 = expand("V1 FICTIVE");
     expect(v1.textContent).toContain("Verdict : approuvé");
     expect(v1.querySelector("details")).toBeNull();
-    const v2 = screen.getByRole("listitem", { name: "V2 FICTIVE" });
+    const v2 = expand("V2 FICTIVE");
     expect(v2.textContent).toContain("Verdict : rejeté");
     expect(v2.textContent).toContain("1 point bloquant");
-    const v3 = screen.getByRole("listitem", { name: "V3 FICTIVE" });
+    const v3 = expand("V3 FICTIVE");
     expect(v3.textContent).toContain("Échec");
     expect(v3.textContent).toContain("aucun verdict écrit");
   });
@@ -393,25 +400,31 @@ describe("bloc « Équipe » d'une mission", () => {
         }),
       ],
     } as never);
-    const row = screen.getByRole("listitem", {
-      name: "Recherche FICTIVE (suite 1)",
-    });
-    expect(row.textContent).toContain("suite de « Recherche FICTIVE »");
+    const row = expand("Recherche FICTIVE (suite 1)");
+    expect(row.textContent).toContain("Suite de « Recherche FICTIVE ».");
     expect(row.textContent).toContain("modele-fictif");
   });
-  it("un membre s'ouvre d'un clic quand l'interface sait ouvrir une mission", () => {
+  it("un membre s'ouvre d'un clic quand l'interface sait ouvrir une mission (ligne dépliée)", () => {
     const open = vi.fn();
     view({ family } as never, open);
-    const button = screen.getByRole("button", {
-      name: "Ouvrir la sous-mission Rédaction FICTIVE",
-    });
-    fireEvent.click(button);
+    expand("Rédaction FICTIVE");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Suivre Rédaction FICTIVE" }),
+    );
     expect(open).toHaveBeenCalledWith(ids.b);
+    expand("Recherche FICTIVE");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Voir le résultat de Recherche FICTIVE",
+      }),
+    );
+    expect(open).toHaveBeenCalledWith(ids.a);
   });
   it("sans fonction d'ouverture, aucun bouton n'est inventé", () => {
     view({ family } as never);
+    expand("Recherche FICTIVE");
     expect(
-      screen.queryByRole("button", { name: /Ouvrir la sous-mission/ }),
+      screen.queryByRole("button", { name: /Voir le résultat|Suivre/ }),
     ).toBeNull();
   });
   it("famille vide : aucun bloc Équipe", () => {
@@ -448,25 +461,29 @@ describe("bloc « Carnet d’équipe »", () => {
       },
     ],
   };
-  it("notes : auteur, rôle, catégorie en français, heure, texte ; total", () => {
+  it("notes : auteur, catégorie en français (écrite pour le lecteur d'écran), heure, texte ; total", () => {
     view({ carnet } as never);
-    const block = screen.getByRole("region", { name: "Carnet d’équipe" });
+    const block = screen.getByRole("region", {
+      name: "Ce que l’équipe a appris",
+    });
     const notes = within(block).getAllByRole("listitem");
     expect(notes).toHaveLength(3);
     expect(notes[0].textContent).toContain("agent principal");
     expect(notes[0].textContent).toContain("méthode");
     expect(notes[1].textContent).toContain("Recherche FICTIVE");
-    expect(notes[1].textContent).toContain("chercheur");
     expect(notes[1].textContent).toContain("piège");
+    // La catégorie inconnue, rangée dans « Autres notes du carnet », est écrite telle quelle.
     expect(notes[2].textContent).toContain("inconnue");
     const time = notes[1].querySelector("time")!;
     expect(time.getAttribute("datetime")).toBe("2026-11-20T00:12:00.000Z");
     expect(time.textContent).toMatch(/\d{2}:\d{2}/);
-    expect(block.textContent).toContain("3 notes affichées sur 25");
+    expect(block.textContent).toContain("3 sur 25 notes");
   });
   it("le texte d'une note est une donnée : jamais interprété", () => {
     view({ carnet } as never);
-    const block = screen.getByRole("region", { name: "Carnet d’équipe" });
+    const block = screen.getByRole("region", {
+      name: "Ce que l’équipe a appris",
+    });
     expect(block.querySelector("b, script")).toBeNull();
     expect(block.textContent).toContain(
       "<b>Méthode FICTIVE</b> <script>alert(1)</script>",
@@ -474,19 +491,23 @@ describe("bloc « Carnet d’équipe »", () => {
   });
   it("toutes les notes affichées : pas de total en plus", () => {
     view({ carnet: { total: 1, notes: [carnet.notes[1]] } } as never);
-    const block = screen.getByRole("region", { name: "Carnet d’équipe" });
-    expect(block.textContent).not.toMatch(/affichées sur/);
+    const block = screen.getByRole("region", {
+      name: "Ce que l’équipe a appris",
+    });
+    expect(block.textContent).not.toMatch(/sur \d+ notes/);
   });
   it("espace privé : le total seul, sans texte inventé", () => {
     view({ carnet: { total: 3 } } as never);
-    const block = screen.getByRole("region", { name: "Carnet d’équipe" });
+    const block = screen.getByRole("region", {
+      name: "Ce que l’équipe a appris",
+    });
     expect(block.textContent).toContain("3 notes");
     expect(within(block).queryAllByRole("listitem")).toHaveLength(0);
   });
   it("carnet vide ou absent : aucun bloc", () => {
     view({ carnet: { total: 0, notes: [] } } as never);
     expect(
-      screen.queryByRole("region", { name: "Carnet d’équipe" }),
+      screen.queryByRole("region", { name: "Ce que l’équipe a appris" }),
     ).toBeNull();
   });
 });
@@ -599,7 +620,7 @@ describe("relecture : accord, workflow et compteur", () => {
       screen.getByRole("region", { name: "Équipe" }),
     ).getByRole("status");
     expect(counter.textContent).toBe(
-      "3 membres · 0 en cours · 3 en attente d’une place ou d’un prérequis · 0 finie · 0 en attente de toi",
+      "3 en attente d’une place ou d’un prérequis",
     );
   });
   it("compteur : un membre qui travaille est « en cours »", () => {
@@ -607,7 +628,7 @@ describe("relecture : accord, workflow et compteur", () => {
     expect(
       within(screen.getByRole("region", { name: "Équipe" })).getByRole("status")
         .textContent,
-    ).toBe("1 membre · 1 en cours · 0 finie · 0 en attente de toi");
+    ).toBe("1 en cours");
   });
 });
 
@@ -616,11 +637,12 @@ describe("relecture : accord, workflow et compteur", () => {
 describe("swarm-09 : états, membres, chef", () => {
   const block = () => screen.getByRole("region", { name: "Équipe" });
   const row = (title: string) => screen.getByRole("listitem", { name: title });
-  it("le chef en tête du bloc : agent et état de la mission mère", () => {
+  // equipe-05 : la ligne « Chef : agent · état » disparaît (l'état de la mère est dans la barre d'outils ;
+  // l'explication du découpage viendra du champ `plan_summary`, demandé au back).
+  it("plus de ligne « Chef » : le bloc commence par l'en-tête et le statut global", () => {
     view({ state: "running", family } as never);
-    const chef = block().querySelector(".team-chef")!;
-    expect(chef.textContent).toBe("Chef : agent-fictif · En cours");
-    expect(chef.querySelector(".etat-encours")).not.toBeNull();
+    expect(block().querySelector(".team-chef")).toBeNull();
+    expect(block().textContent).not.toContain("Chef :");
   });
   it("une seule table : pastille et libellé écrit pour chaque membre", () => {
     view({ family } as never);
@@ -656,7 +678,10 @@ describe("swarm-09 : états, membres, chef", () => {
       ],
     } as never);
     const r = row("Fini FICTIF");
-    expect(r.textContent).toContain("durée 4 min 12 s");
+    expect(
+      r.querySelector(".team-row-sub")!.textContent!.endsWith("4 min 12 s"),
+    ).toBe(true);
+    expand("Fini FICTIF");
     const details = r.querySelector("details")!;
     expect(details.open).toBe(false);
     expect(details.querySelector("summary")!.textContent).toBe("Résultat");
@@ -681,6 +706,9 @@ describe("swarm-09 : états, membres, chef", () => {
       ],
     } as never);
     const r = row("Échec FICTIF");
+    // Ligne repliée : l'échec est écrit, pas seulement en rouge.
+    expect(r.querySelector(".team-row-sub")!.textContent).toContain("Échec");
+    expand("Échec FICTIF");
     const details = r.querySelector("details")!;
     expect(details.open).toBe(true);
     expect(details.querySelector("summary")!.textContent).toBe(
@@ -705,7 +733,7 @@ describe("swarm-09 : états, membres, chef", () => {
         }),
       ],
     } as never);
-    const details = row("Arrêt FICTIF").querySelector("details")!;
+    const details = expand("Arrêt FICTIF").querySelector("details")!;
     expect(details.querySelector("summary")!.textContent).toBe(
       "Arrêtée après 6 min 50 s",
     );
@@ -720,7 +748,7 @@ describe("swarm-09 : états, membres, chef", () => {
         }),
       ],
     } as never);
-    const details = row("Erreur FICTIVE").querySelector("details")!;
+    const details = expand("Erreur FICTIVE").querySelector("details")!;
     expect(details.open).toBe(true);
     expect(details.textContent).toBe("Échec : erreur");
   });
@@ -739,7 +767,8 @@ describe("swarm-09 : états, membres, chef", () => {
     } as never);
     const r = row("En cours FICTIF");
     expect(r.textContent).toContain("depuis 2 min 0 s");
-    expect(r.textContent).toContain("dernière action outil_fictif il y a 45 s");
+    expand("En cours FICTIF");
+    expect(r.textContent).toContain("Dernière actionoutil_fictif, il y a 45 s");
     expect(r.querySelector("details")).toBeNull();
   });
   it("verdict complet: false → « sans point précis » ; source absent → « illisible »", () => {
@@ -777,14 +806,14 @@ describe("swarm-09 : états, membres, chef", () => {
         }),
       ],
     } as never);
-    expect(row("V1 FICTIVE").textContent).toContain(
+    expect(expand("V1 FICTIVE").textContent).toContain(
       "Verdict : à corriger · sans point précis",
     );
-    expect(row("V2 FICTIVE").textContent).toContain(
+    expect(expand("V2 FICTIVE").textContent).toContain(
       "Verdict : illisible · aucun verdict écrit",
     );
     expect(row("V2 FICTIVE").textContent).not.toContain("sans point précis");
-    expect(row("V3 FICTIVE").textContent).toContain("Verdict : à corriger");
+    expect(expand("V3 FICTIVE").textContent).toContain("Verdict : à corriger");
     expect(row("V3 FICTIVE").textContent).not.toMatch(
       /sans point précis|illisible/,
     );
@@ -798,9 +827,7 @@ describe("swarm-09 : états, membres, chef", () => {
       within(block()).getAllByRole("listitem", { name: /Membre FICTIF/ });
     expect(rows()).toHaveLength(8);
     // The counter covers every member, shown or not.
-    expect(within(block()).getByRole("status").textContent).toContain(
-      "10 membres · 10 en cours",
-    );
+    expect(within(block()).getByRole("status").textContent).toBe("10 en cours");
     fireEvent.click(within(block()).getByRole("button", { name: "+2 autres" }));
     expect(rows()).toHaveLength(10);
     expect(
@@ -836,12 +863,14 @@ describe("swarm-09 : états, membres, chef", () => {
         .map((r) => r.getAttribute("aria-label")),
     ).toEqual(family.map((m) => m.titre));
     expect(within(b).getByRole("status").textContent).toBe(
-      "7 membres · 0 en cours · 2 en attente d’une place ou d’un prérequis · 2 finies · 3 en attente de toi",
+      "3 en attente de toi · 2 en attente d’une place ou d’un prérequis · 2 terminées",
     );
     expect(b.textContent).not.toMatch(
-      /durée|depuis|dernière action|Résultat|Échec après|réessayer|sans point précis|illisible|\+\d+ autres?/,
+      /durée|depuis|dernière action|Résultat|Échec après|réessayer|sans point précis|illisible|\+\d+ autres?/i,
     );
-    // Only the verifier's verdict folds; no result or failure fold is invented.
+    // Rows folded: no fold at all; unfolded, only the verifier's verdict folds (nothing invented).
+    expect(b.querySelectorAll("details")).toHaveLength(0);
+    expand("Vérification FICTIVE");
     expect(b.querySelectorAll("details")).toHaveLength(1);
     expect(within(b).queryByRole("button", { name: /autres?$/ })).toBeNull();
   });

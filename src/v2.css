@@ -1384,40 +1384,6 @@ fieldset.question-field label {
   opacity: 0.85;
 }
 /* equipe-front-20-11 : team of a multi-agent mission and its notebook. */
-.team-members,
-.team-notes {
-  margin: 8px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-  list-style: none;
-}
-.team-members > li,
-.team-notes > li {
-  padding: 8px 0 0;
-  box-shadow: inset 0 0.5px 0 var(--sep);
-  overflow-wrap: anywhere;
-}
-.team .tags,
-.team-carnet .tags {
-  align-items: center;
-  margin-top: 4px;
-}
-.team-open {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--cmd);
-  font: inherit;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-.team-open:focus-visible {
-  outline: 2px solid var(--cmd);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
 .team-verdict {
   margin-top: 6px;
   font-size: 12.5px;
@@ -1425,10 +1391,6 @@ fieldset.question-field label {
 .team-verdict ul {
   margin: 4px 0 0;
   padding-left: 18px;
-}
-.team-notes p {
-  margin: 4px 0 0;
-  white-space: pre-wrap;
 }
 /* swarm-09 : one state table (src/status.ts) — a dot before the written label, never the color alone. */
 .etat::before {
@@ -1487,25 +1449,10 @@ fieldset.question-field label {
   background: transparent;
   border: 1.5px dotted currentColor;
 }
-.team-chef .etat {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
 @keyframes etat-pulse {
   50% {
     opacity: 0.35;
   }
-}
-.team-chef {
-  margin: 4px 0 0;
-  font-size: 12.5px;
-  color: var(--muted);
-}
-/* A vertical line ties the members to their chief. */
-.team-members > li {
-  padding-left: 10px;
-  border-left: 2px solid var(--sep);
 }
 .team-pli {
   margin-top: 6px;
@@ -1568,15 +1515,6 @@ fieldset.question-field label {
 .team-accord-plus > small {
   display: block;
   margin-top: 4px;
-}
-.team-members .team-motif {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-.team-members .team-jetons {
-  color: var(--muted);
 }
 
 /* Réponse de l'agent façon Claude Code (reponse-04, maquette v5) : surtout du texte. */
@@ -2229,148 +2167,297 @@ fieldset.question-field label {
 .run-active .jump-bottom {
   bottom: 24px;
 }
-/* Équipe dans le panneau Activité (logique swarm, Team.tsx) : une tuile par membre. */
+/* equipe-05 (maquette « Panneau equipe v6 ») : l'équipe et ce qu'elle a appris, en liste verticale, une
+   ligne par sous-agent ou par note, dépliée au clic. Jamais de grille. */
 .activity-panel .team {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin: 0;
-  padding: 0;
+  padding: 18px 0 16px;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   backdrop-filter: none;
 }
-.activity-panel .team > .spread,
-.activity-panel .team-carnet > .spread {
+.activity-panel .team-carnet {
+  gap: 8px;
+  padding: 18px 0;
+}
+.team-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 20px 0 10px;
   font-size: 13px;
 }
-.activity-panel .team > .spread small,
-.activity-panel .team-carnet > .spread small {
-  margin-left: auto;
-  font-size: 11.5px;
+.team-head strong {
+  flex: 1;
+  font-weight: 600;
+}
+.team-head small {
+  font-size: 13px;
   color: var(--label3);
   text-align: right;
 }
-.activity-panel .team-chef {
-  margin: -4px 0 10px;
-  font-size: 12px;
-  color: var(--muted);
+.team-head small .success {
+  color: var(--green);
 }
-.activity-panel .team-members {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+.team-head small .info {
+  color: var(--accentText);
+}
+.team-head small .warning {
+  color: var(--orange);
+}
+.team-head small .danger {
+  color: var(--red);
+}
+.team-plan {
   margin: 0;
-  padding: 0 0 12px;
-  list-style: none;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-wrap: pretty;
 }
-.activity-panel .team-members > li {
-  min-width: 0;
+.team-help {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--label3);
+  text-wrap: pretty;
+}
+.team-phase {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 12px 10px;
-  border-radius: 12px;
-  background: var(--layer);
-  box-shadow: var(--layer-shadow);
+}
+.team-phase-head {
+  padding: 6px 0 4px;
   font-size: 11.5px;
-  line-height: 1.4;
-}
-.activity-panel .team-members .spread {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 0;
-}
-/* 21/11 (test complet) : titres coupés à ~15 caractères, tous pareils (« Offres FICTIVES, … ») ; ils
-   passent sur trois lignes au plus, le titre entier reste en infobulle. */
-.activity-panel .team-open,
-.activity-panel .team-members strong {
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 12px;
   font-weight: 600;
-  white-space: normal;
-  overflow-wrap: break-word;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-}
-.activity-panel .team-open {
-  height: auto;
-  padding: 0;
-  background: none;
-  color: var(--label);
-  text-align: left;
-}
-.activity-panel .team-members .badge {
-  height: auto;
-  min-height: 18px;
-  max-width: 100%;
-  padding: 2px 7px;
-  font-size: 10.5px;
-  line-height: 1.35;
-  white-space: normal;
-  box-sizing: border-box;
-}
-.activity-panel .team-members .tags {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-width: 0;
-  font-size: 11px;
   color: var(--label3);
 }
-.activity-panel .team-members .tags small {
-  max-width: 100%;
+.team-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.team-row {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -10px;
+  border-radius: 10px;
+}
+.team-row.open {
+  background: rgba(120, 120, 128, 0.1);
+}
+.team-row-head {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 10px;
+  gap: 2px 8px;
+  align-items: start;
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--label);
+  font: inherit;
+  font-weight: 400;
+  text-align: left;
+}
+button.team-row-head {
+  cursor: pointer;
+}
+button.team-row-head:hover {
+  background: rgba(120, 120, 128, 0.1);
+}
+.team-row-head:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+/* Pastille de 7 px : couleur de la table d'états (status.ts, classes .etat-*), libellé écrit dedans pour
+   le lecteur d'écran. */
+.team-dot.etat {
+  display: block;
+  justify-self: center;
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.team-dot.etat::before {
+  display: none;
+}
+.team-dot.etat-encours {
+  animation: etat-pulse 1.6s ease-in-out infinite;
+}
+/* Titre entier sur deux lignes au plus, coupé en fin de ligne seulement. */
+.team-row-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.team-carnet .team-row-title {
+  font-weight: 400;
+}
+.team-row.open .team-row-title {
+  display: block;
+}
+.team-chevron {
+  margin-top: 6px;
+  color: var(--label3);
+  transition: transform 0.2s;
+}
+.team-row.open .team-chevron {
+  transform: rotate(90deg);
+}
+.team-row-sub {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--label3);
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.activity-panel .team-members .team-action {
-  color: var(--label);
+.team-row-sub .warning {
+  color: var(--orange);
+}
+/* Note : le nom de l'auteur (souvent un long titre de sous-agent) se raccourcit, jamais l'heure. */
+.team-who {
+  display: flex;
+  min-width: 0;
+}
+.team-who-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-who-time {
+  flex: none;
+  white-space: pre;
+}
+.team-note-mark {
+  justify-self: center;
+  margin-top: 1px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--label3);
+}
+.team-note-mark.piege {
+  color: var(--orange);
+}
+.team-note-mark.methode {
+  color: var(--green);
+}
+.team-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 10px 12px 32px;
+  font-size: 12.5px;
+  animation: rise 0.2s ease-out;
+}
+.team-reason {
+  margin: 0;
+  color: var(--muted);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.team-kv {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px;
+  margin: 0;
+}
+.team-kv dt {
+  color: var(--label3);
+}
+.team-kv dd {
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.team-kv .num {
+  font-variant-numeric: tabular-nums;
+}
+.team-note-body {
+  gap: 8px;
+  line-height: 1.5;
+}
+.team-note-body > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.team-note-body span {
+  color: var(--label3);
+}
+.team-note-body p {
+  margin: 0;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 .activity-panel .team-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
-.activity-panel .team-actions button {
-  display: flex;
+.team-button {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 12px;
-  background: var(--fill);
-  font-size: 11.5px;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(120, 120, 128, 0.2);
+  color: var(--label);
+  font: inherit;
+  font-size: 12.5px;
   font-weight: 400;
 }
-.activity-panel .team-actions .stop-square {
+.team-button:hover:not(:disabled) {
+  background: rgba(120, 120, 128, 0.3);
+}
+.team-button .stop-square {
   width: 7px;
   height: 7px;
   border-radius: 1.5px;
 }
 .activity-panel .team-more {
-  margin: 0 0 12px;
+  align-self: flex-start;
+  margin: 0;
   height: 26px;
   padding: 0 12px;
   border-radius: 13px;
   font-size: 12px;
 }
-.activity-panel .team-carnet {
-  margin: 0;
-  padding: 0 0 12px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+.team-others > summary {
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--label3);
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .team-row-body,
+  .team-dot.etat-encours {
+    animation: none;
+  }
+  .team-chevron {
+    transition: none;
+  }
 }
 /* Vue scindée : un membre de l'équipe suivi à côté du fil. */
 .side-pane {

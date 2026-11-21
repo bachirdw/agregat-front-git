@@ -94,8 +94,20 @@ const serve = (runs: Run[]) =>
     return Promise.resolve({ ok: true }) as never;
   });
 
+// equipe-05 : « Suivre » est dans la ligne dépliée du membre (avant : « Voir à côté » sur sa tuile).
+const follow = async (aside: HTMLElement) => {
+  const row = await within(aside).findByRole("listitem", {
+    name: "Offres FICTIVES sur SEEK",
+  });
+  fireEvent.click(row.querySelector("button.team-row-head")!);
+  fireEvent.click(
+    within(row).getByRole("button", {
+      name: "Suivre Offres FICTIVES sur SEEK",
+    }),
+  );
+};
 describe("sous-agents dans l'application", () => {
-  it("depuis le bloc Équipe du panneau : Arrêter annule ce membre seulement, Ouvrir l'affiche en grand", async () => {
+  it("depuis le bloc Équipe du panneau : Arrêter annule ce membre seulement, la vue à côté l'ouvre en grand", async () => {
     serve([mother, child]);
     render(<App />);
     fireEvent.click(
@@ -104,8 +116,12 @@ describe("sous-agents dans l'application", () => {
     const aside = await screen.findByRole("complementary", {
       name: "Activité",
     });
+    const row = await within(aside).findByRole("listitem", {
+      name: "Offres FICTIVES sur SEEK",
+    });
+    fireEvent.click(row.querySelector("button.team-row-head")!);
     fireEvent.click(
-      await within(aside).findByRole("button", {
+      within(row).getByRole("button", {
         name: "Arrêter Offres FICTIVES sur SEEK",
       }),
     );
@@ -113,17 +129,21 @@ describe("sous-agents dans l'application", () => {
       expect(api).toHaveBeenCalledWith("/runs/c1/cancel", {}),
     );
     expect(api).not.toHaveBeenCalledWith("/runs/m1/cancel", {});
+    // Ouvert en grand depuis la vue à côté (equipe-05 : plus de bouton « Ouvrir » sur la ligne).
     fireEvent.click(
-      within(aside).getByRole("button", {
-        name: "Ouvrir la sous-mission Offres FICTIVES sur SEEK",
+      within(row).getByRole("button", {
+        name: "Suivre Offres FICTIVES sur SEEK",
       }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Ouvrir en grand" }),
     );
     await screen.findByText("Consigne FICTIVE de la sous-mission");
     expect(
       screen.getByRole("button", { name: "Revenir à la mission principale" }),
     ).toBeTruthy();
   });
-  it("vue scindée : « Voir à côté » suit le membre à côté du fil de sa mission, puis se ferme", async () => {
+  it("vue scindée : « Suivre » ouvre le membre à côté du fil de sa mission, puis se ferme", async () => {
     serve([mother, child]);
     const { container } = render(<App />);
     fireEvent.click(
@@ -132,11 +152,7 @@ describe("sous-agents dans l'application", () => {
     const aside = await screen.findByRole("complementary", {
       name: "Activité",
     });
-    fireEvent.click(
-      await within(aside).findByRole("button", {
-        name: "Voir à côté Offres FICTIVES sur SEEK",
-      }),
-    );
+    await follow(aside);
     const pane = await screen.findByRole("complementary", {
       name: "Sous-agent : Offres FICTIVES sur SEEK",
     });
@@ -183,10 +199,8 @@ describe("sous-agents dans l'application", () => {
     await waitFor(() =>
       expect(container.querySelector(".owner-count")).toBeTruthy(),
     );
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Voir à côté Offres FICTIVES sur SEEK",
-      }),
+    await follow(
+      await screen.findByRole("complementary", { name: "Activité" }),
     );
     await screen.findByRole("complementary", {
       name: "Sous-agent : Offres FICTIVES sur SEEK",
@@ -207,10 +221,8 @@ describe("sous-agents dans l'application", () => {
       await screen.findByText("Mission FICTIVE à trois portails"),
     );
     expect(container.querySelector(".sidebar")).toBeTruthy();
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Voir à côté Offres FICTIVES sur SEEK",
-      }),
+    await follow(
+      await screen.findByRole("complementary", { name: "Activité" }),
     );
     const pane = await screen.findByRole("complementary", {
       name: "Sous-agent : Offres FICTIVES sur SEEK",
@@ -230,10 +242,8 @@ describe("sous-agents dans l'application", () => {
     fireEvent.click(
       await screen.findByText("Mission FICTIVE à trois portails"),
     );
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Voir à côté Offres FICTIVES sur SEEK",
-      }),
+    await follow(
+      await screen.findByRole("complementary", { name: "Activité" }),
     );
     await screen.findByRole("complementary", {
       name: "Sous-agent : Offres FICTIVES sur SEEK",
@@ -297,10 +307,8 @@ describe("sous-agents dans l'application", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "Afficher l’activité" }),
     );
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Voir à côté Offres FICTIVES sur SEEK",
-      }),
+    await follow(
+      await screen.findByRole("complementary", { name: "Activité" }),
     );
     await screen.findByRole("complementary", {
       name: "Sous-agent : Offres FICTIVES sur SEEK",
@@ -318,10 +326,8 @@ describe("sous-agents dans l'application", () => {
     fireEvent.click(
       await screen.findByText("Mission FICTIVE à trois portails"),
     );
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Voir à côté Offres FICTIVES sur SEEK",
-      }),
+    await follow(
+      await screen.findByRole("complementary", { name: "Activité" }),
     );
     const pane = await screen.findByRole("complementary", {
       name: "Sous-agent : Offres FICTIVES sur SEEK",

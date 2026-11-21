@@ -1282,7 +1282,8 @@ export default function App() {
           onClose={closeSide}
           onChanged={syncList}
           onOpenFull={(id) => {
-            setSideRunId(null);
+            // Même fermeture que « Fermer » : la barre latérale que la vue avait effacée revient.
+            closeSide();
             void openRun(id);
           }}
         />

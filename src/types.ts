@@ -146,6 +146,11 @@ export interface FamilyMember {
   role?: string;
   relit?: string[];
   verdict?: TeamVerdict;
+  // equipe-05 (maquette « Panneau equipe v6 ») : étape du découpage et raison de la tâche, écrites par
+  // l'agent principal. Pas encore envoyés par le back (demandés) : sans eux, une seule liste, et la
+  // raison vient de `motif` ou de `pourquoi`.
+  phase?: { index: number; label: string };
+  reason?: string;
 }
 export interface MemberUsage {
   tours?: number;
@@ -177,6 +182,11 @@ export interface CarnetNote {
   categorie?: string;
   texte?: string;
   a?: string;
+  // equipe-05 : note structurée (titre d'une phrase, ce qui s'est passé, ce qu'il faut faire). Pas encore
+  // envoyée par le back (demandée) : sans elle, le texte est découpé par `noteParts` (Team.tsx).
+  title?: string;
+  what?: string;
+  fix?: string;
 }
 // A file uploaded to POST /api/files; only its id is sent with a plan or run.
 export interface Attachment {
@@ -360,6 +370,9 @@ export interface Run {
   famille?: RunLink;
   // Private space: `total` only.
   carnet?: { total?: number; notes?: CarnetNote[] };
+  // equipe-05 : une phrase de l'agent principal qui explique le découpage en sous-agents. Pas encore
+  // envoyée par le back (demandée) : absente, rien n'est affiché.
+  plan_summary?: string;
 }
 // Application counters of the mission; each one is shown only when the back reports it.
 export interface RunFunnel {

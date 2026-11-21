@@ -8,6 +8,7 @@ import {
   render,
   screen,
   within,
+  waitFor,
 } from "@testing-library/react";
 import App from "./App";
 import { api } from "./api";
@@ -123,13 +124,26 @@ describe("relecture : liste", () => {
         await screen.findByRole("button", { name: /Mère FICTIVE/ }),
       );
       const team = await screen.findByRole("region", { name: "Équipe" });
+      // equipe-05 : « Suivre » est dans la ligne dépliée du membre (avant : « Ouvrir la sous-mission »).
       fireEvent.click(
-        within(team).getByRole("button", {
-          name: "Ouvrir la sous-mission Tâche 21",
-        }),
+        within(team)
+          .getByRole("listitem", { name: "Tâche 21" })
+          .querySelector("button.team-row-head")!,
       );
-      expect(vi.mocked(api)).toHaveBeenCalledWith(
-        expect.stringMatching(new RegExp(`^/runs/${kid.id}`)),
+      fireEvent.click(
+        within(team).getByRole("button", { name: "Suivre Tâche 21" }),
+      );
+      // Ouverte en grand depuis la vue à côté : le fil la montre, la liste ne change pas.
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Ouvrir en grand" }),
+      );
+      await waitFor(() =>
+        expect(vi.mocked(api)).toHaveBeenCalledWith(
+          expect.stringMatching(new RegExp(`^/runs/${kid.id}`)),
+        ),
+      );
+      await waitFor(() =>
+        expect(document.querySelector(".mission-list")).toBeTruthy(),
       );
       // The list still shows the mother alone, and no row claims to be the open one.
       const list = document.querySelector(".mission-list")!;
@@ -218,6 +232,7 @@ describe("relecture : textes d'agents", () => {
     expect(missionsDeLaListe(rows as never).length).toBe(1);
     render(<TeamBlock run={out as unknown as Run} />);
     const item = screen.getByRole("listitem", { name: "Tâche K" });
+    fireEvent.click(item.querySelector("button.team-row-head")!);
     expect(item.querySelector("script")).toBeNull();
     expect(item.querySelector(".team-motif")!.textContent).toBe(long);
   });

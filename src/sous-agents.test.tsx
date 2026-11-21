@@ -138,14 +138,23 @@ const tileOf = (title: string) =>
 describe("Sous-agents : la famille du back", () => {
   // reponse-04 : la section d'équipe du panneau est le bloc Équipe de swarm (Team.tsx), avec ses états,
   // rôles, verdicts et échecs ; le panneau y ajoute « Voir à côté » (vue scindée) et « Arrêter ».
-  it("le panneau montre l'équipe : Voir à côté, Ouvrir, et Arrêter pour un membre en cours seulement", () => {
+  // equipe-05 : les actions d'un membre sont dans sa ligne dépliée (« Suivre » ou « Voir le résultat »,
+  // « Arrêter » pour un membre en cours) ; avec la vue scindée, elles l'ouvrent à côté du fil.
+  it("le panneau montre l'équipe : Suivre ou Voir le résultat, et Arrêter pour un membre en cours seulement", () => {
     const onOpenSide = vi.fn();
     const { props } = panel({ onOpenSide });
     const team = screen.getByRole("region", { name: "Équipe" });
     expect(team.closest(".activity-panel")).toBeTruthy();
+    const expand = (title: string) =>
+      fireEvent.click(
+        within(team)
+          .getByRole("listitem", { name: title })
+          .querySelector("button.team-row-head")!,
+      );
+    expand("Offres FICTIVES sur SEEK");
     fireEvent.click(
       within(team).getByRole("button", {
-        name: "Voir à côté Offres FICTIVES sur SEEK",
+        name: "Suivre Offres FICTIVES sur SEEK",
       }),
     );
     expect(onOpenSide).toHaveBeenCalledWith("c1");
@@ -155,6 +164,7 @@ describe("Sous-agents : la famille du back", () => {
       }),
     );
     expect(props.onCancelRun).toHaveBeenCalledWith("c1");
+    expand("Offres FICTIVES sur LinkedIn");
     expect(
       within(team).queryByRole("button", {
         name: "Arrêter Offres FICTIVES sur LinkedIn",
@@ -162,13 +172,35 @@ describe("Sous-agents : la famille du back", () => {
     ).toBeNull();
     fireEvent.click(
       within(team).getByRole("button", {
-        name: "Ouvrir la sous-mission Offres FICTIVES sur Indeed",
+        name: "Voir le résultat de Offres FICTIVES sur LinkedIn",
+      }),
+    );
+    expect(onOpenSide).toHaveBeenCalledWith("c2");
+    // Sans vue scindée, le membre s'ouvre en grand (route ordinaire d'une mission).
+    expect(props.onOpenRun).not.toHaveBeenCalled();
+  });
+  it("sans vue scindée : « Suivre » ouvre le membre en grand", () => {
+    const { props } = panel();
+    const team = screen.getByRole("region", { name: "Équipe" });
+    fireEvent.click(
+      within(team)
+        .getByRole("listitem", { name: "Offres FICTIVES sur Indeed" })
+        .querySelector("button.team-row-head")!,
+    );
+    fireEvent.click(
+      within(team).getByRole("button", {
+        name: "Suivre Offres FICTIVES sur Indeed",
       }),
     );
     expect(props.onOpenRun).toHaveBeenCalledWith("c3");
   });
   it("Arrêter est inactif pendant une action en cours", () => {
     panel({ busy: true });
+    fireEvent.click(
+      screen
+        .getByRole("listitem", { name: "Offres FICTIVES sur SEEK" })
+        .querySelector("button.team-row-head")!,
+    );
     expect(
       (
         screen.getByRole("button", {
@@ -187,7 +219,9 @@ describe("Sous-agents : la famille du back", () => {
         },
       } as unknown as Run,
     });
-    const carnet = screen.getByRole("region", { name: "Carnet d’équipe" });
+    const carnet = screen.getByRole("region", {
+      name: "Ce que l’équipe a appris",
+    });
     expect(carnet.closest(".activity-panel")).toBeTruthy();
     expect(carnet.textContent).toContain("Note FICTIVE");
   });

@@ -221,6 +221,8 @@ describe("liste : seulement les missions, l'équipe en un mot", () => {
     );
     const team = await screen.findByRole("region", { name: "Équipe" });
     const first = within(team).getByRole("listitem", { name: "Tâche 61" });
+    // equipe-05 : motif et agent de repli sont dans la ligne dépliée.
+    fireEvent.click(first.querySelector("button.team-row-head")!);
     const motif = first.querySelector(".team-motif")!;
     // Plain text: neither Markdown nor HTML is interpreted.
     expect(motif.textContent).toBe(
@@ -231,6 +233,7 @@ describe("liste : seulement les missions, l'équipe en un mot", () => {
       "lancé sur agent-a (agent-b indisponible)",
     );
     const second = within(team).getByRole("listitem", { name: "Tâche 62" });
+    fireEvent.click(second.querySelector("button.team-row-head")!);
     expect(second.querySelector(".team-motif")).toBeNull();
     expect(second.textContent).not.toMatch(/lancé sur|indisponible/);
     // No new read of a sub-mission: only the mother is read by id.
@@ -520,13 +523,21 @@ describe("bloc Équipe : motif, agent prévu, jetons", () => {
         ])}
       />,
     );
-    expect(
-      screen
-        .getByRole("listitem", { name: "Avec jetons" })
-        .querySelector(".team-jetons")!.textContent,
-    ).toMatch(/^12\s345 jetons$/);
-    for (const name of ["Sans jetons", "Jetons non annoncés"]) {
+    // equipe-05 : « Jetons » est une ligne clé/valeur de la ligne dépliée.
+    const open = (name: string) => {
       const item = screen.getByRole("listitem", { name });
+      fireEvent.click(item.querySelector("button.team-row-head")!);
+      return item;
+    };
+    const withTokens = open("Avec jetons");
+    expect(withTokens.querySelector(".team-jetons")!.textContent).toMatch(
+      /^12\s345$/,
+    );
+    expect(withTokens.querySelector(".team-kv")!.textContent).toContain(
+      "Jetons",
+    );
+    for (const name of ["Sans jetons", "Jetons non annoncés"]) {
+      const item = open(name);
       expect(item.querySelector(".team-jetons")).toBeNull();
       expect(item.textContent!.replace(name, "")).not.toMatch(/jeton/);
     }
@@ -549,6 +560,7 @@ describe("bloc Équipe : motif, agent prévu, jetons", () => {
       />,
     );
     const item = screen.getByRole("listitem", { name: "Même agent" });
+    fireEvent.click(item.querySelector("button.team-row-head")!);
     expect(item.textContent).not.toMatch(/lancé sur|indisponible/);
     expect(item.querySelector(".team-motif")).toBeNull();
   });
