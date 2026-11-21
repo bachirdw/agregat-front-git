@@ -34,3 +34,7 @@ avancée en avance rapide sur `claude/passation-reprise-21-11-a815c6` à `a3319b
 - `src/diagram.ts` (`DiagramTheme`, palettes) et `src/Markdown.tsx` (`useDocumentTheme`) ;
 - tests : `src/sous-agents-app.test.tsx`, `src/diagram.test.ts`, `src/diagram-theme.test.tsx` (neuf).
 - `.claude/launch.json` (aperçu 5174) n'est pas commité.
+- 21:24 E2E contre `agregat-back-reponse-04` : 18/18. Captures réécrites restaurées (`git checkout`) ; les
+  3 captures neuves qu'il crée (`11-filtre-3-skill`, `11-filtre-4-mode`, `11-filtre-5-avancé`) supprimées, non
+  commitées (le script nomme ces écrans d'après les réglages actuels ; à mettre à jour dans le dépôt si le
+  manager veut les garder).

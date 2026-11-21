@@ -1,5 +1,16 @@
 # Note de reprise (21/11/2026, soir, fin de la conversation « passation-reprise-21-11 »)
 
+> **Mise à jour du 21/11, 21:30 (session « reprise-chantier-1229be »)** : le code le plus récent est maintenant
+> dans le worktree `~/Downloads/agregat-front/.claude/worktrees/reprise-chantier-1229be`, branche
+> `claude/reprise-chantier-1229be` (locale, **non poussée**), partie en avance rapide de
+> `claude/passation-reprise-21-11-a815c6` (`a3319be`). Lot ajouté : **defauts-21-11** (`d4dab46`, rapport
+> `defauts-21-11.md`) — vue scindée plein écran rendant le dessous inerte, tableau Consommation empilé sous
+> 560 px, schéma Mermaid au thème de l'application. Suite 478/478, build et prettier verts, **E2E 18/18**
+> (21:24, back `agregat-back-reponse-04`). Back inchangé :
+> route fichiers toujours absente de 4310 ; la relecture du manager (`a817390` sur `fichiers-21-11`) ne
+> change pas le contrat lu par le front. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
+> (sans ce lot).
+
 À lire en premier par la session qui reprend. Rapports détaillés de cette conversation, dans l'ordre :
 `chat-mission-21-11.md`, `fichiers-fil-21-11.md`, `equipe-05.md`, `skill-explicite.md`. Lots d'avant :
 `test-ui-21-11.md`, `reponse-04.md`, `sous-agents-19-11.md`, `activity-panel-03.md`.
@@ -199,8 +210,8 @@ verts ; suite complète, `tsc`, build et prettier verts au commit.
    - panneau Activité à 380 px comme la maquette v6 ?
    - un champ pour écrire à un sous-agent depuis « Voir à côté » (non vérifié côté back) ?
    - « fichiers en pièces jointes à chaque réponse » : non reproduit, demander une capture si ça revient.
-3. **Petits défauts laissés** (`test-ui-21-11.md`) : composer replié plus haut, Mermaid non thémé, bouton coupé dans
-   Consommation à 375 px, Tab sous la vue scindée en plein écran.
+3. **Petits défauts laissés** (`test-ui-21-11.md`) : Mermaid, Consommation à 375 px et Tab sous la vue scindée
+   sont **corrigés** (lot `defauts-21-11`). Reste « composer replié plus haut », gardé exprès (accès clavier).
 
 ## 9. Commandes utiles
 - Tests : `nice -n 10 npx vitest run --maxWorkers=2` ; build : `nice -n 10 npm run build`.
