@@ -54,23 +54,27 @@
      d'égalité avec la base `48a2f4e` est adapté : la règle est retirée avant comparaison, après vérification de sa
      présence. 185 tests back ciblés verts ; suite complète non lancée.
 
-## État des vérifications (21/11, 11:05)
-- `npm test` : 26 fichiers, 392/392.
+## Après compactage (21/11, 11:10-11:40)
+- E2E « défilement » corrigé : le panneau Activité, ouvert d'office en large, couvrait le fil après un passage sous
+  760 px. Il se ferme maintenant à ce passage (`App.tsx`, test dans `activity-panel-app.test.tsx`).
+- Back relu à `35af485` (`swarm-14`, `15`, `16`) : événement `usage` → ligne « Annoncé par l’agent » du détail de la
+  ligne méta (`texteAnnonce`, `status.ts`) ; `lecon_gardee` → ligne du journal. Pas fait : `niveau` (absent de
+  `family[]`), écran des leçons (`/api/lecons`).
+- Captures « après » refaites.
+
+## État des vérifications (21/11, 11:40)
+- `npm test` : 26 fichiers, 396/396.
 - `npm run build` : OK.
 - `prettier` : OK.
-- E2E contre `~/Downloads/agregat-back-swarm` : 17/18.
+- E2E contre `~/Downloads/agregat-back-swarm` (`swarm-20-11`, `35af485`) : **18/18**.
 - Captures avant/après : `.manager/reports/reponse-04/`.
 
 ## Reste à faire
-1. E2E « défilement FICTIF » rouge : après une remontée de 65 px, le composeur ne passe pas en compact
-   (`onScroll` dans `App.tsx`). À diagnostiquer.
-2. Refaire les captures « après » : celles du commit `4fffd89` montrent la ligne méta dépliée par le défaut de clé,
-   corrigé depuis (`90f9a98`).
-3. Questions au propriétaire :
+1. Questions au propriétaire :
    - refondre aussi le fil career-ops sur `RunTurn` ?
    - intégrer `reponse-04-format` dans le back ?
    - garder la vue scindée ?
-4. Commandes utiles :
+2. Commandes utiles :
    - `npm run build && node scripts/reponse-04-captures.mjs apres` ;
    - `AGENT_PLATFORM_BACKEND_DIR=$HOME/Downloads/agregat-back-swarm nice -n 10 node --test --test-concurrency=1 tests/e2e.test.mjs` ;
    - après un e2e, `git checkout -- .manager/reports/front-01-screens/` (l'e2e réécrit ces captures d'un ancien rapport).

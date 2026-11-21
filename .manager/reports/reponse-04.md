@@ -35,8 +35,9 @@ Mission workflow à 760 px :
   « Voir à côté » (un membre suivi en direct dans une **vue scindée** à côté du fil de sa mission) et « Arrêter ».
 - **Aussi** : brief 02 (étapes d'un workflow en une ligne, « Données » dans les détails, journal brut dans le panneau,
   accords d'étape dans la réponse) et `skill-chip-01` (pastille de skill, lueur à trois trajectoires).
-- **Vérifié** : `npm test` 392/392, `npm run build` OK, `prettier` OK, captures avant/après, e2e 17/18 contre le back
-  `swarm-20-11` (le test « défilement » reste rouge, point ouvert n° 10). **Non vérifié** : aucun vrai agent lancé ; suite complète du back non lancée.
+- **Vérifié (21/11, 11:40)** : `npm test` 396/396, `npm run build` OK, `prettier` OK, **e2e 18/18** contre le back
+  `swarm-20-11` à jour (`35af485`, avec `swarm-14`, `15` et `16`), captures « après » refaites. **Non vérifié** : aucun
+  vrai agent lancé ; suite complète du back non lancée.
 
 ## Journal
 - 09:58 Zip extrait dans un dossier vide du scratchpad : dossier de passation `design_handoff_conversation_agent/`
@@ -76,6 +77,18 @@ Mission workflow à 760 px :
   Résultat : **17/18**. Reste rouge « défilement FICTIF : le composeur ne boucle pas après une petite remontée » : le
   composeur ne passe pas en compact après une remontée de 65 px. **Non diagnostiqué**, point ouvert n° 10. Sortie :
   `reponse-04/e2e-complet.txt` (passe à 16/18, avant la correction du test SSE).
+- 11:10 Reprise après compactage. Back relu : `swarm-20-11` est passé de `e7f4964` à `35af485` (lots `swarm-14`
+  consommation annoncée, `swarm-15` leçons durables, `swarm-16` niveaux de modèle). Docs `api-delegation.md` et
+  `api-lecons.md` relues. Rien de cassé côté front (événements inconnus ignorés, sans nom technique affiché).
+- 11:15 E2E « défilement » diagnostiqué par un script de mesure (scratchpad) : à 1550 px tout marche ; à 375 px la roue
+  ne produit aucun événement de défilement du fil. Cause : le panneau Activité, ouvert d'office en large, restait ouvert
+  et couvrait le fil sous 760 px (surcouche pleine largeur). Test rouge dans `activity-panel-app.test.tsx`, puis
+  correction dans `App.tsx` : le panneau se ferme quand la fenêtre passe sous 760 px. E2E seul : vert.
+- 11:20 Suivi du contrat du back : tests rouges puis verts pour l'événement `usage` (ligne « Annoncé par l’agent » du
+  détail de la ligne méta, via `texteAnnonce` dans `status.ts`) et `lecon_gardee` (journal). Commit `7ffb8b4`.
+- 11:25-11:40 `npm test` 396/396, build, prettier ; **e2e complet 18/18** (sortie : `reponse-04/e2e-complet.txt`) ;
+  captures `front-01-screens/` d'un ancien rapport, réécrites par l'e2e, remises ; captures « après » refaites (la
+  ligne méta est bien repliée dans la vue scindée).
 
 ## Ce qui disparaît du fil, ou change de place (étape 1 du brief)
 | Avant (dans le fil) | Après |
@@ -186,7 +199,7 @@ Adaptés, un par ligne :
 ## Captures (`.manager/reports/reponse-04/`, thème sombre)
 - Avant (18) : `avant-{terminee-workflow,reponse-agent,equipe}-{1440,924,760}-sombre.png` et `-haut.png`.
 - Après (22) : mêmes noms en `apres-`. S'y ajoutent `apres-reponse-agent-*-deplie.png` (activité et méta dépliées) et
-  `apres-equipe-1440-sombre-vue-scindee.png`.
+  `apres-equipe-1440-sombre-vue-scindee.png`. Refaites le 21/11 à 11:35, après la correction des clés (`90f9a98`).
 - Commande : `npm run build && node scripts/reponse-04-captures.mjs avant|apres`. Données FICTIVES : la réponse riche
   et l'équipe sont écrites dans la base de mon back de test, la mission workflow est un vrai workflow fictif.
 
@@ -207,9 +220,18 @@ Voir `reponse-04/npm-test.txt` (finale plus bas).
 7. **Équipe en tuiles** : c'est le bloc `TeamBlock` de swarm, en tuiles par la CSS. Ses textes et sa logique restent ceux testés par swarm. La tuile de la v4 avec « 3 dernières lignes d'activité » devient « dernière action … il y a … » et « depuis … », ce que donne le back.
 8. **« Revenir en bas »** : rond, centré au-dessus du composer ; il peut chevaucher un bloc (32 px).
 9. Les commits entre « tests rouges » et la fin ont des tests rouges par construction (méthode du brief).
-10. **E2E « défilement FICTIF »** encore rouge : après `scrollTop = scrollHeight` puis une remontée de 65 px, le
-    composeur reste `data-compact="false"`. Piste : la logique `onScroll` d'`App.tsx` (taille du conteneur mesurée
-    comme un redimensionnement) avec la nouvelle hauteur du composer. À diagnostiquer.
+10. ~~E2E « défilement FICTIF » rouge~~ : **corrigé le 21/11 à 11:20**. Ce n'était pas la logique `onScroll`. Le
+    panneau Activité, ouvert d'office à 1550 px, restait ouvert quand la fenêtre passait à 375 px ; sous 760 px il
+    devient une surcouche pleine largeur, qui cachait le fil (la roue faisait défiler le panneau). Il se ferme
+    maintenant quand la fenêtre passe sous 760 px ; rouvert à la main à cette largeur, il reste ouvert.
+11. **Vue scindée sous 760 px** : contrairement au panneau, elle ne se ferme pas quand la fenêtre rétrécit (c'est un
+    choix explicite, avec son bouton « Fermer la vue à côté »). À changer si tu préfères le même comportement.
+12. **Contrat du back du 21/11 au matin** (`swarm-14`, `swarm-15`, `swarm-16`, intégrés dans `swarm-20-11`, `35af485`) :
+    - événement `usage` (jetons et coût annoncés par l'agent) : nouvelle ligne « Annoncé par l’agent » dans le détail de
+      la ligne méta, chiffres et devise tels qu'annoncés, « non mesuré par la plateforme » ; absente sans chiffre ;
+    - `lecon_gardee` : ligne « Leçon gardée pour les prochaines missions » dans le journal, sans l'identifiant ;
+    - pas fait : niveau de modèle (`famille.niveau`, absent de `family[]`), écran des leçons (`GET /api/lecons`,
+      `POST /api/lecons/…`) : nouvel écran, à décider.
 
 ## Questions
 1. Faut-il refondre aussi le fil career-ops (CV, lettres, offres) sur ce modèle ?
