@@ -580,12 +580,14 @@ export default function App() {
     }
   };
   // Follow-up in the same agent session (e.g. answering career-ops intake questions).
+  // A sub-mission is relaunched by its chief: the back refuses its resume (409).
   const canReply =
     page === "mission" &&
     !!run &&
     run.mode !== "workflow" &&
     finalStates.has(run.state) &&
-    !!run.resumable;
+    !!run.resumable &&
+    !run.famille;
   const reply = async () => {
     if (!run || !input.prompt.trim()) return;
     const prompt = input.prompt.trim();

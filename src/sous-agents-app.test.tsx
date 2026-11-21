@@ -263,6 +263,25 @@ describe("sous-agents dans l'application", () => {
       }),
     ).toBeTruthy();
   });
+  // 21/11 (test complet) : « Répondre à l'agent… » était proposé sur une sous-mission finie, et le
+  // back refusait (409) : c'est le chef qui la relance.
+  it("sous-mission terminée ouverte en grand : pas de réponse proposée", async () => {
+    const done = {
+      ...child,
+      state: "completed",
+      resumable: true,
+      result: { simulated: false, summary: "Fait (FICTIF)", evidence: [] },
+    } as unknown as Run;
+    serve([done]);
+    render(<App />);
+    fireEvent.click(await screen.findByText("Offres FICTIVES sur SEEK"));
+    await screen.findByText("Fait (FICTIF)");
+    const field = screen.getByLabelText(
+      "Objectif de la mission",
+    ) as HTMLTextAreaElement;
+    expect(field.disabled).toBe(true);
+    expect(field.placeholder).not.toMatch(/Répondre/);
+  });
   it("vue scindée sur mobile : Échap la ferme", async () => {
     width(375);
     serve([mother, child]);
