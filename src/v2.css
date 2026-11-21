@@ -1509,12 +1509,20 @@ fieldset.question-field label {
 }
 
 /* swarm-11 : résumé d'équipe d'une ligne de la liste, accord court, motif et jetons d'un membre */
-/* 21/11 (test complet) : en `flex: none`, le résumé écrasait le titre (largeur 0). Le titre garde la
-   place ; le résumé prend au plus 45 % et se termine par « … », entier en infobulle. */
+/* 21/11 (test complet) : en `flex: none`, le résumé écrasait le titre (largeur 0, puis « Missi… »).
+   Le titre garde sa ligne ; le résumé passe dessous, terminé par « … » si besoin, entier en infobulle. */
+.mission-link:has(> small.team-summary) {
+  height: auto;
+  min-height: 28px;
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-block: 4px;
+}
 .mission-link small.team-summary {
-  flex: 0 1 auto;
+  order: 3;
+  flex: 1 0 100%;
   min-width: 0;
-  max-width: 45%;
+  padding-left: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

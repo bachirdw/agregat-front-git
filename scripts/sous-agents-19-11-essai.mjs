@@ -38,7 +38,11 @@ const plan = {
 };
 async function choose(page, name, value) {
   const select = page.getByLabel(name, { exact: true });
-  const details = select.locator("xpath=ancestor::details");
+  // 21/11 : à l'accueil, les réglages sont derrière le bouton « agent · modèle ».
+  const menu = page.locator(".composer details.session-menu");
+  if ((await menu.count()) && (await menu.getAttribute("open")) === null)
+    await menu.locator("> summary").click();
+  const details = select.locator("xpath=ancestor::details[1]");
   if (!(await details.getAttribute("open")))
     await details.locator("summary").click();
   await select.selectOption(value);
