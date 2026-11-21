@@ -2414,3 +2414,14 @@ fieldset.question-field label {
   color: var(--muted);
   font-size: 12px;
 }
+/* fil-21-11 : une question de l'agent déjà répondue reste dans le fil, avec une petite ligne d'auteur
+   (la réponse du propriétaire reprend la bulle « Vous » des messages pendant la mission). */
+.reponse-question-head {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.answer-message {
+  margin-block: 4px;
+}

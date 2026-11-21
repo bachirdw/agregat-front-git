@@ -18,7 +18,10 @@ import {
   SkillChip,
   Waiting,
   waitingLabel,
+  type AskedQuestion,
+  type Item,
   type Owner,
+  type OwnerAnswer,
   type Tool,
   type Wait,
 } from "./Career";
@@ -601,6 +604,85 @@ function Offers({ run }: { run: Run }) {
   );
 }
 
+// fil-21-11 : la discussion dans l'ordre où elle a eu lieu (texte de l'agent, messages du propriétaire,
+// questions de l'agent et réponses). Avant, le texte de l'agent disparaissait à la réponse finale et
+// les questions répondues disparaissaient avec leur formulaire.
+type Entry =
+  | { kind: "text"; id: string; text: string }
+  | Owner
+  | AskedQuestion
+  | (OwnerAnswer & { question?: AskedQuestion });
+export function conversation(items: Item[]): Entry[] {
+  const out: Entry[] = [];
+  const questions = new Map<string, AskedQuestion>();
+  for (const item of items) {
+    if (item.kind === "text") {
+      const text = withoutResultEnvelope(item.text, true);
+      if (!text.trim()) continue;
+      const last = out.at(-1);
+      // Un outil entre deux textes ne coupe pas le bloc ; un changement de tour y met un paragraphe.
+      if (last?.kind === "text") last.text += "\n\n" + text;
+      else out.push({ kind: "text", id: item.id, text });
+    } else if (item.kind === "owner") out.push(item);
+    else if (item.kind === "question") {
+      questions.set(item.questionId, item);
+      out.push(item);
+    } else if (item.kind === "answer")
+      out.push({ ...item, question: questions.get(item.questionId) });
+  }
+  return out;
+}
+type Choice = { const?: unknown; title?: string };
+const choiceTitle = (value: unknown, choices?: Choice[]) =>
+  choices?.find((c) => c.const === value)?.title ?? String(value);
+// La réponse telle que le propriétaire l'a donnée : texte libre, ou titres des choix du formulaire.
+export function answerText(answer: OwnerAnswer, question?: AskedQuestion) {
+  if (answer.action === "decline") return "Question déclinée";
+  if (answer.action === "expired")
+    return "Question restée sans réponse (délai dépassé)";
+  if (answer.action === "cancel") return "Question annulée";
+  const props =
+    (
+      question?.schema as
+        | {
+            properties?: Record<
+              string,
+              { title?: string; oneOf?: Choice[]; items?: { anyOf?: Choice[] } }
+            >;
+          }
+        | undefined
+    )?.properties ?? {};
+  const lines = Object.entries(answer.content ?? {}).flatMap(([key, value]) => {
+    const prop = props[key];
+    const shown = Array.isArray(value)
+      ? value.map((v) => choiceTitle(v, prop?.items?.anyOf)).join(", ")
+      : typeof value === "boolean"
+        ? value
+          ? "Oui"
+          : "Non"
+        : choiceTitle(value, prop?.oneOf);
+    return shown.trim()
+      ? [{ title: prop?.title ?? key, shown: shown.trim() }]
+      : [];
+  });
+  if (!lines.length) return "Réponse envoyée";
+  if (lines.length === 1) return lines[0].shown;
+  return lines.map((l) => `${l.title} : ${l.shown}`).join("\n");
+}
+const flat = (text: string) => text.replace(/\s+/g, " ").trim();
+function AnswerBubble({ answer }: { answer: Entry & { kind: "answer" } }) {
+  return (
+    <div className="owner-message delivered answer-message">
+      <small className="owner-message-head">Vous, en réponse</small>
+      <div className="prompt-bubble">
+        <span className="prompt-bubble-text">
+          {answerText(answer, answer.question)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function RunTurn({
   run,
   events,
@@ -620,12 +702,12 @@ export function RunTurn({
   connection?: string;
   requests?: boolean;
 }) {
-  const items = useMemo(() => activity(events), [events]);
+  const items = useMemo(() => activity(events, { exchanges: true }), [events]);
   const waits = useMemo(() => ownerWaits(events), [events]);
   // Re-render when this page learns the text of a message it sent (private mission).
   useSyncExternalStore(subscribeOwnerTexts, ownerTextsVersion);
   const tools = items.filter((i): i is Tool => i.kind === "tool");
-  const owners = items.filter((i): i is Owner => i.kind === "owner");
+  const entries = useMemo(() => conversation(items), [items]);
   const live = !finalStates.has(run.state);
   // The mission waits for the owner: the agent is neither thinking nor writing.
   const ownerTurn = ownerStates.has(run.state);
@@ -640,15 +722,15 @@ export function RunTurn({
     (run.mode === "workflow" || !!run.resumable) &&
     !run.famille;
   const expired = expiredPermissions(events);
-  // Le texte de l'agent tant qu'il n'y a pas de réponse finale (en cours, ou fin sans résultat).
-  const transcript =
-    live || !run.result
-      ? items
-          .filter((i) => i.kind === "text")
-          .map((i) => withoutResultEnvelope((i as { text: string }).text, true))
-          .filter((text) => text.trim())
-          .join("\n\n")
-      : "";
+  // La réponse finale remplace seulement le dernier bloc de texte (le tour qui l'a écrite) : les
+  // échanges d'avant restent dans le fil.
+  const shown =
+    run.result && !live && entries.at(-1)?.kind === "text"
+      ? entries.slice(0, -1)
+      : entries;
+  const answered = new Set(
+    entries.flatMap((e) => (e.kind === "answer" ? [e.questionId] : [])),
+  );
   // RunTurn shows no thoughts: a trailing thought keeps « Réflexion… » (else the turn looks stuck).
   const label =
     live && !ownerTurn
@@ -689,17 +771,39 @@ export function RunTurn({
             <Incident text={MISSION_GRANT_NOTICE} />
           )}
         </div>
-        {owners.map((message) => (
-          <OwnerBubble key={message.id} message={message} />
-        ))}
-        {transcript && (
-          <div className="reponse-texte">
-            <Markdown text={transcript} />
-            {live && !ownerTurn && (
-              <span className="stream-caret" aria-hidden="true" />
-            )}
-          </div>
-        )}
+        {shown.map((entry, index) => {
+          if (entry.kind === "owner")
+            return <OwnerBubble key={entry.id} message={entry} />;
+          if (entry.kind === "answer")
+            return <AnswerBubble key={entry.id} answer={entry} />;
+          if (entry.kind === "question") {
+            // Question encore ouverte : son formulaire (OwnerRequests) la montre déjà.
+            if (!answered.has(entry.questionId) && live) return null;
+            // Question déjà écrite à la fin du texte de l'agent : pas de doublon.
+            const before = shown[index - 1];
+            if (
+              before?.kind === "text" &&
+              flat(before.text).endsWith(flat(entry.message))
+            )
+              return null;
+            return (
+              <div key={entry.id} className="reponse-texte reponse-question">
+                <small className="reponse-question-head">
+                  Question de l’agent
+                </small>
+                <Markdown text={entry.message} />
+              </div>
+            );
+          }
+          return (
+            <div key={entry.id} className="reponse-texte">
+              <Markdown text={entry.text} />
+              {index === shown.length - 1 && live && !ownerTurn && (
+                <span className="stream-caret" aria-hidden="true" />
+              )}
+            </div>
+          );
+        })}
         {label && <Waiting label={label} />}
         <SkillSteps progress={run.skillProgress} />
         <StepApprovals run={run} busy={busy} act={act} />

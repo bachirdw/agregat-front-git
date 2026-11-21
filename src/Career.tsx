@@ -68,11 +68,41 @@ export type Owner = {
   deliveredAt: string | null;
   text?: string;
 };
+// fil-21-11 : question de l'agent au propriétaire (événement `question`, docs/api-questions.md) et sa
+// fermeture (`answer`). Rendues seulement avec `activity(events, { exchanges: true })` : le fil d'une
+// mission les garde une fois la question fermée (avant, elles disparaissaient avec le formulaire).
+export type AskedQuestion = {
+  kind: "question";
+  id: string;
+  questionId: string;
+  message: string;
+  schema?: unknown;
+  at?: string;
+};
+export type OwnerAnswer = {
+  kind: "answer";
+  id: string;
+  questionId: string;
+  action: string;
+  content?: Record<string, unknown>;
+  at?: string;
+};
 export type Item =
   | Tool
   | Owner
+  | AskedQuestion
+  | OwnerAnswer
   | { kind: "text"; id: string; text: string; at?: string }
   | { kind: "thought"; id: string; text: string; at?: string };
+// Événements qui ouvrent un nouveau tour de l'agent : le texte qui suit n'est pas collé au précédent
+// (« …Bon lancement 🚀Le système me signale… » sur la capture du propriétaire, 21/11).
+const TURN_BOUNDARIES = new Set([
+  "question",
+  "answer",
+  "verdict_turn",
+  "verification",
+  "state",
+]);
 // A JSON text is shown indented; any other text as sent.
 function pretty(text: string) {
   const body = text.trim();
@@ -129,11 +159,65 @@ function toolOutput(u: Record<string, unknown>): string | undefined {
     .join("\n");
   return text || undefined;
 }
-export function activity(events: RunEvent[]): Item[] {
+export function activity(
+  events: RunEvent[],
+  { exchanges = false }: { exchanges?: boolean } = {},
+): Item[] {
   const items: Item[] = [];
   const tools = new Map<string, Tool>();
   const owners = new Map<string, Owner>();
+  const exchanged = new Set<string>();
+  // Vrai après un changement de tour : le prochain texte ouvre un nouveau bloc.
+  let cut = false;
   for (const e of events) {
+    if (TURN_BOUNDARIES.has(e.type)) cut = true;
+    if (
+      exchanges &&
+      (e.type === "question" || e.type === "answer") &&
+      e.data &&
+      typeof e.data === "object"
+    ) {
+      const d = e.data as {
+        id?: unknown;
+        message?: unknown;
+        requestedSchema?: unknown;
+        action?: unknown;
+        content?: unknown;
+      };
+      if (typeof d.id !== "string" || !d.id) continue;
+      const key = `${e.type}-${d.id}`;
+      if (exchanged.has(key)) continue;
+      if (
+        e.type === "question" &&
+        typeof d.message === "string" &&
+        d.message.trim()
+      ) {
+        exchanged.add(key);
+        items.push({
+          kind: "question",
+          id: key,
+          questionId: d.id,
+          message: d.message,
+          schema: d.requestedSchema,
+          at: e.at,
+        });
+      }
+      if (e.type === "answer" && typeof d.action === "string") {
+        exchanged.add(key);
+        items.push({
+          kind: "answer",
+          id: key,
+          questionId: d.id,
+          action: d.action,
+          content:
+            d.content && typeof d.content === "object"
+              ? (d.content as Record<string, unknown>)
+              : undefined,
+          at: e.at,
+        });
+      }
+      continue;
+    }
     // The first event of a message places it (emitted at reception); later ones update it.
     if (e.type === "owner_message" && e.data && typeof e.data === "object") {
       const m = e.data as Partial<OwnerMessage>;
@@ -225,7 +309,7 @@ export function activity(events: RunEvent[]): Item[] {
     ) {
       const kind = update === "agent_message_chunk" ? "text" : "thought";
       const last = items.at(-1);
-      if (last && last.kind === kind) last.text += content.text;
+      if (last && last.kind === kind && !cut) last.text += content.text;
       else
         items.push({
           kind,
@@ -233,6 +317,7 @@ export function activity(events: RunEvent[]): Item[] {
           text: content.text,
           at: e.at,
         });
+      cut = false;
     }
   }
   return items;
@@ -820,14 +905,14 @@ export function AgentActivity({
                 text={block.text}
                 thinking={running && index === shown.length - 1}
               />
-            ) : (
+            ) : block.kind === "text" ? (
               <>
                 <Markdown text={block.text} />
                 {running && index === shown.length - 1 && (
                   <span className="stream-caret" aria-hidden="true" />
                 )}
               </>
-            )}
+            ) : null}
           </li>
         ))}
       </ol>
