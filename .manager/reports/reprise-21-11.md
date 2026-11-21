@@ -135,6 +135,13 @@
   en attendant ; il fait relire `fichiers-21-11` (sécurité) après 19:20.
 - Écart : panneau gardé à 344 px (380 décalerait les seuils de mise en page).
 
+## Skill choisi explicitement (21/11, après 19:22) : `skill-explicite.md`
+- Décision du propriétaire, transmise par le manager du back : un Skill ne s'active jamais tout seul. Côté back, lot
+  `skill-explicite-01` en cours.
+- Front : sélecteur « Skill » (« Aucun Skill » par défaut) à la place des cases à cocher ; le bouton des réglages
+  dit le Skill. Le pack « Auto » est à renommer quand le back sera intégré.
+- Vérifications : 471/471.
+
 ## État des vérifications (21/11, 13:15)
 - `npm test` : 26 fichiers, 430/430.
 - `npm run build` : OK.

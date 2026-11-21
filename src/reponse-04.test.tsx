@@ -563,12 +563,14 @@ describe("composer de l'accueil", () => {
         busy={false}
       />,
     );
-  it("les réglages passent derrière un seul bouton « Auto · défaut », fermé par défaut", () => {
+  it("les réglages passent derrière un seul bouton « Auto · défaut · aucun Skill », fermé par défaut", () => {
     const { container } = home();
     const menu = container.querySelector<HTMLDetailsElement>(
       "details.session-menu",
     )!;
-    expect(menu.querySelector("summary")!.textContent).toBe("Auto · défaut");
+    expect(menu.querySelector("summary")!.textContent).toBe(
+      "Auto · défaut · aucun Skill",
+    );
     expect(menu.open).toBe(false);
     expect(menu.querySelector(".filters")).toBeTruthy();
     expect(container.querySelector(".composer-bottom > .filters")).toBeNull();
@@ -637,7 +639,7 @@ describe("composer de l'accueil", () => {
     const { container } = home({ model: "modele-FICTIF", team: true });
     expect(
       container.querySelector(".session-menu > summary")!.textContent,
-    ).toBe("Auto · modele-FICTIF · équipe");
+    ).toBe("Auto · modele-FICTIF · aucun Skill · équipe");
   });
 });
 

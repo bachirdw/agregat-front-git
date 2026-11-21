@@ -184,7 +184,7 @@ test(
     for (const [i, name] of [
       "Agent",
       "Modèle",
-      "Skills",
+      "Skill",
       "Pack",
       "Mode",
     ].entries()) {

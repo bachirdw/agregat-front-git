@@ -318,6 +318,11 @@ export function Composer({
   const agent = catalog?.agents.find((a) => a.id === input.agent);
   const models = agent?.probe?.models || [];
   const pack = catalog?.packs.find((p) => p.id === input.pack);
+  // Le pack d'un Skill (packs[].skills), "" s'il n'en a pas.
+  const packOfSkill = (id?: string) =>
+    (id && catalog?.packs.find((p) => p.skills.some((k) => k.id === id))?.id) ||
+    "";
+  const chosenSkill = catalog?.skills.find((s) => s.id === input.skills[0]);
   const workflows = pack?.dags || catalog?.packs.flatMap((p) => p.dags) || [];
   // Les réglages de la mission (une pastille par réglage).
   const filtersRow = (
@@ -449,32 +454,50 @@ export function Composer({
           le périmètre retenu.
         </small>
       </Filter>
-      <Filter name="Skills" value={String(input.skills.length)}>
-        {catalog?.skills.map((s) => (
-          <label className="check" key={s.id}>
-            <input
-              type="checkbox"
-              checked={input.skills.includes(s.id)}
-              disabled={disabled || !s.active || !s.integrity}
-              onChange={(e) =>
-                set({
-                  skills: e.target.checked
-                    ? [...input.skills, s.id]
-                    : input.skills.filter((id) => id !== s.id),
-                })
-              }
-            />
-            <span>
-              {s.name}
-              <small>
-                {s.active && s.integrity
-                  ? "Actif"
-                  : "À installer ou activer dans Skills"}
-              </small>
-            </span>
-          </label>
-        ))}
-        {!catalog?.skills.length && <small>Aucun Skill disponible.</small>}
+      {/* skill-explicite (décision du propriétaire, 21/11) : un Skill ne s'active jamais tout seul ;
+          on le choisit ici, comme le modèle. Un Skill d'un pack envoie aussi ce pack. */}
+      <Filter name="Skill" value={chosenSkill?.name || "Aucun"}>
+        <label>
+          Skill de la mission
+          <select
+            aria-label="Skill"
+            value={chosenSkill?.id ?? ""}
+            disabled={disabled || !catalog}
+            onChange={(e) => {
+              const id = e.target.value;
+              const before = packOfSkill(input.skills[0]);
+              const after = packOfSkill(id);
+              set({
+                skills: id ? [id] : [],
+                // Le pack suit le Skill ; celui qu'un Skill avait mis s'en va avec lui.
+                pack:
+                  after ||
+                  (before && input.pack === before ? "auto" : input.pack),
+                workflow: "auto",
+              });
+            }}
+          >
+            <option value="">Aucun Skill</option>
+            {catalog?.skills.map((s) => {
+              const ready = s.active && s.integrity;
+              const owner = catalog.packs.find(
+                (p) => p.id === packOfSkill(s.id),
+              );
+              return (
+                <option key={s.id} value={s.id} disabled={!ready}>
+                  {s.name}
+                  {owner ? ` · ${owner.name}` : ""}
+                  {ready ? "" : " · à activer dans Skills"}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <small>
+          {catalog?.skills.length
+            ? "Aucun Skill ne s’active tout seul : choisis-le ici si la mission en a besoin."
+            : "Aucun Skill disponible."}
+        </small>
       </Filter>
       <Filter name="Pack" value={pack?.name || "Auto"}>
         <label>
@@ -803,6 +826,7 @@ export function Composer({
               summary={[
                 agent?.name || "Auto",
                 input.model || "défaut",
+                chosenSkill?.name || "aucun Skill",
                 input.team ? "équipe" : "",
               ]
                 .filter(Boolean)
