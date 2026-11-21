@@ -23,6 +23,11 @@
     par `preview_start`** (conflit de port). Un second correctif suit sur la même branche (mission refusée « Skill
     inconnu » quand le pack choisi automatiquement n'a pas son Skill) ; le manager prévient avant de relancer.
 
+- **21/11 soir** : le Vite de 5173 lancé depuis `bold-goldstine` s'était arrêté. À la demande du propriétaire, il est
+  relancé par `preview_start` (configuration `front` seule, `.claude/launch.json` non commité) depuis le worktree
+  `passation-reprise-21-11-a815c6`, même commit que `bold-goldstine`. Il sert donc directement les sources de cette
+  branche. L'API 4310 reste celle du manager du back : ne pas la relancer.
+
 ## Règles données par le propriétaire (à garder)
 - **Le back a toujours la priorité** : le front suit le contrat du back le plus récent. On ne touche pas aux arbres du
   manager, on économise l'usage et la machine (tests en `nice`, `--maxWorkers=2`, pas de revue multi-agents), et on
