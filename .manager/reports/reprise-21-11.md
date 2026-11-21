@@ -7,9 +7,12 @@
 > `claude/passation-reprise-21-11-a815c6` (`a3319be`). Lot ajouté : **defauts-21-11** (`d4dab46`, rapport
 > `defauts-21-11.md`) — vue scindée plein écran rendant le dessous inerte, tableau Consommation empilé sous
 > 560 px, schéma Mermaid au thème de l'application. Suite 478/478, build et prettier verts, **E2E 18/18**
-> (21:24, back `agregat-back-reponse-04`). Back inchangé :
-> route fichiers toujours absente de 4310 ; la relecture du manager (`a817390` sur `fichiers-21-11`) ne
-> change pas le contrat lu par le front. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
+> (21:24, back `agregat-back-reponse-04`). Route des fichiers **en service sur
+> 4310** depuis la relance de 21:30:55 (`agregat-back-reponse-04`, `faf6c98`) ; vérifié à 21:40 avec l'identifiant
+> complet d'une mission (`GET …/file?path=<absent>` → 404 « Fichier introuvable »). Un identifiant au mauvais format
+> rend toujours « Route introuvable » : ce n'est pas une preuve d'absence de la route. Le commit `361c03a` de la
+> session de passation (21:32) est repris ici (`-x`) : **cette branche contient tout**, la branche
+> `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
 À lire en premier par la session qui reprend. Rapports détaillés de cette conversation, dans l'ordre :

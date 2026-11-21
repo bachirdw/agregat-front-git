@@ -5,8 +5,11 @@ avancée en avance rapide sur `claude/passation-reprise-21-11-a815c6` à `a3319b
 
 ## Journal
 - 21:16 Reprise : note `reprise-21-11.md` lue. Back : `fichiers-21-11` relu par le manager (`a817390`), contrat lu
-  par le front inchangé (seuls des refus 403/404 s'ajoutent, 409 = « réessayer »). Route fichiers toujours absente
-  sur 4310 (`GET /api/runs/inexistant/file` → 404 « Route introuvable »). Rien touché côté back.
+  par le front inchangé (seuls des refus 403/404 s'ajoutent, 409 = « réessayer »). À 21:16 j'ai cru la route absente
+  de 4310 (`GET /api/runs/inexistant/file` → 404 « Route introuvable ») : **test non probant**, un identifiant
+  au mauvais format ne correspond pas au motif de la route. Corrigé à 21:40 : l'API relancée à 21:30:55
+  (`faf6c98`) sert la route ; avec l'identifiant complet de `bd54ee7a`, un fichier absent rend 404 « Fichier
+  introuvable ». Rien touché côté back.
 - 21:17 `npx vitest run` : 30 fichiers, 475/475 avant toute modification.
 - Défauts traités, chacun avec un test vu en échec avant le correctif quand le jsdom le permet :
   1. **Tab sous la vue scindée plein écran** (accessibilité) : jusqu'à 980 px la vue couvre l'écran ; le fil
@@ -38,3 +41,8 @@ avancée en avance rapide sur `claude/passation-reprise-21-11-a815c6` à `a3319b
   3 captures neuves qu'il crée (`11-filtre-3-skill`, `11-filtre-4-mode`, `11-filtre-5-avancé`) supprimées, non
   commitées (le script nomme ces écrans d'après les réglages actuels ; à mettre à jour dans le dépôt si le
   manager veut les garder).
+- 21:40 Branches comparées à la demande du propriétaire (« est-ce que c'est pas mélangé ? ») : toutes les
+  branches front sont contenues dans celle-ci, sauf `361c03a` (note de passation écrite à 21:32 par l'autre
+  session, reprise ici par `cherry-pick -x`) et la vieille `origin/claude/beautiful-gauss-gdxbeg` (04/11, ses
+  idées refaites depuis dans `reponse-04`). `accord-mission-front` et `preuves-13-11` y sont déjà sous d'autres
+  identifiants (`git cherry` : « - »).
