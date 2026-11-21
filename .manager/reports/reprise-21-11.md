@@ -22,6 +22,12 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **21/11, 23:10 — lot `meme-affichage-21-11`** (rapport `meme-affichage-21-11.md`) : décision du
+> propriétaire, « une mission s'affiche toujours de la même façon ». career-ops passe sur `RunTurn` (consigne et
+> résultat privés lus par leurs routes, offres enregistrées dans la réponse) ; un message joint à une réponse
+> identique n'a plus sa bulle ; une question à texte libre se répond depuis le champ du bas. Question ouverte
+> « refondre le fil career-ops sur RunTurn ? » : **tranchée, oui**. 492/492, build et prettier verts.
+
 À lire en premier par la session qui reprend. Rapports détaillés de cette conversation, dans l'ordre :
 `chat-mission-21-11.md`, `fichiers-fil-21-11.md`, `equipe-05.md`, `skill-explicite.md`. Lots d'avant :
 `test-ui-21-11.md`, `reponse-04.md`, `sous-agents-19-11.md`, `activity-panel-03.md`.

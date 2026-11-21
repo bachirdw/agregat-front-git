@@ -22,13 +22,12 @@ import { Composer } from "./Composer";
 import { PromptBubble } from "./PromptBubble";
 import { agentWarning } from "./agentStatus";
 import { rememberResume } from "./resumeLinks";
-import { CareerThread, SessionHistory, conversations } from "./Career";
+import { MissionPrompt, SessionHistory, conversations } from "./Career";
 import { ActivityPanel, SubagentsLine } from "./ActivityPanel";
 import { MissionPill } from "./MissionPill";
 import { Settings, storedName } from "./Settings";
 import { useFollow } from "./follow";
-import { RunView } from "./Mission";
-import { Incident, MetaLine, RunTurn } from "./RunTurn";
+import { RunTurn } from "./RunTurn";
 import { SidePane } from "./SidePane";
 import {
   activiteListe,
@@ -74,6 +73,15 @@ const initial: MissionInput = {
   workflow: "auto",
   attachments: [],
 };
+// meme-affichage-21-11 : une question à un seul champ texte libre (ni choix ni liste) se répond depuis
+// le champ du bas ; les autres gardent leur formulaire dans le fil.
+function proseAnswerKey(question: Run["pendingQuestion"]) {
+  const fields = Object.entries(question?.requestedSchema?.properties ?? {});
+  if (fields.length !== 1) return null;
+  const [key, field] = fields[0];
+  if (field.type !== "string" || field.enum || field.oneOf) return null;
+  return key;
+}
 export default function App() {
   const [catalog, setCatalog] = useState<Catalog | null>(null),
     [runs, setRuns] = useState<Run[]>([]),
@@ -1086,61 +1094,29 @@ export default function App() {
           )}
           {page === "mission" && run && (
             <div className="thread">
-              {run.pack === "career-ops" ? (
-                <CareerThread
-                  run={run}
-                  runs={runs}
-                  events={events}
-                  immediatePrompt={
-                    immediatePrompt?.id === run.id
-                      ? immediatePrompt.text
-                      : undefined
-                  }
-                  busy={busy}
-                  connection={connection}
-                  stop={() => void action(`/runs/${run.id}/cancel`, {})}
-                  resume={() => void action(`/runs/${run.id}/resume`, {})}
-                  act={action}
-                >
-                  <RunView
-                    run={avecDetailsDesLignes(run, runs)}
-                    events={events}
-                    connection={connection}
-                    busy={busy}
-                    act={action}
-                    requests={false}
-                    transcript={false}
-                    openRun={(id) => void openRun(id)}
-                  />
-                </CareerThread>
-              ) : (
-                <>
-                  <SessionHistory run={run} runs={runs} />
-                  <PromptBubble
-                    key={run.id}
-                    text={run.prompt}
-                    attachments={
-                      Array.isArray(run.attachments)
-                        ? run.attachments.length
-                        : 0
-                    }
-                  />
-                  {/* reponse-04 : une seule réponse, façon Claude Code (RunView reste pour les détails). */}
-                  <RunTurn
-                    // Une mission = une réponse : lignes repliées à chaque mission ouverte.
-                    key={"reponse-" + run.id}
-                    run={avecDetailsDesLignes(run, runs)}
-                    events={events}
-                    busy={busy}
-                    act={action}
-                    incident={inlineError}
-                    connection={connection}
-                  />
-                </>
-              )}
-              {run.pack === "career-ops" && inlineError && (
-                <Incident text={inlineError} />
-              )}
+              {/* meme-affichage-21-11 : une seule façon d'afficher une mission, career-ops compris
+                  (consigne et résultat privés lus par leurs routes, offres enregistrées dans la réponse). */}
+              <SessionHistory run={run} runs={runs} />
+              <MissionPrompt
+                key={run.id}
+                run={run}
+                immediatePrompt={
+                  immediatePrompt?.id === run.id
+                    ? immediatePrompt.text
+                    : undefined
+                }
+              />
+              {/* reponse-04 : une seule réponse, façon Claude Code. */}
+              <RunTurn
+                // Une mission = une réponse : lignes repliées à chaque mission ouverte.
+                key={"reponse-" + run.id}
+                run={avecDetailsDesLignes(run, runs)}
+                events={events}
+                busy={busy}
+                act={action}
+                incident={inlineError}
+                connection={connection}
+              />
               {delegationNote && (
                 <p className="delegation-note">{delegationNote}</p>
               )}
@@ -1157,10 +1133,6 @@ export default function App() {
                   );
                 }}
               />
-              {/* reponse-04 : la ligne méta se déplie sur place (dans RunTurn hors career-ops). */}
-              {run.pack === "career-ops" && finalStates.has(run.state) && (
-                <MetaLine key={"meta-" + run.id} run={run} events={events} />
-              )}
             </div>
           )}
           {page === "settings" && (
@@ -1235,6 +1207,17 @@ export default function App() {
               setQueued((old) => [...old, { runId: run.id, text }])
             }
             waiting={ownerStates.has(run.state) || !!run.pendingQuestion}
+            answer={(() => {
+              const key = proseAnswerKey(run.pendingQuestion);
+              if (!key) return undefined;
+              const id = run.id;
+              return (text: string) =>
+                action(
+                  `/runs/${id}/answer`,
+                  { action: "accept", content: { [key]: text } },
+                  true,
+                );
+            })()}
             send={async (text) => {
               const id = run.id;
               const sent = await sendOwnerMessage(id, text, api);
@@ -1263,11 +1246,7 @@ export default function App() {
             agentWarning={agentWarning(input.agent, catalog, runs)}
             busy={busy}
             disabled={page === "mission" && !canReply}
-            working={
-              page === "mission" &&
-              run?.pack === "career-ops" &&
-              !finalStates.has(run.state)
-            }
+            working={runActive}
             reply={canReply}
             compact={
               (page === "home" && !!starting) ||

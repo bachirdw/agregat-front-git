@@ -1,10 +1,11 @@
-// reponse-04 : la réponse de l'agent d'une mission hors career-ops, façon Claude Code
+// reponse-04 : la réponse de l'agent d'une mission (career-ops compris depuis meme-affichage-21-11), façon Claude Code
 // (BRIEF-conversation-reponse-04, maquette « Conversation agent v5 »). Surtout du texte, dans cet ordre :
 // 1. une ligne d'activité repliable (+ incidents en ligne, jamais en bannière) ;
 // 2. le texte markdown (tableaux et graphiques ```chart en ligne) ;
 // 3. les fichiers produits ;
 // 4. une ligne méta repliable (vérification, preuves, agent, coût).
-// RunView (Mission.tsx) reste exporté : tests, détails techniques.
+// RunView (Mission.tsx) et CareerThread (Career.tsx) ne sont plus affichés par l'application ; gardés
+// exportés pour leurs tests de composants, à retirer dans un lot à part.
 import {
   Fragment,
   useEffect,
@@ -15,8 +16,12 @@ import {
 import { fetchRunFile } from "./api";
 import { AgentAnswer } from "./Bilan";
 import {
+  activeSilence,
   activity,
   actionsDuration,
+  CareerOffers,
+  isCareerRun,
+  usePrivateResult,
   describeTool,
   isActiveTool,
   OwnerBubble,
@@ -44,7 +49,11 @@ import {
 import { SkillSteps } from "./SkillSteps";
 import { texteAnnonce } from "./status";
 import { trackerItems, trackerMarks } from "./Tracker";
-import { ownerTextsVersion, subscribeOwnerTexts } from "./ownerMessages";
+import {
+  ownerText,
+  ownerTextsVersion,
+  subscribeOwnerTexts,
+} from "./ownerMessages";
 import type { Run, RunEvent } from "./types";
 import { finalStates, labels, money, ownerStates } from "./types";
 
@@ -811,6 +820,20 @@ function AnswerBubble({ answer }: { answer: Entry & { kind: "answer" } }) {
   );
 }
 
+// Message joint au tour de la réponse (`via: "with_answer"`) qui dit la même chose que cette réponse :
+// le propriétaire l'a écrit deux fois (champ du bas puis formulaire), le fil ne le montre qu'une fois.
+function echoedAnswers(entries: Entry[]) {
+  const answers = entries.flatMap((e) =>
+    e.kind === "answer" ? [flat(answerText(e, e.question))] : [],
+  );
+  return new Set(
+    entries.flatMap((e) => {
+      if (e.kind !== "owner" || e.via !== "with_answer") return [];
+      const text = e.text ?? ownerText(e.messageId);
+      return text && answers.includes(flat(text)) ? [e.id] : [];
+    }),
+  );
+}
 export function RunTurn({
   run,
   events,
@@ -879,6 +902,18 @@ export function RunTurn({
     (m) => ["failed", "interrupted"].includes(String(m?.state)),
   ).length;
   const files = producedFiles(tools);
+  const echoed = echoedAnswers(entries);
+  // career-ops : le résultat est privé, lu par sa route (meme-affichage-21-11).
+  const career = isCareerRun(run);
+  const privateResult = usePrivateResult(run);
+  const summary = privateResult.wanted
+    ? (privateResult.text ??
+      (privateResult.failed ? run.result?.summary || "" : null))
+    : (run.result?.summary ?? null);
+  const silent = activeSilence(events, run.state);
+  const browserFallback = events.some(
+    (event) => event.type === "browser_fallback",
+  );
   return (
     <>
       {live && <SkillChip events={events} run={run} />}
@@ -908,10 +943,20 @@ export function RunTurn({
           {requests && missionGrantActive(events, run.state) && (
             <Incident text={MISSION_GRANT_NOTICE} />
           )}
+          {silent && (
+            <Incident
+              text={`Agent silencieux depuis ${Math.max(1, Math.ceil(Number(silent.data?.elapsedMs || 60000) / 60000))} min. Vous pouvez arrêter la mission.`}
+            />
+          )}
+          {browserFallback && (
+            <Incident text="Navigateur : Chrome isolé, non connecté à vos comptes (extension Playwriter indisponible)." />
+          )}
         </div>
         {shown.map((entry, index) => {
           if (entry.kind === "owner")
-            return <OwnerBubble key={entry.id} message={entry} />;
+            return echoed.has(entry.id) ? null : (
+              <OwnerBubble key={entry.id} message={entry} />
+            );
           if (entry.kind === "answer")
             return <AnswerBubble key={entry.id} answer={entry} />;
           if (entry.kind === "question") {
@@ -948,17 +993,25 @@ export function RunTurn({
         {requests && <OwnerRequests run={run} busy={busy} act={act} />}
         {run.result && (
           <section className="reponse-resultat" aria-label="Résultats">
-            <AgentAnswer
-              text={run.result.summary}
-              answer={run.result.answer}
-              notes={run.result.platformNotes}
-            />
+            {summary !== null && (
+              <AgentAnswer
+                text={summary}
+                answer={career ? undefined : run.result.answer}
+                notes={career ? undefined : run.result.platformNotes}
+              />
+            )}
+            {privateResult.failed && (
+              <p className="muted answer-source">
+                Résultat privé illisible : réponse enregistrée sur la mission.
+              </p>
+            )}
             {run.result.simulated && (
               <small className="fictif">Données fictives</small>
             )}
             <Offers run={run} />
           </section>
         )}
+        {career && <CareerOffers done={run.state === "completed"} />}
         {files.length > 0 && (
           <div className="reponse-fichiers">
             {files.map((path) => (

@@ -1126,6 +1126,71 @@ function PastSteps({ run, answer }: { run: Run; answer: string | null }) {
     </details>
   );
 }
+// meme-affichage-21-11 : une mission career-ops garde sa consigne et son résultat dans l'espace privé ;
+// la même réponse que les autres missions les lit par les routes career-ops.
+export const isCareerRun = (run: Run) => run.pack === "career-ops";
+export function usePrivatePrompt(run: Run, immediatePrompt?: string) {
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const career = isCareerRun(run);
+  useEffect(() => {
+    setPrompt(null);
+    if (!career) return;
+    const abort = new AbortController();
+    api<{ prompt: string }>(
+      `/career/runs/${run.id}/input`,
+      undefined,
+      abort.signal,
+    )
+      .then((r) => {
+        if (!abort.signal.aborted && typeof r?.prompt === "string")
+          setPrompt(r.prompt);
+      })
+      .catch(() => {
+        // Lecture refusée : la consigne publique de la mission reste affichée.
+      });
+    return () => abort.abort();
+  }, [run.id, career]);
+  if (!career) return run.prompt;
+  return prompt ?? immediatePrompt ?? run.prompt;
+}
+// The mission's prompt above its answer, the same bubble for every mission (private text for career-ops).
+export function MissionPrompt({
+  run,
+  immediatePrompt,
+}: {
+  run: Run;
+  immediatePrompt?: string;
+}) {
+  const text = usePrivatePrompt(run, immediatePrompt);
+  return (
+    <PromptBubble
+      text={text}
+      attachments={Array.isArray(run.attachments) ? run.attachments.length : 0}
+    />
+  );
+}
+// The private answer of a finished career-ops mission; `failed` when it could not be read (the
+// mission's own summary is then shown, with a note).
+export function usePrivateResult(run: Run) {
+  const [text, setText] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const wanted = isCareerRun(run) && run.state === "completed";
+  useEffect(() => {
+    setText(null);
+    setFailed(false);
+    if (!wanted) return;
+    const abort = new AbortController();
+    api<CareerResult>(`/career/runs/${run.id}/result`, undefined, abort.signal)
+      .then((r) => {
+        if (!abort.signal.aborted) setText(r?.summary || "");
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setFailed(true);
+      });
+    return () => abort.abort();
+  }, [run.id, wanted]);
+  return { wanted, text, failed };
+}
 function Turn({
   run,
   live,
@@ -1246,7 +1311,7 @@ export function SessionHistory({ run, runs }: { run: Run; runs: Run[] }) {
   return (
     <div className="career-thread">
       {turns.map((t) => (
-        <Turn key={t.id} run={t} source="run" />
+        <Turn key={t.id} run={t} source={isCareerRun(t) ? "career" : "run"} />
       ))}
     </div>
   );
@@ -1366,7 +1431,7 @@ export function CareerThread({
     </div>
   );
 }
-function CareerOffers({ done }: { done: boolean }) {
+export function CareerOffers({ done }: { done: boolean }) {
   const [offers, setOffers] = useState<CareerOffer[] | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {

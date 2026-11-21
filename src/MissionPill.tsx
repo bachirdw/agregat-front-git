@@ -15,6 +15,7 @@ export function MissionPill({
   queue,
   send,
   waiting = false,
+  answer,
 }: {
   busy: boolean;
   canQueue: boolean;
@@ -23,6 +24,9 @@ export function MissionPill({
   queue: (text: string) => void;
   send?: (text: string) => Promise<string | null>;
   waiting?: boolean;
+  // meme-affichage-21-11 : l'agent attend une réponse en texte libre ; le champ y répond directement
+  // (avant, le texte partait en simple message et le propriétaire le retapait dans le formulaire).
+  answer?: (text: string) => Promise<void>;
 }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -32,6 +36,22 @@ export function MissionPill({
     e?.preventDefault();
     const text = draft.trim();
     if (!text || sending) return;
+    if (answer) {
+      setSending(true);
+      setFailure("");
+      setLine("");
+      try {
+        await answer(text);
+        setDraft("");
+      } catch (error) {
+        setFailure(
+          `Réponse non envoyée : ${(error as Error).message || "erreur réseau"}`,
+        );
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
     if (!send) {
       queue(text);
       setDraft("");
@@ -76,20 +96,32 @@ export function MissionPill({
         <div className="mission-pill">{stopButton}</div>
       </div>
     );
-  const sendLabel = send ? "Envoyer à l’agent" : "Mettre en file";
+  const sendLabel = answer
+    ? "Envoyer la réponse"
+    : send
+      ? "Envoyer à l’agent"
+      : "Mettre en file";
   return (
     <div className="mission-pill-wrap mission-chat-wrap">
       <form className="mission-chat" onSubmit={(e) => void submit(e)}>
         <textarea
           id="mission-queue-field"
-          aria-label="Écrire à l’agent pendant la mission"
+          aria-label={
+            answer
+              ? "Répondre à la question de l’agent"
+              : "Écrire à l’agent pendant la mission"
+          }
           rows={1}
           value={draft}
-          placeholder="Écrire à l’agent pendant qu’il travaille…"
+          placeholder={
+            answer
+              ? "Répondre à l’agent…"
+              : "Écrire à l’agent pendant qu’il travaille…"
+          }
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKey}
         />
-        {send && waiting && (
+        {send && waiting && !answer && (
           <small className="mission-queue-note">
             L’agent attend votre réponse ci-dessus ; ce message lui sera remis
             ensuite
@@ -107,11 +139,13 @@ export function MissionPill({
         )}
         <div className="mission-chat-bottom">
           <small>
-            {queued
-              ? `${queued} en file d’attente`
-              : send
-                ? "L’agent le reçoit sans arrêter la mission"
-                : "Envoyée après la tâche en cours"}
+            {answer
+              ? "Ta réponse part directement à sa question"
+              : queued
+                ? `${queued} en file d’attente`
+                : send
+                  ? "L’agent le reçoit sans arrêter la mission"
+                  : "Envoyée après la tâche en cours"}
           </small>
           {stopButton}
           <button

@@ -269,7 +269,9 @@ it("signale une perte du backend pendant une mission puis retente la lecture", a
   );
   await waitFor(() => expect(reads).toBeGreaterThan(1));
   expect(
-    container.querySelector(".conversation-status .danger")?.textContent,
+    // meme-affichage-21-11 : career-ops a la même réponse que les autres missions ; la perte du flux
+    // y est une ligne d'incident (avant : ligne d'état du fil career-ops).
+    container.querySelector(".reponse .incident span")?.textContent,
   ).toBe("Connexion perdue · reconnexion…");
 });
 it("détecte une perte du backend même si le flux ne signale aucune erreur", async () => {
@@ -310,7 +312,9 @@ it("détecte une perte du backend même si le flux ne signale aucune erreur", as
   });
   await waitFor(() => expect(reads).toBeGreaterThan(1), { timeout: 3500 });
   expect(
-    container.querySelector(".conversation-status .danger")?.textContent,
+    // meme-affichage-21-11 : career-ops a la même réponse que les autres missions ; la perte du flux
+    // y est une ligne d'incident (avant : ligne d'état du fil career-ops).
+    container.querySelector(".reponse .incident span")?.textContent,
   ).toBe("Connexion perdue · reconnexion…");
 });
 it("conserve le brouillon de réponse si la reprise échoue", async () => {
