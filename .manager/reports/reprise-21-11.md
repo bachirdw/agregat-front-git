@@ -2,7 +2,8 @@
 
 > **Mise à jour du 21/11, 21:30 (session « reprise-chantier-1229be »)** : le code le plus récent est maintenant
 > dans le worktree `~/Downloads/agregat-front/.claude/worktrees/reprise-chantier-1229be`, branche
-> `claude/reprise-chantier-1229be` (locale, **non poussée**), partie en avance rapide de
+> `claude/reprise-chantier-1229be` (**poussée sur `origin`** le 21/11 vers 21:30 à la demande du propriétaire,
+> pas de pull request), partie en avance rapide de
 > `claude/passation-reprise-21-11-a815c6` (`a3319be`). Lot ajouté : **defauts-21-11** (`d4dab46`, rapport
 > `defauts-21-11.md`) — vue scindée plein écran rendant le dessous inerte, tableau Consommation empilé sous
 > 560 px, schéma Mermaid au thème de l'application. Suite 478/478, build et prettier verts, **E2E 18/18**
