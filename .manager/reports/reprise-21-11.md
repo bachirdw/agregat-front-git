@@ -98,6 +98,18 @@
     `sous-agents-app` ; `tests/e2e.test.mjs` (helper `choose()` : menu de l'accueil, attribut `open` booléen) ;
   - `scripts/*-captures.mjs`, `scripts/sous-agents-19-11-essai.mjs` (même helper).
 
+## Écrire à l'agent pendant la mission (21/11, 15:05) : `chat-mission-21-11.md`
+- Demande du propriétaire : plus de crayon caché en bas à droite, mais un champ de chat visible pendant que l'agent
+  travaille.
+- `MissionPill` est maintenant un champ toujours visible, à la place du composer, avec Arrêter à côté de l'envoi. La
+  route `POST /runs/:id/message` est inchangée. En workflow, seul l'arrêt flottant reste (le back refuse les messages).
+- Commits `2fe8b65`, puis `fc16bad` (fusion de la note `c0f2e27`). Branche `claude/passation-reprise-21-11-a815c6`.
+  Le worktree de l'aperçu (`bold-goldstine`) est avancé dessus (fast-forward).
+- Vérifications :
+  - 431/431, build OK, prettier OK ;
+  - vu dans l'aperçu sur la mission réelle `bd54ee7a` (rien envoyé) ;
+  - E2E non relancé.
+
 ## État des vérifications (21/11, 13:15)
 - `npm test` : 26 fichiers, 430/430.
 - `npm run build` : OK.
