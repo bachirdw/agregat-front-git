@@ -7,7 +7,10 @@
 > demande, « Oui, sur main » ; à 22:45, le lot `e174` de l'autre session (branche `passation-reprise`, 22:40)
 > repris ici par `cherry-pick -x`, suite 488/488, build et prettier verts, puis `main` avancé de nouveau : **`main`
 > = cette branche**. La session `passation-reprise` écrit encore : ses commits suivants ne seront pas sur `main`
-> sans une nouvelle reprise), partie en avance rapide de
+> sans une nouvelle reprise ; vers 22:52, à la demande du propriétaire, les sessions front « Passation
+> reprise-21-11 » et « Panneau Activité » (`bold-goldstine`) sont **archivées** : tout leur code était sur `main`,
+> leurs dossiers et branches sont gardés. Leur aperçu 5173 est arrêté. Le manager du back ne peut plus écrire à
+> l'ancienne adresse de la session de passation), partie en avance rapide de
 > `claude/passation-reprise-21-11-a815c6` (`a3319be`). Lot ajouté : **defauts-21-11** (`d4dab46`, rapport
 > `defauts-21-11.md`) — vue scindée plein écran rendant le dessous inerte, tableau Consommation empilé sous
 > 560 px, schéma Mermaid au thème de l'application. Suite 478/478, build et prettier verts, **E2E 18/18**
