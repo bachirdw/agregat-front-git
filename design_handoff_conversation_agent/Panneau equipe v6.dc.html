@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>
+html,body{margin:0;background:#0e0e10}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;letter-spacing:-0.008em}
+a{color:#0a84ff;text-decoration:none}a:hover{text-decoration:underline}
+:focus{outline:none}:focus-visible{outline:3px solid rgba(10,132,255,.55);outline-offset:2px;border-radius:8px}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style></helmet>
+<div data-screen-label="Panneau Activité — Équipe" style="min-height:100vh;display:flex;justify-content:center;padding:24px;box-sizing:border-box;background:#0e0e10;color:#f5f5f7">
+  <aside style="width:100%;max-width:380px;align-self:flex-start;display:flex;flex-direction:column;border-radius:18px;background:#1c1c1e;box-shadow:0 0 0 .5px rgba(255,255,255,.1),0 18px 44px -10px rgba(0,0,0,.8)">
+    <div style="display:flex;align-items:center;height:52px;padding:0 20px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.08)">
+      <span style="flex:1;font-weight:600;font-size:14px">Activité</span>
+      <button aria-label="Fermer" style="width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#a1a1a6;display:grid;place-items:center;cursor:pointer" style-hover="background:rgba(120,120,128,.13)"><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l8 8M10 2l-8 8"></path></svg></button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;height:48px;padding:0 20px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.08);font-size:13px">
+      <span style="flex:1;font-weight:600">Connecteurs</span><span style="color:#7c7c82">2 connectés</span>
+      <svg width="8" height="8" viewBox="0 0 10 10" style="color:#7c7c82"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+    </div>
+
+    <section style="display:flex;flex-direction:column;gap:12px;padding:18px 20px 16px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.08)">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:13px"><span style="flex:1;font-weight:600">Équipe</span><span style="color:#30d158">4 terminées</span></div>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#a1a1a6;text-wrap:pretty">claude a découpé la mission en 4 tâches : deux recherches menées en même temps pour gagner du temps, puis deux relectures indépendantes du livrable.</p>
+
+      <sc-for list="{{ phases }}" as="ph" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column">
+          <div style="display:flex;gap:6px;padding:6px 0 4px;font-size:11.5px;color:#7c7c82"><span style="font-weight:600">{{ ph.label }}</span><span>{{ ph.hint }}</span></div>
+          <sc-for list="{{ ph.items }}" as="s" hint-placeholder-count="2">
+            <div style="display:flex;flex-direction:column;margin:0 -10px;border-radius:10px;background:{{ s.bg }}">
+              <button onClick="{{ s.toggle }}" aria-expanded="{{ s.open }}" style="display:grid;grid-template-columns:14px minmax(0,1fr) 10px;gap:2px 8px;align-items:start;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:#f5f5f7;font:inherit;text-align:left;cursor:pointer" style-hover="background:rgba(120,120,128,.1)">
+                <span style="width:7px;height:7px;margin-top:6px;border-radius:50%;background:#30d158;justify-self:center"></span>
+                <span style="font-size:13.5px;line-height:1.4;font-weight:500;text-wrap:pretty">{{ s.title }}</span>
+                <svg width="8" height="8" viewBox="0 0 10 10" style="margin-top:6px;color:#7c7c82;transform:{{ s.chev }};transition:transform .2s"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+                <span></span>
+                <span style="font-size:12px;color:#7c7c82;font-variant-numeric:tabular-nums">{{ s.sub }}</span>
+              </button>
+              <sc-if value="{{ s.open }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:10px;padding:0 10px 12px 32px;font-size:12.5px;animation:rise .2s ease-out">
+                  <span style="color:#a1a1a6;text-wrap:pretty">{{ s.why }}</span>
+                  <div style="display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 14px">
+                    <span style="color:#7c7c82">Modèle</span><span style="color:#a1a1a6">{{ s.model }}</span>
+                    <span style="color:#7c7c82">Jetons</span><span style="color:#a1a1a6;font-variant-numeric:tabular-nums">{{ s.tokens }}</span>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button style="height:28px;padding:0 12px;border:0;border-radius:14px;background:rgba(120,120,128,.2);color:#f5f5f7;font:inherit;font-size:12.5px;cursor:pointer" style-hover="background:rgba(120,120,128,.3)">Voir le résultat</button>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:8px;padding:18px 20px 18px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:13px"><span style="flex:1;font-weight:600">Ce que l'équipe a appris</span><span style="color:#7c7c82">{{ notesCount }}</span></div>
+      <p style="margin:0 0 4px;font-size:12.5px;color:#7c7c82;text-wrap:pretty">Obstacles rencontrés et contournés. Ils sont gardés en mémoire pour les prochaines missions.</p>
+      <sc-for list="{{ notes }}" as="n" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;margin:0 -10px;border-radius:10px;background:{{ n.bg }}">
+          <button onClick="{{ n.toggle }}" aria-expanded="{{ n.open }}" style="display:grid;grid-template-columns:14px minmax(0,1fr) 10px;gap:2px 8px;align-items:start;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:#f5f5f7;font:inherit;text-align:left;cursor:pointer" style-hover="background:rgba(120,120,128,.1)">
+            <span style="margin-top:1px;font-size:12px;font-weight:700;color:#ff9f0a;justify-self:center">!</span>
+            <span style="font-size:13.5px;line-height:1.4;text-wrap:pretty">{{ n.title }}</span>
+            <svg width="8" height="8" viewBox="0 0 10 10" style="margin-top:6px;color:#7c7c82;transform:{{ n.chev }};transition:transform .2s"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+            <span></span>
+            <span style="font-size:12px;color:#7c7c82">{{ n.who }}</span>
+          </button>
+          <sc-if value="{{ n.open }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:8px;padding:0 10px 12px 32px;font-size:12.5px;line-height:1.5;animation:rise .2s ease-out">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="color:#7c7c82">Ce qui s'est passé</span><span style="color:#a1a1a6;text-wrap:pretty">{{ n.what }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="color:#7c7c82">Ce qu'il faut faire</span><span style="color:#a1a1a6;text-wrap:pretty">{{ n.fix }}</span></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </section>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:1100}}">
+class Component extends DCLogic {
+  state = { open: 'ig', note: null };
+  renderVals() {
+    const S = this.state;
+    const mk = s => ({ ...s, open: S.open === s.id, bg: S.open === s.id ? 'rgba(120,120,128,.1)' : 'transparent', chev: S.open === s.id ? 'rotate(90deg)' : 'none', toggle: () => this.setState({ open: S.open === s.id ? null : s.id }) });
+    const notes = [
+      { id: 'n1', title: "Les résultats Instagram sont pollués par des pages pub d'outils IA", who: 'Recherche Instagram · 14:58', what: "Beaucoup de pages SEO génériques (aicontentdrop, zawa.ai, virvid.ai) arrivent en tête mais ne citent aucune donnée vérifiable sur la niche.", fix: "Croiser avec des sources crédibles (Sprout Social, HubSpot, Hootsuite, agences nommées) et marquer « à confirmer » tout chiffre sans deuxième source." },
+      { id: 'n2', title: 'x.com bloque la lecture directe des posts (erreur 402)', who: 'Recherche X · 14:58', what: "WebFetch sur x.com renvoie 402 Payment Required, même sans connexion.", fix: "Passer par WebSearch, qui renvoie souvent des extraits textuels des posts." },
+      { id: 'n3', title: 'Les accroches « POV : » seraient datées en 2025-2026', who: 'Recherche Instagram · 14:55', what: "Une source secondaire les décrit comme moins efficaces.", fix: "À confirmer avec une source primaire avant de le recommander." }
+    ].map(n => ({ ...n, open: S.note === n.id, bg: S.note === n.id ? 'rgba(120,120,128,.1)' : 'transparent', chev: S.note === n.id ? 'rotate(90deg)' : 'none', toggle: () => this.setState({ note: S.note === n.id ? null : n.id }) }));
+    return {
+      phases: [
+        { label: '1. En parallèle', hint: '· 3 min 18 s', items: [
+          { id: 'ig', title: 'Recherche tendances Instagram', sub: 'Chercheur · claude sonnet · 3 min 18 s', why: 'Menée en même temps que la recherche X pour gagner du temps.', model: 'claude · sonnet', tokens: '760 717' },
+          { id: 'x', title: 'Recherche tendances X (Twitter)', sub: 'Chercheur · claude sonnet · 3 min 10 s', why: 'Menée en même temps que la recherche Instagram pour gagner du temps.', model: 'claude · sonnet', tokens: '704 018' }
+        ].map(mk) },
+        { label: '2. Ensuite', hint: '· relecture du livrable', items: [
+          { id: 'r1', title: 'Relecture des 6 publications', sub: 'Vérificateur · claude · ton, faits, sources', why: "Livrable destiné au client : il mérite un regard indépendant avant envoi.", model: 'claude', tokens: '512 340' },
+          { id: 'r2', title: 'Deuxième relecture, par un autre agent', sub: 'Vérificateur · codex · suite de la 1re relecture', why: "Un agent différent (codex) relit pour repérer ce que le premier aurait manqué.", model: 'codex', tokens: '705 813' }
+        ].map(mk) }
+      ],
+      notes, notesCount: String(notes.length)
+    };
+  }
+}
+</script>
+</body>
+</html>

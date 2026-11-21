@@ -1,0 +1,17 @@
+
+> agre-agent-frontend@0.1.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v5.0.5 /Users/diaw/Downloads/agregat-front/.claude/worktrees/passation-reprise-21-11-a815c6
+
+
+ Test Files  29 passed (29)
+      Tests  462 passed (462)
+   Start at  18:21:54
+   Duration  12.65s (tests 56%, environment 28%, import 13%, transform 1%, setup 1%)
+
+Environment  jsdom was created 29 times · 6.59s total, 28% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
