@@ -30,7 +30,8 @@
   - L'ancien worktree `bold-goldstine-171eb9` est resté à `e6a065c`. Ne plus le prendre comme référence.
 - **Aperçu du propriétaire** :
   - Vite sur 127.0.0.1:5173, lancé par `preview_start` (configuration `front` seule dans `.claude/launch.json` de ce
-    worktree, non commité) depuis ce worktree : il sert directement les sources de la branche.
+    worktree, non commité) depuis ce worktree : il sert directement les sources de la branche. Il s'arrête parfois ;
+    il a été relancé deux fois à la demande du propriétaire (`preview_start` « front »).
   - API sur 127.0.0.1:4310, **gérée par le manager du back** (session `agregat-back-c8`) depuis
     `~/Downloads/agregat-back-reponse-04`, branche `reponse-04-format`, tête `a50b247` à 20:47. **Ne jamais la
     relancer** (conflit de port) ; le manager prévient quand il la relance.
@@ -67,8 +68,9 @@
 - **Écrire à l'agent pendant qu'il travaille** doit être visible (champ de chat), pas caché derrière un crayon.
 - Faire une passation (décisions, fichiers, état) dans cette note avant de rendre la main.
 - Le propriétaire fait souvent passer ses demandes au manager du back par un « prompt » à coller. Le manager écrit
-  aussi directement à cette session (messages entre sessions) ; lui répondre par `SendMessage` vers son adresse
-  `uds:/tmp/cc-socks/42287.sock` (session `agregat-back-c8`).
+  aussi directement à cette session (messages entre sessions). Lui répondre par `SendMessage` vers l'adresse `from`
+  de son dernier message : `uds:/tmp/cc-socks/42287.sock` (session `agregat-back-c8`), puis, après sa reprise,
+  `uds:/tmp/cc-socks/10557.sock` (session « Relay swarm — reprise chantier 21/11 »).
 
 ## 3. Fait dans cette conversation (21/11, après-midi et soir)
 Commits `[préfixe]` sur la branche front, dans l'ordre. Chaque lot : tests écrits d'abord et vus en échec, puis
@@ -151,14 +153,26 @@ verts ; suite complète, `tsc`, build et prettier verts au commit.
   - Vérifié par `curl` : les 4 fichiers en `download=1` répondent 200, `attachment` avec le bon nom et le bon type.
   - Questions laissées au propriétaire par le manager : borne plus forte (seulement sous le dossier des missions),
     pièces jointes d'une mission non privée servies par la route, API sans authentification.
-- **Équipe v6**, noms choisis par le manager, lot `equipe-v6-01` (branche `equipe-v6-01`, `d5f9f57`) codé, **pas encore
-  intégré ni sur 4310** :
+- **Équipe v6**, lot `equipe-v6-01`, **en service sur 4310 depuis 22:36** (`reponse-04-format` `6846541`). Forme
+  exacte : `docs/api-equipe-vue.md` (section « Panneau Équipe »), `docs/api-delegation.md` § 10 et `docs/api-lecons.md`
+  § 8 dans `~/Downloads/agregat-back-reponse-04`. Les noms correspondent au front :
   - `decoupage` (1-300) sur la mère et dans `equipe` des lignes de la liste ;
   - `etape: { numero, libelle? }` dans `family[]` : « N. libellé » ou « Étape N », « Autres tâches » pour un membre
     sans étape valide ;
   - `motif` dans `family[]` ;
   - notes du carnet : `titre`, `situation`, `regle` et `lecon: { id }`.
-  Le manager enverra les exemples JSON à l'intégration : **revérifier le front alors**.
+  - Différence vue à l'intégration : `etape.numero` est calculé pour **tout** membre. Le front ne montre donc les
+    titres d'étape qu'avec au moins deux étapes, ou un libellé du chef (commit `[e174]`).
+  - Vérifié sur `bd54ee7a` (Chrome) : groupes « Étape 1 » et « Étape 2 », motifs, 4 notes « gardée en mémoire »,
+    pas de `decoupage` (le chef ne l'a pas donné).
+  - Signalé au manager : la « Relecture… (suite 1) » est à l'étape 1 (une suite n'a pas de prérequis selon son
+    contrat), donc affichée avant la relecture qu'elle continue (étape 2). Proposition : une suite hérite de l'étape
+    du membre qu'elle continue. Réponse attendue.
+- **Pièces jointes, `e174-01`** (sur 4310 depuis 22:36, `docs/api-attachments.md`) :
+  - `POST /api/files` ne remplace plus `cv.md` par défaut ;
+  - le front envoie `x-skill: career-ops` seulement si career-ops est choisi : pack ou Skill de la mission ouverte,
+    sinon du brouillon de l'accueil (`uploadFile(file, signal, skill)`, `Composer` `careerOps`) ;
+  - sans lui, simple pièce jointe.
 - **Skill explicite** (`skill-explicite-01`, sur 4310 depuis 20:47) :
   - `pack: "auto"` (ou absent) avec `skills: []` = chemin général, sans détection ;
   - un pack ne joue que s'il est choisi (pack, Skill d'un pack, espace, ou DAG d'un seul pack) ;
@@ -195,7 +209,7 @@ verts ; suite complète, `tsc`, build et prettier verts au commit.
   `team-notes`, `team-open`, `team-chef`).
 
 ## 7. État des vérifications (21/11, 21:00)
-- `npm test` : 30 fichiers, **475/475**.
+- `npm test` : 31 fichiers, **485/485** (`src/e174.test.tsx` : 10 tests, 5 en échec avant le code).
 - `tsc --noEmit`, `npm run build` et prettier : OK.
 - Vu dans l'aperçu (5173 sur 4310, données réelles, rien lancé ni envoyé) :
   - champ de chat ;

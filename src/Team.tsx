@@ -384,7 +384,15 @@ const numeroOf = (m: FamilyMember) => {
   return typeof n === "number" && Number.isInteger(n) && n >= 1 ? n : null;
 };
 function phasesOf(members: FamilyMember[]) {
-  if (!members.some((m) => numeroOf(m) !== null))
+  // Le back calcule `etape.numero` pour tout membre : un titre d'étape n'a de sens qu'avec au moins deux
+  // étapes, ou un libellé donné par le chef.
+  const numeros = new Set(
+    members.map(numeroOf).filter((n): n is number => n !== null),
+  );
+  const labelled = members.some(
+    (m) => numeroOf(m) !== null && !!text(m.etape?.libelle).trim(),
+  );
+  if (numeros.size === 0 || (numeros.size === 1 && !labelled))
     return [{ label: "", members }];
   const groups = new Map<number, { label: string; members: FamilyMember[] }>();
   const rest: FamilyMember[] = [];

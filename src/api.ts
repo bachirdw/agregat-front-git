@@ -114,9 +114,12 @@ export function attachmentType(file: File): string | null {
   return ATTACHMENT_TYPES[ext] ?? null;
 }
 // POST /api/files takes raw bytes (not multipart), see agregat-back/docs/api-attachments.md.
+// e174-01 (back) : la pièce jointe n'est qu'une pièce jointe ; avec `skill === "career-ops"` (Skill
+// career-ops choisi dans la conversation), l'en-tête `x-skill: career-ops` en fait le nouveau cv.md.
 export async function uploadFile(
   file: File,
   signal?: AbortSignal,
+  skill?: string,
 ): Promise<Attachment> {
   const type = attachmentType(file);
   if (!type)
@@ -136,6 +139,7 @@ export async function uploadFile(
         "x-platform-request": "1",
         "x-file-name": encodeURIComponent(file.name),
         "content-type": type,
+        ...(skill === "career-ops" ? { "x-skill": "career-ops" } : {}),
       },
       body: file,
     });

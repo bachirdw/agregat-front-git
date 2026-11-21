@@ -222,6 +222,12 @@ export function Composer({
     };
   }, []);
   const fileRef = useRef<HTMLInputElement>(null);
+  // e174-01 : career-ops choisi (pack ou Skill) — celui de la mission ouverte, sinon celui du brouillon de
+  // l'accueil. Seul ce choix fait d'un fichier joint le nouveau cv.md.
+  const careerOps = sessionSettings
+    ? sessionSettings.pack === "career-ops" ||
+      sessionSettings.skills.includes("career-ops")
+    : input.pack === "career-ops" || input.skills.includes("career-ops");
   const [uploading, setUploading] = useState(0);
   const [fileError, setFileError] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -258,7 +264,11 @@ export function Composer({
       if (uploadScope.current !== requestedIn) break;
       setUploading((n) => n + 1);
       try {
-        const added: Attachment = await uploadFile(file, signal);
+        const added: Attachment = await uploadFile(
+          file,
+          signal,
+          careerOps ? "career-ops" : undefined,
+        );
         if (uploadScope.current !== requestedIn) break;
         const now = latest.current;
         onChange({ ...now, attachments: [...(now.attachments || []), added] });
