@@ -1,14 +1,22 @@
-# Note de reprise (21/11/2026, avant compactage de la discussion)
+# Note de reprise (21/11/2026, mise à jour à 13:15 après le test complet de l'interface)
 
-À lire en premier par la session qui reprend. Détails : `reponse-04.md`, `sous-agents-19-11.md`, `activity-panel-03.md`.
+À lire en premier par la session qui reprend. Détails : `test-ui-21-11.md` (dernier lot), `reponse-04.md`,
+`sous-agents-19-11.md`, `activity-panel-03.md`.
 
 ## Où est le code
 - Front : worktree `~/Downloads/agregat-front/.claude/worktrees/bold-goldstine-171eb9`, branche
   `claude/bold-goldstine-171eb9`, poussée sur `origin` le 21/11 (accord du propriétaire : « tu peux pousser pour qu'on
   puisse voir le rendu »). `main` local et distant : `7b2716c` (inchangé).
-- Back : rien modifié dans les arbres du manager (lecture seule). Branche **locale** `reponse-04-format` (`c6aa540`),
-  dans `~/Downloads/agregat-back-reponse-04`, partie de `swarm-20-11` (`e7f4964`) ; **non poussée, non intégrée**.
-  Son `node_modules` est un lien vers `../agregat-back-swarm/node_modules`.
+- Back : rien modifié dans les arbres du manager (lecture seule). Branche **locale** `reponse-04-format`, dans
+  `~/Downloads/agregat-back-reponse-04` : règle de forme (`c6aa540`) puis **fusion de `swarm-20-11` à `35af485`**
+  (`6aa7a5c`, sans conflit, 49 tests ciblés verts) ; **non poussée, non intégrée**. Son `node_modules` est un lien vers
+  `../agregat-back-swarm/node_modules`.
+- Serveurs de test du propriétaire (lancés le 21/11 par `preview_start`, configuration `.claude/launch.json` du
+  worktree, non commitée) :
+  - back sur 127.0.0.1:4310 depuis `agregat-back-reponse-04`, mêmes réglages que les backs d'essai du manager
+    (4316/4317) : agents réels, mode propriétaire, délais longs, espace career-ops `~/Downloads/career-ops-essai`
+    (jamais le vrai `agregat-career-ops`) ; base `.data` de ce worktree, vide au départ ;
+  - front Vite sur localhost:5173 depuis ce worktree (sert les sources : pas besoin de rebuild).
 
 ## Règles données par le propriétaire (à garder)
 - **Le back a toujours la priorité** : le front suit le contrat du back le plus récent. On ne touche pas aux arbres du
@@ -62,19 +70,50 @@
   `family[]`), écran des leçons (`/api/lecons`).
 - Captures « après » refaites.
 
-## État des vérifications (21/11, 11:40)
-- `npm test` : 26 fichiers, 396/396.
+## Test complet de l'interface (21/11, 11:45-13:15) : `test-ui-21-11.md`
+- Le propriétaire : « l'interface ne marche pas, teste tout ». 4 testeurs en parallèle (workflow), chacun sur son banc
+  isolé (back fixture hors réseau, base et espace career-ops temporaires, Chrome sans fenêtre) : 49 défauts.
+- Sa capture (panneau coupé à droite) = **zoom par pincement** du trackpad (~1,15), pas un défaut de mise en page.
+- Corrigés : tous les défauts majeurs et la plupart des mineurs, en 6 commits `[test-ui-21-11]` (`ea44fcf` →
+  `8a613ec`), test rouge puis vert à chaque fois.
+- **Décisions** (détail dans le rapport) :
+  - agent unique par défaut à l'accueil (en workflow, pas de message de suite possible) ;
+  - « Reprendre » seulement après un arrêt ou un échec ;
+  - « Nouvelle mission » repart d'une page vierge (choix de `front-02` gardé) ;
+  - mission ouverte en bas ;
+  - vue scindée en plein écran sous 980 px ;
+  - mission gardée dans l'adresse (`#mission/<id>`).
+- Fichiers modifiés :
+  - `src/` : `App.tsx`, `Composer.tsx`, `RunTurn.tsx`, `OwnerRequests.tsx`, `Team.tsx`, `SidePane.tsx`,
+    `ActivityPanel.tsx`, `Galleries.tsx`, `Settings.tsx`, `Tracker.tsx`, `Chart.tsx`, `PromptBubble.tsx`, `follow.ts`,
+    `api.ts`, `types.ts`, `v2.css`, `style.css` ;
+  - nouveau `src/test-setup.ts` (remet l'adresse à « / » après chaque test) ; `vite.config.ts` (`setupFiles`) ;
+  - `index.html` ; `public/favicon.svg` déplacé en `src/assets/favicon.svg` ;
+  - tests : `App`, `api`, `components`, `demandes`, `equipe`, `v2`, `activity-panel(-app)`, `reponse-04(-app)`,
+    `sous-agents-app` ; `tests/e2e.test.mjs` (helper `choose()` : menu de l'accueil, attribut `open` booléen) ;
+  - `scripts/*-captures.mjs`, `scripts/sous-agents-19-11-essai.mjs` (même helper).
+
+## État des vérifications (21/11, 13:15)
+- `npm test` : 26 fichiers, 430/430.
 - `npm run build` : OK.
 - `prettier` : OK.
-- E2E contre `~/Downloads/agregat-back-swarm` (`swarm-20-11`, `35af485`) : **18/18**.
-- Captures avant/après : `.manager/reports/reponse-04/`.
+- E2E contre `~/Downloads/agregat-back-reponse-04` (`swarm-20-11` à `35af485` + règle de forme) : **18/18**.
+- Captures avant/après : `.manager/reports/reponse-04/` (refaites à 13:00).
+- Non vérifié : aucun vrai agent lancé.
 
 ## Reste à faire
 1. Questions au propriétaire :
+   - tutoiement ou vouvoiement partout ? (mélangés aujourd'hui, une douzaine de tests figent le « vous ») ;
    - refondre aussi le fil career-ops sur `RunTurn` ?
    - intégrer `reponse-04-format` dans le back ?
    - garder la vue scindée ?
-2. Commandes utiles :
+2. Petits défauts laissés (liste dans `test-ui-21-11.md`) : composer replié plus haut, Mermaid non thémé, bouton
+   coupé dans Consommation à 375 px, Tab sous la vue scindée en plein écran.
+3. Commandes utiles :
    - `npm run build && node scripts/reponse-04-captures.mjs apres` ;
-   - `AGENT_PLATFORM_BACKEND_DIR=$HOME/Downloads/agregat-back-swarm nice -n 10 node --test --test-concurrency=1 tests/e2e.test.mjs` ;
+   - `AGENT_PLATFORM_BACKEND_DIR=$HOME/Downloads/agregat-back-reponse-04 nice -n 10 node --test --test-concurrency=1 tests/e2e.test.mjs` ;
+   - un banc de test hors des serveurs du propriétaire : `createApp({ dataDir: <tmp>, live: false, webDir: dist })`
+     avec `AGENT_PLATFORM_NETWORK=0`, `AGENT_PLATFORM_BROWSER=fixture` et `AGENT_PLATFORM_CAREER_WORKSPACE`,
+     `AGENT_PLATFORM_WORKSPACE_ROOTS`, `AGENT_PLATFORM_SKILL_ROOTS` vers un dossier temporaire (hors contexte de test,
+     l'espace career-ops par défaut est le vrai du propriétaire) ;
    - après un e2e, `git checkout -- .manager/reports/front-01-screens/` (l'e2e réécrit ces captures d'un ancien rapport).
