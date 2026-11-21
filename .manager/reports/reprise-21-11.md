@@ -139,7 +139,13 @@
 - Décision du propriétaire, transmise par le manager du back : un Skill ne s'active jamais tout seul. Côté back, lot
   `skill-explicite-01` en cours.
 - Front : sélecteur « Skill » (« Aucun Skill » par défaut) à la place des cases à cocher ; le bouton des réglages
-  dit le Skill. Le pack « Auto » est à renommer quand le back sera intégré.
+  dit le Skill.
+- Contrat confirmé par le manager : sans choix, garder `pack: "auto"` (pas `core`) ; après `skill-explicite-01`,
+  il veut dire « aucun pack, chemin général », sans détection d'après le prompt.
+  **À faire dès que le manager confirme le passage sur 4310** : renommer l'option « Auto · selon l’objectif » en
+  « Aucun · chemin général ». Pas avant : d'ici là, elle fait encore l'ancienne détection.
+- Suggestion du manager, à valider par le propriétaire : ranger le réglage « Pack » dans un pli « avancé », puisque
+  le pack suit le Skill choisi.
 - Vérifications : 471/471.
 
 ## État des vérifications (21/11, 13:15)
