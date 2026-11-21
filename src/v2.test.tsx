@@ -41,41 +41,45 @@ describe("pastille de mission", () => {
         .disabled,
     ).toBe(true);
   });
-  it("Entrée met l'instruction en file sans espaces et referme le champ", () => {
+  it("le champ pour écrire à l'agent est visible d'office, sans crayon à ouvrir", () => {
+    pill();
+    expect(
+      screen.getByLabelText("Écrire à l’agent pendant la mission"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Ajouter une instruction" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Arrêter" })).toBeTruthy();
+  });
+  it("Entrée met l'instruction en file sans espaces, vide le champ et le garde visible", () => {
     const { queue } = pill();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Ajouter une instruction" }),
-    );
-    const field = screen.getByLabelText(/Ajouter une instruction pour/);
+    const field = screen.getByLabelText(
+      "Écrire à l’agent pendant la mission",
+    ) as HTMLTextAreaElement;
     fireEvent.change(field, { target: { value: "  aussi en remote " } });
     fireEvent.keyDown(field, { key: "Enter" });
     expect(queue).toHaveBeenCalledWith("aussi en remote");
-    expect(screen.queryByLabelText(/Ajouter une instruction pour/)).toBeNull();
+    expect(field.value).toBe("");
+    expect(
+      screen.getByLabelText("Écrire à l’agent pendant la mission"),
+    ).toBeTruthy();
   });
   it("Maj+Entrée et un texte vide n'envoient rien", () => {
     const { queue } = pill();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Ajouter une instruction" }),
-    );
-    const field = screen.getByLabelText(/Ajouter une instruction pour/);
+    const field = screen.getByLabelText("Écrire à l’agent pendant la mission");
     fireEvent.keyDown(field, { key: "Enter" });
     fireEvent.change(field, { target: { value: "ligne" } });
     fireEvent.keyDown(field, { key: "Enter", shiftKey: true });
     expect(queue).not.toHaveBeenCalled();
   });
-  it("Échap referme le champ, le nombre en file reste visible", () => {
+  it("le nombre en file est affiché sous le champ", () => {
     pill({ queued: 2 });
-    fireEvent.click(
-      screen.getByRole("button", { name: /Ajouter une instruction/ }),
-    );
     expect(screen.getByText("2 en file d’attente")).toBeTruthy();
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByLabelText(/Ajouter une instruction pour/)).toBeNull();
   });
   it("un workflow ne propose que l'arrêt", () => {
     pill({ canQueue: false });
     expect(
-      screen.queryByRole("button", { name: "Ajouter une instruction" }),
+      screen.queryByLabelText("Écrire à l’agent pendant la mission"),
     ).toBeNull();
     expect(screen.getByRole("button", { name: "Arrêter" })).toBeTruthy();
   });

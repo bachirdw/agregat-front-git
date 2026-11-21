@@ -468,33 +468,67 @@ textarea {
   border-radius: 2.5px;
   background: currentColor;
 }
-.mission-queue {
-  width: min(340px, calc(100vw - 48px));
+/* Mission d'agent en cours : champ de message à l'agent, à la place du composer et de même largeur,
+   toujours visible (avant : un crayon qui ouvrait une bulle en bas à droite). */
+.mission-chat-wrap {
+  position: relative;
+  inset: auto;
+  flex: none;
+  align-items: stretch;
+  width: calc(100% - 48px);
+  max-width: 660px;
+  margin: 0 auto 16px;
+  z-index: 22;
+}
+.mission-chat {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  border-radius: 16px;
+  gap: 4px;
+  padding: 8px 8px 6px 14px;
+  border-radius: 20px;
   background: var(--field);
-  box-shadow: var(--shadow);
   animation: v2-pop 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.mission-queue label,
-.mission-queue small {
+.mission-chat:focus-within {
+  box-shadow: var(--shadow);
+}
+.mission-chat textarea {
+  field-sizing: content;
+  max-height: 120px;
+  padding: 4px 0;
+  overflow-y: auto;
+}
+.mission-chat small {
   font-size: 11.5px;
   color: var(--muted);
 }
-.mission-queue > div {
+.mission-chat-bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
 }
-.mission-queue button {
-  height: 24px;
-  padding: 0 11px;
-  border-radius: 12px;
-  font-size: 12px;
+.mission-chat-bottom small {
+  flex: 1;
+  min-width: 0;
+}
+.mission-chat .mission-stop {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fill);
+}
+/* « Revenir en bas » se pose au-dessus du champ (une ligne de texte). */
+.run-active:has(.mission-chat) .jump-bottom {
+  bottom: 108px;
+}
+@media (max-width: 760px) {
+  .mission-chat-wrap {
+    width: calc(100% - 32px);
+  }
 }
 @keyframes v2-pop {
   from {
@@ -1069,7 +1103,7 @@ table.activity-log {
 @media (prefers-reduced-motion: reduce) {
   .glow i,
   .mission-pill,
-  .mission-queue {
+  .mission-chat {
     animation: none;
   }
   .composer-dock {

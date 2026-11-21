@@ -100,13 +100,10 @@ const pill = (over = {}) => {
     ...over,
   };
   render(<MissionPill {...props} />);
-  fireEvent.click(
-    screen.getByRole("button", { name: "Ajouter une instruction" }),
-  );
   return {
     props,
     field: screen.getByLabelText(
-      /Ajouter une instruction pour/,
+      "Écrire à l’agent pendant la mission",
     ) as HTMLTextAreaElement,
   };
 };
@@ -328,12 +325,9 @@ const openApp = async (
   fireEvent.click(await screen.findByText("Mission fictive"));
 };
 const typeAndSend = async (text: string) => {
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Ajouter une instruction" }),
-  );
-  const field = screen.getByLabelText(
-    /Ajouter une instruction pour/,
-  ) as HTMLTextAreaElement;
+  const field = (await screen.findByLabelText(
+    "Écrire à l’agent pendant la mission",
+  )) as HTMLTextAreaElement;
   fireEvent.change(field, { target: { value: text } });
   fireEvent.keyDown(field, { key: "Enter" });
   return field;
@@ -414,9 +408,7 @@ describe("orienter la mission depuis l'application", () => {
   });
   it("une ligne précise quand l'agent attend une réponse", async () => {
     await openApp({ ...running, state: "awaiting_owner" } as Run);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Ajouter une instruction" }),
-    );
+    await screen.findByLabelText("Écrire à l’agent pendant la mission");
     expect(
       screen.getByText(
         "L’agent attend votre réponse ci-dessus ; ce message lui sera remis ensuite",
@@ -427,13 +419,13 @@ describe("orienter la mission depuis l'application", () => {
     await openApp({ ...running, state: "completed" } as Run);
     await screen.findAllByText("Mission fictive");
     expect(
-      screen.queryByRole("button", { name: "Ajouter une instruction" }),
+      screen.queryByLabelText("Écrire à l’agent pendant la mission"),
     ).toBeNull();
     cleanup();
     await openApp({ ...running, mode: "workflow" } as Run);
     await screen.findByRole("button", { name: "Arrêter" });
     expect(
-      screen.queryByRole("button", { name: "Ajouter une instruction" }),
+      screen.queryByLabelText("Écrire à l’agent pendant la mission"),
     ).toBeNull();
   });
   it("« Reprendre le texte » remet un message non remis dans la zone de saisie", async () => {

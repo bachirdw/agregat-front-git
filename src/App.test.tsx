@@ -644,10 +644,9 @@ describe("instruction mise en file pendant une mission (repli : back sans la rou
     });
     render(<App />);
     fireEvent.click(await screen.findByText("Mission fictive"));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Ajouter une instruction" }),
+    const field = await screen.findByLabelText(
+      "Écrire à l’agent pendant la mission",
     );
-    const field = screen.getByLabelText(/Ajouter une instruction pour/);
     fireEvent.change(field, { target: { value: "Aussi en remote" } });
     fireEvent.keyDown(field, { key: "Enter" });
     await screen.findByText("1 en file d’attente");
@@ -711,12 +710,9 @@ it("message pendant une mission, back conforme (202) : envoyé tout de suite, ri
   });
   render(<App />);
   fireEvent.click(await screen.findByText("Mission fictive"));
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Ajouter une instruction" }),
-  );
-  const field = screen.getByLabelText(
-    /Ajouter une instruction pour/,
-  ) as HTMLTextAreaElement;
+  const field = (await screen.findByLabelText(
+    "Écrire à l’agent pendant la mission",
+  )) as HTMLTextAreaElement;
   fireEvent.change(field, { target: { value: "Aussi en remote" } });
   fireEvent.keyDown(field, { key: "Enter" });
   await waitFor(() =>

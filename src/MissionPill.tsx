@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
+import { Icon } from "./Icon";
 
-// Floating controls while a mission runs: stop it, or send a message to the agent. With `send`, the
-// message leaves at once; it resolves to null when the back took it, or to a line saying the text
-// was kept for a resume instead. Without `send` (older callers), the text is queued for afterwards.
+// Controls while a mission runs. For an agent mission (`canQueue`): a chat field in the composer's
+// place, always visible, to write to the agent while it works, with the stop button beside the send
+// button. For a workflow: only a floating stop button. With `send`, the message leaves at once; it
+// resolves to null when the back took it, or to a line saying the text was kept for a resume
+// instead. Without `send` (older callers), the text is queued for afterwards.
 export function MissionPill({
   busy,
   canQueue,
@@ -21,22 +24,10 @@ export function MissionPill({
   send?: (text: string) => Promise<string | null>;
   waiting?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [line, setLine] = useState("");
   const [failure, setFailure] = useState("");
-  const field = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (open) field.current?.focus();
-  }, [open]);
-  useEffect(() => {
-    const close = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, []);
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     const text = draft.trim();
@@ -44,7 +35,6 @@ export function MissionPill({
     if (!send) {
       queue(text);
       setDraft("");
-      setOpen(false);
       return;
     }
     setSending(true);
@@ -68,94 +58,73 @@ export function MissionPill({
       void submit();
     }
   };
-  return (
-    <div className="mission-pill-wrap">
-      {open && (
-        <form className="mission-queue" onSubmit={(e) => void submit(e)}>
-          <label htmlFor="mission-queue-field">
-            Ajouter une instruction pour l’agent
-          </label>
-          <textarea
-            id="mission-queue-field"
-            ref={field}
-            rows={1}
-            value={draft}
-            placeholder="Ex. ajoute aussi les offres en remote"
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={onKey}
-          />
-          {send && waiting && (
-            <small className="mission-queue-note">
-              L’agent attend votre réponse ci-dessus ; ce message lui sera remis
-              ensuite
-            </small>
-          )}
-          {failure && (
-            <small className="mission-queue-error" role="alert">
-              {failure}
-            </small>
-          )}
-          {line && (
-            <small className="mission-queue-note" role="status">
-              {line}
-            </small>
-          )}
-          <div>
-            <small>
-              {queued
-                ? `${queued} en file d’attente`
-                : send
-                  ? "L’agent le reçoit sans arrêter la mission"
-                  : "Envoyée après la tâche en cours"}
-            </small>
-            <button
-              type="submit"
-              className="primary"
-              disabled={!draft.trim() || sending}
-            >
-              {send ? "Envoyer à l’agent" : "Mettre en file"}
-            </button>
-          </div>
-        </form>
-      )}
-      <div className="mission-pill">
-        {canQueue && (
-          <>
-            <button
-              type="button"
-              aria-label="Ajouter une instruction"
-              title="Ajouter une instruction"
-              aria-expanded={open}
-              onClick={() => setOpen(!open)}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M12.2 2.8a1.6 1.6 0 012.3 2.3L7 12.6l-3.2.8.8-3.2z" />
-              </svg>
-              {queued > 0 && <small>{queued}</small>}
-            </button>
-            <span className="mission-pill-sep" />
-          </>
-        )}
-        <button
-          type="button"
-          aria-label="Arrêter"
-          title="Arrêter"
-          disabled={busy}
-          onClick={stop}
-        >
-          <span className="mission-pill-stop" />
-        </button>
+  const stopButton = (
+    <button
+      type="button"
+      className="mission-stop"
+      aria-label="Arrêter"
+      title="Arrêter"
+      disabled={busy}
+      onClick={stop}
+    >
+      <span className="mission-pill-stop" />
+    </button>
+  );
+  if (!canQueue)
+    return (
+      <div className="mission-pill-wrap">
+        <div className="mission-pill">{stopButton}</div>
       </div>
+    );
+  const sendLabel = send ? "Envoyer à l’agent" : "Mettre en file";
+  return (
+    <div className="mission-pill-wrap mission-chat-wrap">
+      <form className="mission-chat" onSubmit={(e) => void submit(e)}>
+        <textarea
+          id="mission-queue-field"
+          aria-label="Écrire à l’agent pendant la mission"
+          rows={1}
+          value={draft}
+          placeholder="Écrire à l’agent pendant qu’il travaille…"
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={onKey}
+        />
+        {send && waiting && (
+          <small className="mission-queue-note">
+            L’agent attend votre réponse ci-dessus ; ce message lui sera remis
+            ensuite
+          </small>
+        )}
+        {failure && (
+          <small className="mission-queue-error" role="alert">
+            {failure}
+          </small>
+        )}
+        {line && (
+          <small className="mission-queue-note" role="status">
+            {line}
+          </small>
+        )}
+        <div className="mission-chat-bottom">
+          <small>
+            {queued
+              ? `${queued} en file d’attente`
+              : send
+                ? "L’agent le reçoit sans arrêter la mission"
+                : "Envoyée après la tâche en cours"}
+          </small>
+          {stopButton}
+          <button
+            type="submit"
+            className="send primary"
+            aria-label={sendLabel}
+            title={sendLabel}
+            disabled={!draft.trim() || sending}
+          >
+            <Icon name="arrow" />
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

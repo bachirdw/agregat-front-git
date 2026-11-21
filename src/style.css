@@ -1909,6 +1909,6 @@ summary {
   background: transparent;
   font-size: inherit;
 }
-.mission-queue .mission-queue-error {
+.mission-chat .mission-queue-error {
   color: var(--red);
 }

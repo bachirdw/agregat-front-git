@@ -158,12 +158,9 @@ describe("POST et SSE qui se croisent (le back attend jusqu'à 1,5 s un steering
     });
     render(<App />);
     fireEvent.click(await screen.findByText("Mission fictive"));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Ajouter une instruction" }),
-    );
-    const field = screen.getByLabelText(
-      /Ajouter une instruction pour/,
-    ) as HTMLTextAreaElement;
+    const field = (await screen.findByLabelText(
+      "Écrire à l’agent pendant la mission",
+    )) as HTMLTextAreaElement;
     return field;
   };
   it("mission privée : les événements arrivent avant la réponse 202 ; la bulle prend le texte ensuite, une seule fois", async () => {
