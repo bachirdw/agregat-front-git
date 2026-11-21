@@ -77,7 +77,8 @@ async function choose(page, label, value) {
   const select = page.getByLabel(label, { exact: true });
   // 21/11 : à l'accueil aussi, les réglages sont derrière le bouton « agent · modèle ».
   const menu = page.locator(".composer details.session-menu");
-  if ((await menu.count()) && !(await menu.getAttribute("open")))
+  // `open` is a boolean attribute: "" when open, null when closed.
+  if ((await menu.count()) && (await menu.getAttribute("open")) === null)
     await menu.locator("> summary").click();
   const details = select.locator("xpath=ancestor::details[1]");
   if (!(await details.getAttribute("open")))
@@ -178,6 +179,8 @@ test(
   async (t) => {
     const { page, app, errors, base } = await open(t);
     await shot(page, "01-accueil");
+    // 21/11 : les réglages de l'accueil sont derrière le bouton « agent · modèle ».
+    await page.locator(".composer details.session-menu > summary").click();
     for (const [i, name] of [
       "Agent",
       "Modèle",
@@ -193,6 +196,11 @@ test(
       await shot(page, `11-filtre-${i + 1}-${name.toLowerCase()}`);
       await summary.press("Escape");
     }
+    // Un second Échap ferme le menu des réglages (le premier ferme la pastille).
+    await page.keyboard.press("Escape");
+    await page.locator(".composer details.session-menu[open]").waitFor({
+      state: "detached",
+    });
     await page
       .getByRole("button", { name: /Trouver des offres Python/ })
       .click();

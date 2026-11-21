@@ -1,23 +1,23 @@
-(node:46471) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(node:62966) ExperimentalWarning: SQLite is an experimental feature and might change at any time
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ CV FICTIF : dépôt sur la fenêtre et bouton d'ajout visible en mode compact (6208.853833ms)
-✔ production réelle : accueil, filtres, plan → SSE → résultats, historique et galeries (9144.40425ms)
-✔ accord du workflow application-draft, refus puis reprise en place (6554.247958ms)
-✔ budget réel : refus serveur dès l’envoi, aucune mission créée (3895.10825ms)
-✔ thème sombre persistant, mobile sans débordement et navigation clavier (3701.089584ms)
-✔ proxy Vite : mutation avec Origin frontend réécrit, sécurité backend maintenue (9681.505083ms)
-✔ SSE réel : coupure réseau, reconnexion et revue après réouverture de la mission (10108.853917ms)
-✔ défilement FICTIF : le composeur ne boucle pas après une petite remontée (7014.386084ms)
-✔ Markdown non fiable et Mermaid sous CSP de production, sans chargement externe (5155.935625ms)
-✔ Skills réels : source Git refusée, quarantaine, revue par hash et activation (4962.087167ms)
-✔ permission ACP réelle : décision ponctuelle, autorisation permanente masquée (6857.097041ms)
-✔ accord d'envoi : un clic, un seul envoi, libellés de l'envoi (7090.909875ms)
-✔ question de l'agent : la mission attend, le formulaire répond, la mission reprend (3901.18ms)
-✔ visuel v2 : barre flottante, panneau, pastille à la place de la saisie, retour en fin de mission (5160.906583ms)
-✔ visuel v2 mobile : barre masquée, pas de débordement horizontal (3321.136666ms)
-✔ maquette v3 : suivi de mission, résumé sous le résultat et paramètres réels (5255.816167ms)
-✔ conversation relancée : les tours passés restent dans le fil, avec leur détail (3860.158958ms)
-✔ relance réelle : chaque tour reste dans le fil après une nouvelle session et un rechargement (6429.43675ms)
+✔ CV FICTIF : dépôt sur la fenêtre et bouton d'ajout visible en mode compact (4315.355625ms)
+✔ production réelle : accueil, filtres, plan → SSE → résultats, historique et galeries (6711.995834ms)
+✔ accord du workflow application-draft, refus puis reprise en place (5497.296375ms)
+✔ budget réel : refus serveur dès l’envoi, aucune mission créée (3811.675959ms)
+✔ thème sombre persistant, mobile sans débordement et navigation clavier (3707.178209ms)
+✔ proxy Vite : mutation avec Origin frontend réécrit, sécurité backend maintenue (5979.753917ms)
+✔ SSE réel : coupure réseau, reconnexion et revue après réouverture de la mission (8915.437417ms)
+✔ défilement FICTIF : le composeur ne boucle pas après une petite remontée (7257.680583ms)
+✔ Markdown non fiable et Mermaid sous CSP de production, sans chargement externe (4858.934667ms)
+✔ Skills réels : source Git refusée, quarantaine, revue par hash et activation (4658.454916ms)
+✔ permission ACP réelle : décision ponctuelle, autorisation permanente masquée (6013.271917ms)
+✔ accord d'envoi : un clic, un seul envoi, libellés de l'envoi (6009.924042ms)
+✔ question de l'agent : la mission attend, le formulaire répond, la mission reprend (5196.67625ms)
+✔ visuel v2 : barre flottante, panneau, pastille à la place de la saisie, retour en fin de mission (6195.596583ms)
+✔ visuel v2 mobile : barre masquée, pas de débordement horizontal (4274.045042ms)
+✔ maquette v3 : suivi de mission, résumé sous le résultat et paramètres réels (6669.98925ms)
+✔ conversation relancée : les tours passés restent dans le fil, avec leur détail (4323.829208ms)
+✔ relance réelle : chaque tour reste dans le fil après une nouvelle session et un rechargement (6584.381583ms)
 ℹ tests 18
 ℹ suites 0
 ℹ pass 18
@@ -25,4 +25,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 110576.361
+ℹ duration_ms 103090.434

@@ -85,11 +85,13 @@ function SessionMenu({
       menu.open = false;
       menu.querySelector("summary")?.focus();
     };
+    // Capture phase: this runs before the inner pill's own Escape handler (registered first, as a
+    // child), so it still sees the pill open and leaves the menu open for this key press.
     document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", escape);
+    document.addEventListener("keydown", escape, true);
     return () => {
       document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", escape);
+      document.removeEventListener("keydown", escape, true);
     };
   }, []);
   return (

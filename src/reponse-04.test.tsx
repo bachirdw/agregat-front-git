@@ -586,6 +586,20 @@ describe("composer de l'accueil", () => {
     fireEvent.pointerDown(document.body);
     expect(menu.open).toBe(false);
   });
+  it("Échap ferme d'abord la pastille ouverte dans le menu, puis le menu", () => {
+    const { container } = home();
+    const menu = container.querySelector<HTMLDetailsElement>(
+      "details.session-menu",
+    )!;
+    const filter = menu.querySelector<HTMLDetailsElement>("details.filter")!;
+    menu.open = true;
+    filter.open = true;
+    fireEvent.keyDown(filter.querySelector("summary")!, { key: "Escape" });
+    expect(filter.open).toBe(false);
+    expect(menu.open).toBe(true);
+    fireEvent.keyDown(menu.querySelector("summary")!, { key: "Escape" });
+    expect(menu.open).toBe(false);
+  });
   it("budget hors bornes : un message visible, et l'envoi ne part pas en silence", () => {
     const onPlan = vi.fn();
     const { container } = render(
