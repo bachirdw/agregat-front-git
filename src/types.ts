@@ -309,6 +309,8 @@ export interface Run {
   } | null;
   permissions?: Permission[];
   pendingQuestion?: Question | null;
+  // Dossier de la mission (absolu) : les fichiers produits y sont affichés en chemin relatif.
+  cwd?: string;
   result?: {
     simulated: boolean;
     summary: string;

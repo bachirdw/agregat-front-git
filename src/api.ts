@@ -49,6 +49,46 @@ export async function api<T>(
     );
   return data as T;
 }
+// fichiers-21-11 : un fichier produit par une mission (GET /api/runs/:id/file, agregat-back
+// docs/api-fichiers.md). Un back sans cette route répond « Route introuvable » : dit simplement.
+export const FILES_UNSUPPORTED =
+  "Ouverture des fichiers pas encore disponible sur ce serveur (back à mettre à jour).";
+export function runFileUrl(runId: string, path: string, download = false) {
+  return (
+    `/api/runs/${encodeURIComponent(runId)}/file?path=${encodeURIComponent(path)}` +
+    (download ? "&download=1" : "")
+  );
+}
+export async function fetchRunFile(
+  runId: string,
+  path: string,
+  download = false,
+): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetch(runFileUrl(runId, path, download));
+  } catch {
+    throw new ApiError(API_UNREACHABLE, 0);
+  }
+  if ([502, 503, 504].includes(response.status))
+    throw new ApiError(API_UNREACHABLE, response.status);
+  if (!response.ok) {
+    let message = "";
+    try {
+      const data = (await response.json()) as { error?: unknown };
+      if (typeof data.error === "string") message = data.error;
+    } catch {
+      // Corps illisible : le statut suffit.
+    }
+    if (message === "Route introuvable")
+      throw new ApiError(FILES_UNSUPPORTED, response.status);
+    throw new ApiError(
+      message || `Erreur HTTP ${response.status}`,
+      response.status,
+    );
+  }
+  return response;
+}
 // Known back messages written for developers, said to the owner; any other text is kept.
 function plainBackError(text: unknown) {
   if (typeof text !== "string") return "";

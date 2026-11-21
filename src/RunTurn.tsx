@@ -5,7 +5,14 @@
 // 3. les fichiers produits ;
 // 4. une ligne méta repliable (vérification, preuves, agent, coût).
 // RunView (Mission.tsx) reste exporté : tests, détails techniques.
-import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { fetchRunFile } from "./api";
 import { AgentAnswer } from "./Bilan";
 import {
   activity,
@@ -242,15 +249,136 @@ function producedFiles(tools: Tool[]) {
       paths.push(tool.location);
   return paths;
 }
-function FileCard({ path }: { path: string }) {
+// fichiers-21-11 : chaque fichier produit s'ouvre sous sa carte (Markdown, texte, image) ou se
+// télécharge, par la route du back GET /api/runs/:id/file. Types affichés : ceux que le back sert en
+// ligne ; le reste (PDF, HTML, Office…) se télécharge seulement.
+const VIEW_TEXT = /\.(md|markdown|txt|log|csv|tsv|json|ya?ml)$/i;
+const VIEW_IMAGE = /\.(png|jpe?g|gif|webp)$/i;
+const PREVIEW_MAX = 200_000;
+function FileCard({
+  runId,
+  path,
+  root,
+}: {
+  runId: string;
+  path: string;
+  root?: string;
+}) {
   const name = path.split(/[\\/]/).pop() || path;
+  const base = root?.replace(/[\\/]+$/, "");
+  const shownPath =
+    base && path.startsWith(base + "/") ? path.slice(base.length + 1) : path;
+  const viewable = VIEW_TEXT.test(name) || VIEW_IMAGE.test(name);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [text, setText] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [downloading, setDownloading] = useState(false);
+  useEffect(
+    () => () => {
+      if (image) URL.revokeObjectURL(image);
+    },
+    [image],
+  );
+  const toggle = async () => {
+    if (open) return setOpen(false);
+    setOpen(true);
+    setError("");
+    if (text !== null || image) return;
+    setLoading(true);
+    try {
+      const response = await fetchRunFile(runId, path);
+      if (VIEW_IMAGE.test(name))
+        setImage(URL.createObjectURL(await response.blob()));
+      else setText(await response.text());
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const download = async () => {
+    setDownloading(true);
+    setError("");
+    try {
+      const response = await fetchRunFile(runId, path, true);
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+  const long = text !== null && text.length > PREVIEW_MAX;
+  const preview = long ? text!.slice(0, PREVIEW_MAX) : (text ?? "");
   return (
-    <div className="file-card" title={path}>
-      <DocIcon />
-      <span className="file-text">
-        <span className="file-name">{name}</span>
-        <span className="file-path">{path}</span>
-      </span>
+    <div className="file-item">
+      <div className="file-card" title={path}>
+        <DocIcon />
+        <span className="file-text">
+          <span className="file-name">{name}</span>
+          <span className="file-path">{shownPath}</span>
+        </span>
+        <span className="file-actions">
+          {viewable && (
+            <button
+              type="button"
+              className="file-action"
+              aria-expanded={open}
+              aria-label={`${open ? "Fermer" : "Ouvrir"} ${name}`}
+              onClick={() => void toggle()}
+            >
+              {open ? "Fermer" : "Ouvrir"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="file-action"
+            aria-label={`Télécharger ${name}`}
+            disabled={downloading}
+            onClick={() => void download()}
+          >
+            {downloading ? "…" : "Télécharger"}
+          </button>
+        </span>
+      </div>
+      {error && (
+        <small className="file-error" role="alert">
+          {error}
+        </small>
+      )}
+      {open && !error && (
+        <div
+          className="file-preview"
+          role="region"
+          aria-label={`Contenu de ${name}`}
+        >
+          {loading ? (
+            <p className="loading" role="status">
+              Chargement du fichier…
+            </p>
+          ) : image ? (
+            <img src={image} alt={name} />
+          ) : /\.(md|markdown)$/i.test(name) ? (
+            <Markdown text={preview} />
+          ) : (
+            <pre>{preview}</pre>
+          )}
+          {long && (
+            <small className="file-note">
+              Aperçu limité au début du fichier : télécharger pour tout lire.
+            </small>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -707,8 +835,23 @@ export function RunTurn({
   // Re-render when this page learns the text of a message it sent (private mission).
   useSyncExternalStore(subscribeOwnerTexts, ownerTextsVersion);
   const tools = items.filter((i): i is Tool => i.kind === "tool");
-  const entries = useMemo(() => conversation(items), [items]);
   const live = !finalStates.has(run.state);
+  // La réponse finale (run.result) remplace seulement le dernier morceau de texte de l'agent, celui
+  // qui l'a écrite, s'il n'est suivi d'aucun échange : le texte des tours d'avant reste dans le fil.
+  const final = !!run.result && !live;
+  const entries = useMemo(() => {
+    let last = -1;
+    if (final)
+      for (let i = items.length - 1; i >= 0; i--) {
+        const kind = items[i].kind;
+        if (kind === "text") {
+          last = i;
+          break;
+        }
+        if (kind === "owner" || kind === "question" || kind === "answer") break;
+      }
+    return conversation(items.filter((_, i) => i !== last));
+  }, [items, final]);
   // The mission waits for the owner: the agent is neither thinking nor writing.
   const ownerTurn = ownerStates.has(run.state);
   const incomplete = run.error?.match(
@@ -722,12 +865,7 @@ export function RunTurn({
     (run.mode === "workflow" || !!run.resumable) &&
     !run.famille;
   const expired = expiredPermissions(events);
-  // La réponse finale remplace seulement le dernier bloc de texte (le tour qui l'a écrite) : les
-  // échanges d'avant restent dans le fil.
-  const shown =
-    run.result && !live && entries.at(-1)?.kind === "text"
-      ? entries.slice(0, -1)
-      : entries;
+  const shown = entries;
   const answered = new Set(
     entries.flatMap((e) => (e.kind === "answer" ? [e.questionId] : [])),
   );
@@ -824,7 +962,7 @@ export function RunTurn({
         {files.length > 0 && (
           <div className="reponse-fichiers">
             {files.map((path) => (
-              <FileCard key={path} path={path} />
+              <FileCard key={path} runId={run.id} path={path} root={run.cwd} />
             ))}
           </div>
         )}

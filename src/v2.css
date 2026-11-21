@@ -1944,6 +1944,73 @@ fieldset.question-field label {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* fichiers-21-11 : ouvrir (aperçu sous la carte) ou télécharger. La carte prend toute la largeur pour
+   que l'aperçu se lise. */
+.file-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.file-text {
+  flex: 1;
+}
+.file-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+.file-action {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--fill);
+  color: var(--label);
+  font-size: 12.5px;
+}
+.file-action[aria-expanded="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+.file-error {
+  color: var(--red);
+  font-size: 12px;
+}
+.file-preview {
+  max-height: 60vh;
+  overflow: auto;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--card, var(--code));
+  box-shadow: 0 0 0 0.5px var(--sep);
+}
+.file-preview pre {
+  margin: 0;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.file-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.file-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (max-width: 520px) {
+  .file-card {
+    flex-wrap: wrap;
+  }
+  .file-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
 /* Ligne méta : « ✓ Vérifié · 2 preuves · claude · 0,00 € », dépliée en liste clé/valeur. */
 .meta-line {
   display: flex;

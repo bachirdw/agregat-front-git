@@ -184,6 +184,30 @@ describe("fil : rien ne disparaît en haut de la discussion", () => {
   });
 });
 
+describe("fil : réponse finale après plusieurs tours", () => {
+  it("seul le message final de l'agent est remplacé par la réponse ; les tours d'avant restent", () => {
+    const { container } = turn(run(), [
+      state("running"),
+      say("Bon lancement 🚀"),
+      ev("verdict_turn", { verdict: "a_corriger" }),
+      say("Le système me signale un verdict FICTIF."),
+      ev("agent", {
+        sessionUpdate: "tool_call",
+        toolCallId: "w1",
+        kind: "edit",
+        title: "Write",
+        status: "completed",
+      }),
+      say("Planning FICTIF final prêt."),
+      state("completed"),
+    ]);
+    const text = container.textContent!;
+    expect(text).toContain("Bon lancement 🚀");
+    expect(text).toContain("Le système me signale un verdict FICTIF.");
+    expect(text.split("Planning FICTIF final prêt.").length).toBe(2);
+  });
+});
+
 describe("activity : questions et réponses sur demande seulement", () => {
   const events = [
     say("Avant."),
