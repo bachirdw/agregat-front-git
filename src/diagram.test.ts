@@ -30,3 +30,23 @@ it("limite le travail et refuse une arête invalide", () => {
     }),
   ).toThrow("absent");
 });
+// test-ui-21-11 : le schéma suit le thème de l'application (bouton lune), pas seulement le système.
+it("thème sombre : fond, bord, texte et flèches lisibles sur fond sombre", () => {
+  const graph = {
+    vertices: [
+      { id: "A", text: "Source" },
+      { id: "B", text: "Résultat" },
+    ],
+    edges: [{ start: "A", end: "B", text: "lien" }],
+  };
+  const light = decodeURIComponent(flowImage(graph).split(",")[1]);
+  const dark = decodeURIComponent(flowImage(graph, "dark").split(",")[1]);
+  // Le clair ne change pas.
+  expect(light).toContain('fill="#eef5ff"');
+  expect(light).toContain('fill="#1d1d1f"');
+  // Le sombre n'a plus de nœud clair ni de texte noir.
+  expect(dark).not.toContain("#eef5ff");
+  expect(dark).not.toContain("#1d1d1f");
+  expect(dark).toContain('fill="#f5f5f7"');
+  expect(dark).not.toContain("style=");
+});

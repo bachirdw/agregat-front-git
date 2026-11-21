@@ -497,7 +497,7 @@ export function Consumption({
         </div>
       </div>
       <section className="card table-wrap">
-        <table>
+        <table className="usage-table">
           <caption>Missions mesurées</caption>
           <thead>
             <tr>

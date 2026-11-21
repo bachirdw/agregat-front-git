@@ -33,7 +33,26 @@ const label = (text: string) =>
     .replace(/<[^>]*>/g, "")
     .replace(/&(?:nbsp|#160);/g, " ")
     .replace(/&amp;/g, "&");
-export function flowImage(graph: FlowGraph) {
+// The image cannot read the page's CSS variables: its colours follow the app's theme (test-ui-21-11).
+export type DiagramTheme = "light" | "dark";
+const palettes = {
+  light: {
+    nodeFill: "#eef5ff",
+    nodeStroke: "#9cbee6",
+    text: "#1d1d1f",
+    line: "#6e6e73",
+    lineText: "#4c4c52",
+  },
+  dark: {
+    nodeFill: "#1b2838",
+    nodeStroke: "#3f6f9f",
+    text: "#f5f5f7",
+    line: "#8e8e93",
+    lineText: "#aeaeb2",
+  },
+};
+export function flowImage(graph: FlowGraph, theme: DiagramTheme = "light") {
+  const colors = palettes[theme];
   const { vertices, edges } = graph;
   if (!vertices.length || vertices.length > 60 || edges.length > 120)
     throw new Error("Taille de schéma non prise en charge");
@@ -98,7 +117,7 @@ export function flowImage(graph: FlowGraph) {
       const path = vertical
         ? `M${x1} ${y1 + (reverse ? -40 : 40)} L${x2} ${y2 + (reverse ? 40 : -40)}`
         : `M${x1 + (reverse ? -92 : 92)} ${y1} L${x2 + (reverse ? 92 : -92)} ${y2}`;
-      return `<path d="${path}" fill="none" stroke="#6e6e73" stroke-width="1.6" marker-end="url(#arrow)"/>${e.text ? `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 8}" text-anchor="middle" fill="#4c4c52" font-size="11">${escape(label(e.text))}</text>` : ""}`;
+      return `<path d="${path}" fill="none" stroke="${colors.line}" stroke-width="1.6" marker-end="url(#arrow)"/>${e.text ? `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 8}" text-anchor="middle" fill="${colors.lineText}" font-size="11">${escape(label(e.text))}</text>` : ""}`;
     })
     .join("");
   const nodes = vertices
@@ -120,13 +139,16 @@ export function flowImage(graph: FlowGraph) {
         v.type === "diamond"
           ? `<polygon points="${x + 92},${y - 6} ${x + 190},${y + 40} ${x + 92},${y + 86} ${x - 6},${y + 40}"/>`
           : `<rect x="${x}" y="${y}" width="184" height="80" rx="${v.type === "circle" || v.type === "stadium" ? 40 : 12}"/>`;
-      return `<g fill="#eef5ff" stroke="#9cbee6"><title>${escape(title)}</title>${shape}</g><text text-anchor="middle" fill="#1d1d1f" font-size="13">${visible.map((line, i) => `<tspan x="${x + 92}" y="${y + 40 + (i - (visible.length - 1) / 2) * 17}">${escape(line)}</tspan>`).join("")}</text>`;
+      return `<g fill="${colors.nodeFill}" stroke="${colors.nodeStroke}"><title>${escape(title)}</title>${shape}</g><text text-anchor="middle" fill="${colors.text}" font-size="13">${visible.map((line, i) => `<tspan x="${x + 92}" y="${y + 40 + (i - (visible.length - 1) / 2) * 17}">${escape(line)}</tspan>`).join("")}</text>`;
     })
     .join("");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" font-family="Arial,sans-serif"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6e6e73"/></marker></defs>${lines}${nodes}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" font-family="Arial,sans-serif"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${colors.line}"/></marker></defs>${lines}${nodes}</svg>`;
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
-export async function mermaidImage(code: string) {
+export async function mermaidImage(
+  code: string,
+  theme: DiagramTheme = "light",
+) {
   if (code.length > 20000) throw new Error("Schéma trop long");
   const { default: mermaid } = await import("mermaid");
   mermaid.initialize({
@@ -143,9 +165,12 @@ export async function mermaidImage(code: string) {
   };
   if (!db.getVertices || !db.getEdges)
     throw new Error("Ce type de schéma reste consultable en code Mermaid");
-  return flowImage({
-    vertices: [...db.getVertices().values()],
-    edges: db.getEdges(),
-    direction: db.getDirection?.(),
-  });
+  return flowImage(
+    {
+      vertices: [...db.getVertices().values()],
+      edges: db.getEdges(),
+      direction: db.getDirection?.(),
+    },
+    theme,
+  );
 }

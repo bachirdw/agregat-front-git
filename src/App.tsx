@@ -305,6 +305,15 @@ export default function App() {
     addEventListener("resize", fit);
     return () => removeEventListener("resize", fit);
   }, []);
+  // Up to 980px the split view covers the screen (v2.css): what lies beneath becomes inert, so Tab
+  // and screen readers no longer reach hidden buttons (test-ui-21-11).
+  const [narrowSplit, setNarrowSplit] = useState(() => innerWidth <= 980);
+  useEffect(() => {
+    const fit = () => setNarrowSplit(innerWidth <= 980);
+    addEventListener("resize", fit);
+    return () => removeEventListener("resize", fit);
+  }, []);
+  const coveredBySplit = !!sideRunId && page === "mission" && narrowSplit;
   // Split view open and window narrowed: the click thresholds hold on resize too (the thread fell
   // to 0 px): the sidebar gives way up to 1560 px, the panel up to 1340 px.
   useEffect(() => {
@@ -760,7 +769,12 @@ export default function App() {
         />
       )}
       {side && (
-        <aside className="sidebar" ref={navRef} aria-label="Navigation">
+        <aside
+          className="sidebar"
+          ref={navRef}
+          aria-label="Navigation"
+          inert={coveredBySplit}
+        >
           <div className="brand">
             <span className="brand-icon">a</span>
             <strong>agre agent</strong>
@@ -918,6 +932,7 @@ export default function App() {
       <main
         id="main-content"
         ref={mainRef}
+        inert={coveredBySplit}
         className={
           (page === "mission" ? "main conversation-main" : "main") +
           (panel ? " with-panel" : "") +

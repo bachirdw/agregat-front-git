@@ -378,4 +378,39 @@ describe("sous-agents dans l'application", () => {
       ).toBe(message),
     );
   });
+  // test-ui-21-11 : sous 980 px la vue scindée couvre l'écran ; Tab n'atteint plus le fil caché dessous.
+  it("vue scindée en plein écran : le fil et la barre latérale dessous sont inertes", async () => {
+    serve([mother, child]);
+    const { container } = render(<App />);
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
+    const aside = await screen.findByRole("complementary", {
+      name: "Activité",
+    });
+    await follow(aside);
+    const pane = await screen.findByRole("complementary", {
+      name: "Sous-agent : Offres FICTIVES sur SEEK",
+    });
+    const main = container.querySelector("main")!;
+    // À 1440 px la vue est à côté du fil : le fil reste atteignable.
+    expect(main.hasAttribute("inert")).toBe(false);
+    act(() => {
+      width(900);
+      window.dispatchEvent(new Event("resize"));
+    });
+    await waitFor(() => expect(main.hasAttribute("inert")).toBe(true));
+    // Le panneau Activité se ferme sous 1340 px avec la vue ouverte (seuils existants).
+    expect(
+      screen.queryByRole("complementary", { name: "Activité" }),
+    ).toBeNull();
+    for (const el of container.querySelectorAll(".sidebar"))
+      expect(el.hasAttribute("inert")).toBe(true);
+    // La vue elle-même reste utilisable.
+    expect(pane.closest("[inert]")).toBeNull();
+    fireEvent.click(
+      within(pane).getByRole("button", { name: "Fermer la vue à côté" }),
+    );
+    await waitFor(() => expect(main.hasAttribute("inert")).toBe(false));
+  });
 });

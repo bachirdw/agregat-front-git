@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { mermaidImage } from "./diagram";
+import { mermaidImage, type DiagramTheme } from "./diagram";
 import { Chart, parseChart } from "./Chart";
 // Text of a hast node (the code inside a ```chart block).
 type HastNode = { type?: string; value?: string; children?: HastNode[] };
@@ -14,16 +14,32 @@ const textOf = (node: HastNode | undefined): string =>
 export function safeLink(url: string | undefined) {
   return url && /^https?:\/\//i.test(url) ? url : undefined;
 }
+// The app's theme (data-theme on <html>, set by the moon button), followed live.
+const currentTheme = (): DiagramTheme =>
+  document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+function useDocumentTheme() {
+  const [theme, setTheme] = useState(currentTheme);
+  useEffect(() => {
+    const observer = new MutationObserver(() => setTheme(currentTheme()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+  return theme;
+}
 function Diagram({ code }: { code: string }) {
   const [url, setUrl] = useState("");
   const [failed, setFailed] = useState(false);
+  const theme = useDocumentTheme();
   useEffect(() => {
     let current = true;
     if (code.length > 20000) {
       setFailed(true);
       return;
     }
-    mermaidImage(code)
+    mermaidImage(code, theme)
       .then((image) => {
         if (current) setUrl(image);
       })
@@ -33,7 +49,7 @@ function Diagram({ code }: { code: string }) {
     return () => {
       current = false;
     };
-  }, [code]);
+  }, [code, theme]);
   return (
     <figure className="diagram">
       {url && <img src={url} alt="Schéma Mermaid du résultat" />}

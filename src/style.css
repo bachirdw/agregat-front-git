@@ -1108,6 +1108,36 @@ caption {
 tbody th {
   font-weight: 500;
 }
+/* test-ui-21-11 : à 375 px le bouton « Voir la consommation » sortait de la carte. Sous 560 px chaque
+   mission devient une ligne empilée : son nom en entier, puis l'état et le bouton côte à côte. Les
+   en-têtes restent lus par les lecteurs d'écran. */
+@media (max-width: 560px) {
+  .usage-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .usage-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--sep);
+  }
+  .usage-table tbody th,
+  .usage-table tbody td {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .usage-table tbody th {
+    grid-column: 1 / -1;
+  }
+}
 progress {
   width: 100%;
   height: 3px;
