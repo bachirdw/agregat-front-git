@@ -161,7 +161,7 @@ function Failure({ member }: { member: FamilyMember }) {
 }
 
 // equipe-05 : raison d'une tâche à partir du code `pourquoi` du chef (back docs/api-delegation.md,
-// `mission_lancer`) quand ni `reason` ni `motif` n'est écrit.
+// `mission_lancer`) quand le chef n'a pas écrit de `motif`.
 const reasonLabels: Record<string, string> = {
   parallele: "Menée en même temps que d’autres tâches pour gagner du temps.",
   specialite: "Confiée à un agent spécialisé dans ce type de tâche.",
@@ -224,11 +224,7 @@ function TeamRow({
   const reviews = (Array.isArray(m.relit) ? m.relit : []).filter(
     (id) => typeof id === "string",
   );
-  const reason =
-    text(m.reason) ||
-    text(m.motif) ||
-    own(reasonLabels, text(m.pourquoi)) ||
-    "";
+  const reason = text(m.motif) || own(reasonLabels, text(m.pourquoi)) || "";
   const planned = text(m.agentPrevu);
   const fallback = planned && agent && planned !== agent;
   const jetons = texteJetons(m.usage).replace(/ jetons?$/, "");
@@ -380,33 +376,33 @@ function Chevron() {
   );
 }
 
-// Étapes du découpage (`phase`, demandée au back) : groupes dans l'ordre de leur numéro ; un membre sans
-// étape, quand d'autres en ont une, va dans un dernier groupe. Sans aucune étape : une seule liste.
+// Étapes du découpage (`etape` du back, contrat equipe-v6-01) : groupes dans l'ordre de leur numéro,
+// « 1. En parallèle » quand le chef a donné un libellé, « Étape 1 » sinon ; un membre sans étape, quand
+// d'autres en ont une, va dans un dernier groupe. Sans aucune étape : une seule liste, sans titre.
+const numeroOf = (m: FamilyMember) => {
+  const n = m.etape && typeof m.etape === "object" ? m.etape.numero : undefined;
+  return typeof n === "number" && Number.isInteger(n) && n >= 1 ? n : null;
+};
 function phasesOf(members: FamilyMember[]) {
-  const valid = (m: FamilyMember) =>
-    !!m.phase &&
-    typeof m.phase === "object" &&
-    Number.isFinite(m.phase.index) &&
-    !!text(m.phase.label);
-  if (!members.some(valid)) return [{ label: "", members }];
+  if (!members.some((m) => numeroOf(m) !== null))
+    return [{ label: "", members }];
   const groups = new Map<number, { label: string; members: FamilyMember[] }>();
   const rest: FamilyMember[] = [];
   for (const m of members) {
-    if (!valid(m)) {
+    const numero = numeroOf(m);
+    if (numero === null) {
       rest.push(m);
       continue;
     }
-    const index = m.phase!.index;
-    const group = groups.get(index) ?? {
-      label: `${index}. ${text(m.phase!.label)}`,
-      members: [],
-    };
+    const group = groups.get(numero) ?? { label: "", members: [] };
+    const libelle = text(m.etape!.libelle).trim();
+    if (!group.label && libelle) group.label = `${numero}. ${libelle}`;
     group.members.push(m);
-    groups.set(index, group);
+    groups.set(numero, group);
   }
   const ordered = [...groups.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([, g]) => g);
+    .map(([numero, g]) => ({ ...g, label: g.label || `Étape ${numero}` }));
   return rest.length
     ? [...ordered, { label: "Autres tâches", members: rest }]
     : ordered;
@@ -467,7 +463,7 @@ export function TeamBlock({
     failed > 0 && { tone: "danger", text: `${failed} en échec` },
     stopped > 0 && { tone: "", text: plural(stopped, "arrêtée", "arrêtées") },
   ].filter((c): c is { tone: string; text: string } => !!c);
-  const summary = text(run.plan_summary);
+  const summary = text(run.decoupage) || text(run.equipe?.decoupage);
   return (
     <section className="team" aria-label="Équipe">
       <div className="team-head">
@@ -526,7 +522,7 @@ function hour(value: string) {
     : date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// Une note du carnet en trois parties (maquette v6). Nouveau format (`title`, `what`, `fix`) pris tel
+// Une note du carnet en trois parties (maquette v6). Format du back (`titre`, `situation`, `regle`, contrat equipe-v6-01) pris tel
 // quel ; sinon le texte : la forme des leçons du back (docs/api-lecons.md : « ligne 1 le titre, ligne 2
 // la règle ») donne la règle à « Ce qu'il faut faire » ; dans la ligne 1, la première phrase est le
 // titre et le reste « Ce qui s'est passé ». Un titre trop long est raccourci, et la ligne entière
@@ -537,11 +533,11 @@ export function noteParts(note: CarnetNote): {
   what: string;
   fix: string;
 } {
-  if (text(note.title).trim())
+  if (text(note.titre).trim())
     return {
-      title: text(note.title).trim(),
-      what: text(note.what).trim(),
-      fix: text(note.fix).trim(),
+      title: text(note.titre).trim(),
+      what: text(note.situation).trim(),
+      fix: text(note.regle).trim(),
     };
   const lines = text(note.texte)
     .split(/\n+/)
@@ -585,6 +581,9 @@ function NoteRow({
       : own(categoryLabels, category) || category,
   ].filter(Boolean);
   const mark = category === "piege" ? "!" : category === "methode" ? "✓" : "·";
+  // Devenue leçon durable (même id que l'événement `lecon_gardee`) : dit note par note.
+  const kept =
+    !!note.lecon && typeof note.lecon === "object" && !!text(note.lecon.id);
   const body = !!(what || fix);
   const head = (
     <>
@@ -610,6 +609,11 @@ function NoteRow({
           <span className="team-who-time">
             {who.length ? " · " : ""}
             <time dateTime={at}>{hour(at)}</time>
+          </span>
+        )}
+        {kept && (
+          <span className="team-who-time team-kept">
+            {" · "}gardée en mémoire
           </span>
         )}
       </span>
@@ -668,7 +672,7 @@ export function CarnetBlock({
   ).filter((note) => note && typeof note === "object");
   const keyOf = (note: CarnetNote, i: number) => String(note.n ?? `i${i}`);
   const learned = notes.filter(
-    (note) => learnedCategories.has(text(note.categorie)) || !!text(note.title),
+    (note) => learnedCategories.has(text(note.categorie)) || !!text(note.titre),
   );
   const others = notes.filter((note) => !learned.includes(note));
   const row = (note: CarnetNote, i: number) => {

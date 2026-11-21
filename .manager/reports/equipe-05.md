@@ -69,18 +69,27 @@ deux fichiers étaient nouveaux ; les autres sont identiques à la passation dé
    - « Mission » est `Run`, qui gagne `plan_summary?` ;
    - « TeamNote » est `CarnetNote`, qui gagne `title?`, `what?`, `fix?` ; `author` et `at` existaient (`auteur`, `a`).
 
-## Champs à demander au back (aucun n'existe aujourd'hui, vérifié dans `docs/api-equipe-vue.md`, `api-delegation.md` et sur une mission réelle)
-1. `plan_summary` sur la mission mère : une phrase du chef qui explique le découpage.
-2. `phase: { index, label }` sur chaque entrée de `family[]` (étape du découpage). Sans lui, une seule liste.
-3. `reason` sur chaque entrée de `family[]` : une phrase du chef. Aujourd'hui, seuls `pourquoi` (un code) et parfois
-   `famille.motif` (lu sur la ligne de la sous-mission) existent.
-4. Pour chaque note du carnet :
-   - `title`, `what`, `fix` (note structurée), ou au moins la forme « ligne 1, ligne 2 » des leçons pour les pièges ;
-   - le lien vers la leçon gardée (`lecon: { id }`), pour dire note par note « gardée en mémoire ».
-Le front lit déjà ces champs : dès que le back les envoie, ils s'affichent sans autre changement.
+## Champs du back : contrat retenu par le manager (21/11, lot `equipe-v6-01`, en cours, pas encore sur l'API 4310)
+Après ma demande, le manager du back (session `agregat-back-c8`) a choisi des noms français. Le front est aligné
+dessus (commit qui suit `414fd25`) ; tout champ reste facultatif :
+1. `decoupage` (1-300) sur la mère, dans GET /api/runs/:id et dans `equipe` des lignes de GET /api/runs : phrase grise
+   sous « Équipe ». Le front lit `run.decoupage`, sinon `run.equipe.decoupage`.
+2. `etape: { numero, libelle? }` sur chaque membre de `family[]` :
+   - `numero` = 1 + plus longue chaîne de prérequis ;
+   - `libelle` seulement si le chef l'a donné ;
+   - le front groupe par numéro : « 1. En parallèle » avec un libellé, « Étape 2 » sans ;
+   - un membre sans étape valide va dans « Autres tâches » ; sans aucune étape, une seule liste.
+3. `motif` copié dans `family[]` (le manager cherche pourquoi il manque aujourd'hui). Le front le lisait déjà sur la
+   ligne de la sous-mission ; c'est la raison affichée dans la ligne dépliée.
+4. Notes du carnet :
+   - `titre` (1-120), `situation` (1-600) et `regle` (1-600), pris tels quels quand `titre` existe ;
+   - `lecon: { id }` sur une note devenue leçon durable : « gardée en mémoire » sur la ligne de cette note.
+Les noms du brief (`plan_summary`, `phase`, `reason`, `title`/`what`/`fix`) ne sont plus lus : le back ne les a
+jamais envoyés. Le manager renverra le contrat exact (exemples JSON) à l'intégration ; à revérifier alors.
 
 ## Tests
-- Nouveaux, dans `src/equipe-05.test.tsx` (15). Écrits d'abord : **14 en échec au départ**. Le 15e (« sans phase :
+- Nouveaux, dans `src/equipe-05.test.tsx` (15, puis 18 avec l'alignement sur le contrat du back : étape sans
+  libellé, `decoupage` lu sur `equipe`, note « gardée en mémoire »). Écrits d'abord : **14 en échec au départ**. Le 15e (« sans phase :
   une seule liste ») était déjà vrai. Ils couvrent :
   - la liste verticale groupée par étape ;
   - l'absence de grille dans la feuille de style ;
@@ -103,7 +112,7 @@ Le front lit déjà ces champs : dès que le back les envoie, ils s'affichent sa
   - `swarm-09-relecture.test.tsx` ;
   - `swarm-11.test.tsx` ;
   - `swarm-11-relecture.test.tsx`.
-- `npm test` : 29 fichiers, **462/462** (sortie : `equipe-05/npm-test.txt`).
+- `npm test` : 29 fichiers, **462/462** (465/465 après l'alignement) (sortie : `equipe-05/npm-test.txt`).
 - `npm run build` : OK, avec l'avertissement habituel de taille de bloc (sortie : `equipe-05/npm-build.txt`).
 - `tsc --noEmit` et `prettier --check` : OK.
 - E2E non relancé.

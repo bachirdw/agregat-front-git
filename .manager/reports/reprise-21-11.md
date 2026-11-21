@@ -128,8 +128,11 @@
   - « Ce que l’équipe a appris » à la place du carnet en paragraphes.
 - Commits `fc6d187` (code et tests) et `762b035` (maquette, captures, rapport).
 - Vérifications : 462/462, build OK.
-- Champs demandés au back : `plan_summary`, `phase`, `reason`, notes structurées (`title`, `what`, `fix`), et lien
-  note → leçon.
+- Champs du back, noms choisis par le manager (lot `equipe-v6-01`, en cours, pas encore sur 4310) :
+  - `decoupage`, `etape: { numero, libelle? }` et `motif` dans `family[]` ;
+  - notes `titre`, `situation`, `regle`, `lecon: { id }`.
+  Le front est aligné (465/465). Le manager demande de ne pas toucher `docs/api-equipe-vue.md` ni ses fichiers back
+  en attendant ; il fait relire `fichiers-21-11` (sécurité) après 19:20.
 - Écart : panneau gardé à 344 px (380 décalerait les seuils de mise en page).
 
 ## État des vérifications (21/11, 13:15)

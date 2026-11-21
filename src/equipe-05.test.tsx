@@ -32,12 +32,12 @@ const member = (over: Partial<FamilyMember>): FamilyMember => ({
 const ig = member({
   id: "ig",
   titre: "Recherche tendances Instagram — agents IA pour TPE/PME (FICTIF)",
-  phase: { index: 1, label: "En parallèle" },
+  etape: { numero: 1, libelle: "En parallèle" },
 });
 const x = member({
   id: "x",
   titre: "Recherche tendances X (Twitter) — agents IA pour TPE/PME (FICTIF)",
-  phase: { index: 1, label: "En parallèle" },
+  etape: { numero: 1, libelle: "En parallèle" },
   debut: "2026-11-21T09:00:13.000Z",
   dureeMs: 190000,
   usage: { tours: 1, jetons: { total: 704018 } },
@@ -50,7 +50,7 @@ const review = member({
   role: "verificateur",
   pourquoi: "regard_independant",
   relit: ["ig", "x"],
-  phase: { index: 2, label: "Ensuite" },
+  etape: { numero: 2, libelle: "Ensuite" },
   state: "running",
   dureeMs: undefined,
   fin: null,
@@ -97,11 +97,11 @@ describe("Équipe : liste verticale groupée par étape", () => {
     expect(within(groups[1]).getAllByRole("listitem")).toHaveLength(1);
   });
 
-  it("sans phase : une seule liste, sans titre d'étape", () => {
+  it("sans étape : une seule liste, sans titre d'étape", () => {
     team(
       run([
-        { ...ig, phase: undefined },
-        { ...x, phase: undefined },
+        { ...ig, etape: undefined },
+        { ...x, etape: undefined },
       ]),
     );
     const lists = screen.getAllByRole("list");
@@ -187,9 +187,34 @@ describe("Équipe : liste verticale groupée par étape", () => {
     expect(screen.getByText("1 en cours").className).toContain("info");
   });
 
-  it("plan_summary présent : la phrase grise sous l'en-tête ; absent : rien", () => {
+  it("étape sans libellé : « Étape 2 » ; une étape mal formée ne crée aucun groupe", () => {
+    team(
+      run([
+        ig,
+        { ...review, etape: { numero: 2 } },
+        { ...x, etape: { numero: 0, libelle: "Faux" } },
+      ]),
+    );
+    const groups = screen.getAllByRole("list");
+    expect(groups.map((g) => g.getAttribute("aria-label"))).toEqual([
+      "1. En parallèle",
+      "Étape 2",
+      "Autres tâches",
+    ]);
+  });
+  it("decoupage lu aussi sur l'objet `equipe` d'une ligne de la liste", () => {
+    const { container } = render(
+      <TeamBlock
+        run={run([ig], { equipe: { decoupage: "Découpage FICTIF." } })}
+      />,
+    );
+    expect(container.querySelector(".team-plan")!.textContent).toBe(
+      "Découpage FICTIF.",
+    );
+  });
+  it("decoupage présent : la phrase grise sous l'en-tête ; absent : rien", () => {
     const summary = "claude a découpé la mission FICTIVE en 3 tâches.";
-    team(run([ig], { plan_summary: summary }));
+    team(run([ig], { decoupage: summary }));
     expect(screen.getByText(summary).className).toContain("team-plan");
     cleanup();
     const { container } = render(<TeamBlock run={run([ig])} />);
@@ -237,9 +262,11 @@ describe("Ce que l’équipe a appris", () => {
     });
   });
 
-  it("nouveau format (title, what, fix) : pris tel quel", () => {
+  it("format du back (titre, situation, regle) : pris tel quel", () => {
     expect(
-      noteParts(note({ title: "T", what: "W", fix: "F", texte: "ignoré" })),
+      noteParts(
+        note({ titre: "T", situation: "W", regle: "F", texte: "ignoré" }),
+      ),
     ).toEqual({ title: "T", what: "W", fix: "F" });
   });
 
@@ -305,6 +332,30 @@ describe("Ce que l’équipe a appris", () => {
     ).toBeTruthy();
   });
 
+  it("note devenue leçon (`lecon.id`) : « gardée en mémoire » sur sa ligne, pas sur les autres", () => {
+    render(
+      <CarnetBlock
+        run={run([], {
+          carnet: {
+            total: 2,
+            notes: [
+              note({
+                n: 1,
+                texte: "Piège gardé FICTIF.",
+                lecon: { id: "l-1" },
+              }),
+              note({ n: 2, texte: "Piège non gardé FICTIF." }),
+            ],
+          },
+        })}
+      />,
+    );
+    const [kept, other] = screen
+      .getByRole("list", { name: "Obstacles et méthodes" })
+      .querySelectorAll(".team-row-sub");
+    expect(kept.textContent).toContain("gardée en mémoire");
+    expect(other.textContent).not.toContain("gardée en mémoire");
+  });
   it("ligne d'aide : « gardés en mémoire » seulement si le back a gardé des leçons", () => {
     const carnet = { total: 1, notes: [note({ texte: "Piège FICTIF." })] };
     render(<CarnetBlock run={run([], { carnet })} lessonsKept={0} />);

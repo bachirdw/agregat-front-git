@@ -146,11 +146,11 @@ export interface FamilyMember {
   role?: string;
   relit?: string[];
   verdict?: TeamVerdict;
-  // equipe-05 (maquette « Panneau equipe v6 ») : étape du découpage et raison de la tâche, écrites par
-  // l'agent principal. Pas encore envoyés par le back (demandés) : sans eux, une seule liste, et la
-  // raison vient de `motif` ou de `pourquoi`.
-  phase?: { index: number; label: string };
-  reason?: string;
+  // equipe-05 (maquette « Panneau equipe v6 », contrat du back equipe-v6-01, en cours) : étape du membre,
+  // `numero` = 1 + plus longue chaîne de prérequis dans la famille, `libelle` seulement si le chef l'a
+  // donné. Absente (cycle, relation hors famille, back plus ancien) : une seule liste. La raison de la
+  // tâche est `motif` (déjà là, copié aussi dans family[] par ce lot).
+  etape?: { numero?: number; libelle?: string };
 }
 export interface MemberUsage {
   tours?: number;
@@ -159,6 +159,8 @@ export interface MemberUsage {
 }
 // Summary of a mother's team on a row of `GET /api/runs` (back docs/api-equipe-vue.md, swarm-07).
 export interface TeamSummary {
+  // equipe-05 : même phrase que `decoupage` de la mère (contrat equipe-v6-01).
+  decoupage?: string;
   membres?: number;
   enCours?: number;
   finis?: number;
@@ -182,11 +184,13 @@ export interface CarnetNote {
   categorie?: string;
   texte?: string;
   a?: string;
-  // equipe-05 : note structurée (titre d'une phrase, ce qui s'est passé, ce qu'il faut faire). Pas encore
-  // envoyée par le back (demandée) : sans elle, le texte est découpé par `noteParts` (Team.tsx).
-  title?: string;
-  what?: string;
-  fix?: string;
+  // equipe-05 (contrat du back equipe-v6-01, en cours) : note structurée, champs facultatifs donnés par
+  // l'agent (`titre` 1-120, `situation` 1-600, `regle` 1-600) ; sans eux, le texte est découpé par
+  // `noteParts` (Team.tsx). `lecon` : la note est devenue une leçon durable (même id que `lecon_gardee`).
+  titre?: string;
+  situation?: string;
+  regle?: string;
+  lecon?: { id?: string } | null;
 }
 // A file uploaded to POST /api/files; only its id is sent with a plan or run.
 export interface Attachment {
@@ -370,9 +374,9 @@ export interface Run {
   famille?: RunLink;
   // Private space: `total` only.
   carnet?: { total?: number; notes?: CarnetNote[] };
-  // equipe-05 : une phrase de l'agent principal qui explique le découpage en sous-agents. Pas encore
-  // envoyée par le back (demandée) : absente, rien n'est affiché.
-  plan_summary?: string;
+  // equipe-05 (contrat du back equipe-v6-01, en cours) : une phrase du chef qui explique le découpage en
+  // sous-agents (1-300). Absente : rien n'est affiché.
+  decoupage?: string;
 }
 // Application counters of the mission; each one is shown only when the back reports it.
 export interface RunFunnel {
