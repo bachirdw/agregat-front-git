@@ -237,6 +237,22 @@ describe("panneau Activité dans l'application", () => {
     expect(panel()).toBeTruthy();
     // reponse-04 : la section d'équipe du panneau est le bloc Équipe de swarm (Team.tsx).
     expect(screen.getByRole("region", { name: "Équipe" })).toBeTruthy();
+    // 21/11 (test complet) : panneau déjà ouvert, la ligne ne faisait rien ; elle amène à l'équipe.
+    const seen = vi.fn();
+    Element.prototype.scrollIntoView = seen;
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /1 sous-agent en cours · 1\/2 terminés/,
+      }),
+    );
+    expect(seen).toHaveBeenCalled();
+    expect(seen.mock.contexts[0]).toBe(
+      document.querySelector(".activity-panel .activity-team"),
+    );
   });
   it("sans sous-agents, aucune ligne dans le fil", async () => {
     serve(base);

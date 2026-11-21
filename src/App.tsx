@@ -259,10 +259,20 @@ export default function App() {
   // The Activité panel opens only on a click (toolbar, summary line, sub-agents line), never on its own.
   // The thread keeps at least 560px: the split view hides the sidebar up to 1560px and takes the
   // panel's place up to 1340px; reopening the panel there closes the split view.
+  // The sidebar the split view hid comes back when it closes (it stayed hidden before).
+  const sideHidByPane = useRef(false);
   const openSide = (id: string) => {
     setSideRunId(id);
-    if (innerWidth <= 1560) setSide(false);
+    if (innerWidth <= 1560 && side) {
+      sideHidByPane.current = true;
+      setSide(false);
+    }
     if (innerWidth <= 1340) setPanel(false);
+  };
+  const closeSide = () => {
+    setSideRunId(null);
+    if (sideHidByPane.current && innerWidth > 760) setSide(true);
+    sideHidByPane.current = false;
   };
   const showPanel = (open: boolean) => {
     setPanel(open);
@@ -295,6 +305,21 @@ export default function App() {
     addEventListener("resize", fit);
     return () => removeEventListener("resize", fit);
   }, []);
+  // Split view open and window narrowed: the click thresholds hold on resize too (the thread fell
+  // to 0 px): the sidebar gives way up to 1560 px, the panel up to 1340 px.
+  useEffect(() => {
+    if (!sideRunId) return;
+    const fit = () => {
+      if (innerWidth <= 1560)
+        setSide((open) => {
+          if (open) sideHidByPane.current = true;
+          return false;
+        });
+      if (innerWidth <= 1340) setPanel(false);
+    };
+    addEventListener("resize", fit);
+    return () => removeEventListener("resize", fit);
+  }, [sideRunId]);
   // Window narrowed with both open: the sidebar gives way so the thread keeps its width.
   useEffect(() => {
     if (!panel || !side) return;
@@ -330,6 +355,8 @@ export default function App() {
         e.preventDefault();
         newMission();
       }
+      // The split view covers the screen up to 980px (v2.css): Escape closes it there.
+      if (e.key === "Escape" && innerWidth <= 980) setSideRunId(null);
       if (e.key === "Escape" && innerWidth <= 760) {
         setSide(false);
         // Under 760px the panel covers the thread: Escape closes it like the sidebar.
@@ -355,6 +382,25 @@ export default function App() {
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
   }, [newMission, side]);
+  // The open mission lives in the address (#mission/<id>): a reload reopens it instead of the home.
+  const initialHash = useRef(location.hash);
+  useEffect(() => {
+    const want = page === "mission" && run ? "#mission/" + run.id : "";
+    if (location.hash !== want)
+      window.history.replaceState(
+        null,
+        "",
+        want || location.pathname + location.search,
+      );
+  }, [page, run]);
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current || !catalog) return;
+    restored.current = true;
+    const id = initialHash.current.match(/^#mission\/([\w-]+)$/)?.[1];
+    if (id) void openRun(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog]);
   const openRun = async (id: string) => {
     const version = ++viewVersion.current;
     setSideRunId(null);
@@ -796,7 +842,10 @@ export default function App() {
                           {labels[r.state] || r.state}
                         </small>
                       )}
-                      <small className="team-summary">
+                      <small
+                        className="team-summary"
+                        title={texteResume(team, activity)}
+                      >
                         {texteResume(team, activity)}
                       </small>
                     </>
@@ -1081,7 +1130,15 @@ export default function App() {
               {/* sous-agents-19-11 : seulement si le back fournit la famille ; ouvre le panneau. */}
               <SubagentsLine
                 family={run.family}
-                onOpen={() => showPanel(true)}
+                onOpen={() => {
+                  showPanel(true);
+                  // Panel already open: the line still leads to the team.
+                  requestAnimationFrame(() =>
+                    document
+                      .querySelector(".activity-panel .activity-team")
+                      ?.scrollIntoView({ block: "start" }),
+                  );
+                }}
               />
               {/* reponse-04 : la ligne méta se déplie sur place (dans RunTurn hors career-ops). */}
               {run.pack === "career-ops" && finalStates.has(run.state) && (
@@ -1220,7 +1277,8 @@ export default function App() {
         <SidePane
           key={sideRunId}
           id={sideRunId}
-          onClose={() => setSideRunId(null)}
+          onClose={closeSide}
+          onChanged={syncList}
           onOpenFull={(id) => {
             setSideRunId(null);
             void openRun(id);

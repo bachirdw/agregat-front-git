@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Catalog, Agent, Skill, Run } from "./types";
-import { agentStatus, labels, money } from "./types";
+import { agentStatus, labels, money, readinessLabel } from "./types";
 import { UsageCard } from "./Mission";
 export function Agents({
   catalog,
@@ -67,7 +67,9 @@ export function Agents({
                   <h2>{a.name}</h2>
                   <small>
                     {a.version || "Version non annoncée"} ·{" "}
-                    {a.readiness || "Détection locale"}
+                    {a.readiness
+                      ? readinessLabel(a.readiness)
+                      : "Détection locale"}
                   </small>
                   <p>
                     {a.reason ||
@@ -195,14 +197,19 @@ function SkillCard({
             }
             key={i}
           >
-            {f.level} · {f.message}
+            {f.level === "danger"
+              ? "Danger"
+              : f.level === "warning"
+                ? "Attention"
+                : f.level}{" "}
+            · {f.message}
           </p>
         ))}
         {skill.state === "quarantined" && (
           <>
             <p>
-              Le contenu des fichiers n’est pas exposé par l’API. Consultez le
-              dépôt et sa révision exacte avant d’approuver.
+              Le contenu des fichiers n’est pas affiché ici. Consultez le dépôt
+              et sa révision exacte avant d’approuver.
             </p>
             <p className="mono">Empreinte : {skill.hash}</p>
             <label className="check">
@@ -439,6 +446,22 @@ export function Consumption({
   selected: Run | null;
   onSelect: (id: string) => void;
 }) {
+  // Sub-missions have their own consumption but are not missions of the owner: counted apart.
+  const subs = runs.filter((r) => r.famille).length;
+  const missions = runs.length - subs;
+  const count =
+    `${missions} mission${missions > 1 ? "s" : ""}` +
+    (subs ? ` · ${subs} sous-mission${subs > 1 ? "s" : ""}` : "");
+  // The back has aliases (workflow and workflow_run…) with the same category: one line each.
+  const tariffs = [
+    ...new Map(
+      Object.entries(catalog.pricing.centsPerUnit).map(([id, cents]) => {
+        const category = catalog.meters[id]?.category || id;
+        const unit = catalog.meters[id]?.unit || "unité";
+        return [`${category}|${unit}|${cents}`, { category, unit, cents }];
+      }),
+    ).values(),
+  ];
   return (
     <>
       <div className="page-heading">
@@ -454,11 +477,11 @@ export function Consumption({
         <div className="card card-pad">
           <small>Consommation globale</small>
           <h2>Bientôt</h2>
-          <small>Aucun total global exposé par l’API.</small>
+          <small>Pas encore de total pour toutes les missions.</small>
         </div>
         <div className="card card-pad">
           <small>Historique local</small>
-          <h2>{runs.length} missions</h2>
+          <h2>{count}</h2>
           <small>Missions retournées par le serveur.</small>
         </div>
         <div className="card card-pad">
@@ -486,7 +509,11 @@ export function Consumption({
           <tbody>
             {runs.map((r) => (
               <tr key={r.id}>
-                <th scope="row">{r.prompt}</th>
+                <th scope="row">
+                  {r.famille
+                    ? `Sous-mission : ${r.famille.titre || r.title || r.prompt}`
+                    : r.prompt}
+                </th>
                 <td>{labels[r.state] || r.state}</td>
                 <td>
                   <button onClick={() => onSelect(r.id)}>
@@ -509,12 +536,11 @@ export function Consumption({
       )}
       <details className="card card-pad">
         <summary>Tarifs configurés par le serveur</summary>
-        {Object.entries(catalog.pricing.centsPerUnit).map(([id, cents]) => (
-          <div className="spread" key={id}>
-            <span>{catalog.meters[id]?.category || id}</span>
+        {tariffs.map(({ category, unit, cents }) => (
+          <div className="spread" key={`${category}|${unit}|${cents}`}>
+            <span>{category}</span>
             <span>
-              {money(cents, catalog.pricing.currency)} /{" "}
-              {catalog.meters[id]?.unit || "unité"}
+              {money(cents, catalog.pricing.currency)} / {unit}
             </span>
           </div>
         ))}

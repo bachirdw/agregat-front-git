@@ -437,6 +437,25 @@ export const money = (cents: number, currency = "EUR") =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(
     cents / 100,
   );
+// « 21/11/2026 à 11:09 » from an ISO date; an unreadable one is kept as given.
+function dateTime(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${date.toLocaleDateString("fr-FR")} à ${date.toLocaleTimeString(
+    "fr-FR",
+    { hour: "2-digit", minute: "2-digit" },
+  )}`;
+}
+// The back's detection state (agent-runtime `readiness`), said simply; an unknown value loses its dashes.
+const readinessLabels: Record<string, string> = {
+  "test-reproductible": "agent de démonstration",
+  "non-détecté": "non détecté",
+  "handshake-requis": "connexion vérifiée au premier lancement",
+  "adaptateur-manquant": "adaptateur manquant",
+  "version-illisible": "version illisible",
+};
+export const readinessLabel = (value: string) =>
+  readinessLabels[value] ?? value.replace(/-/g, " ");
 export function agentStatus(a: Agent) {
   return a.simulated
     ? "Simulé · fictif"
@@ -451,7 +470,7 @@ export function agentStatus(a: Agent) {
             : a.probe?.session
               ? a.probe.inference === true
                 ? a.probe.inferenceAt
-                  ? `Prompt validé le ${a.probe.inferenceAt}`
+                  ? `Prompt validé le ${dateTime(a.probe.inferenceAt)}`
                   : "Prompt validé historiquement · date inconnue"
                 : "Session validée · prompt non testé"
               : "Détecté · non testé";

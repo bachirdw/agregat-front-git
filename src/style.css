@@ -1020,7 +1020,9 @@ footer small {
 }
 .skills-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Deux colonnes seulement si la zone centrale a la place (panneau ouvert : les cartes se
+     chevauchaient entre 761 et 913 px, le seuil sur la fenêtre ignorait le panneau). */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
   gap: 20px;
   align-items: start;
 }

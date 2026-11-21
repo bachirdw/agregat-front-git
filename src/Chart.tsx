@@ -63,14 +63,31 @@ export function Chart({ spec }: { spec: ChartSpec }) {
       )}
       <div className={"chart-plot " + spec.type} role="img" aria-label={label}>
         {spec.type === "bar" ? (
-          y.map((v, i) => (
-            <span
-              key={i}
-              className={"chart-bar" + (highlight.includes(i) ? " hi" : "")}
-              style={{ height: `${Math.max(level(v), 1)}%` }}
-              title={`${x[i]} · ${number.format(v)}`}
-            />
-          ))
+          <>
+            {/* Bars start at zero: up for a positive value, down for a negative one. */}
+            {lo < 0 && (
+              <span
+                className="chart-zero"
+                style={{ bottom: `${level(0)}%` }}
+                aria-hidden="true"
+              />
+            )}
+            {y.map((v, i) => (
+              <span
+                key={i}
+                className={
+                  "chart-bar" +
+                  (v < 0 ? " neg" : "") +
+                  (highlight.includes(i) ? " hi" : "")
+                }
+                style={{
+                  height: `${Math.max(Math.abs(level(v) - level(0)), 1)}%`,
+                  bottom: `${Math.min(level(v), level(0))}%`,
+                }}
+                title={`${x[i]} · ${number.format(v)}`}
+              />
+            ))}
+          </>
         ) : (
           <>
             <svg

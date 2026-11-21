@@ -1454,3 +1454,71 @@ describe("autres pages lues (missionProof.reads)", () => {
     expect(details?.hasAttribute("open")).toBe(false);
   });
 });
+
+// 21/11 (test complet) : jargon technique montré tel quel dans Agents, Paramètres et Skills.
+describe("pages : mots de tous les jours", () => {
+  it("date de validation lisible, état de détection traduit", async () => {
+    const { agentStatus, readinessLabel } = await import("./types");
+    const text = agentStatus({
+      id: "codex",
+      name: "Codex",
+      installed: true,
+      compatible: true,
+      probe: {
+        session: true,
+        inference: true,
+        inferenceAt: "2026-11-21T00:09:25.789Z",
+        models: [],
+      },
+    } as never);
+    expect(text).not.toMatch(/T00:09|\.789Z/);
+    expect(text).toMatch(/^Prompt validé le \d{2}\/\d{2}\/2026/);
+    expect(readinessLabel("handshake-requis")).toBe(
+      "connexion vérifiée au premier lancement",
+    );
+    expect(readinessLabel("test-reproductible")).toBe("agent de démonstration");
+    expect(readinessLabel("non-détecté")).toBe("non détecté");
+    expect(readinessLabel("valeur-inconnue")).toBe("valeur inconnue");
+  });
+});
+
+// 21/11 (test complet) : tarifs en double (alias du back) et sous-missions comptées comme missions.
+describe("page Consommation", () => {
+  it("compte missions et sous-missions à part, et chaque tarif une fois", async () => {
+    const { Consumption } = await import("./Galleries");
+    const mission = {
+      id: "m1",
+      prompt: "Mission FICTIVE",
+      state: "completed",
+    } as unknown as Run;
+    const sub = {
+      id: "s1",
+      prompt: "Consigne FICTIVE",
+      state: "completed",
+      famille: { mere: "m1", titre: "Portail FICTIF" },
+    } as unknown as Run;
+    render(
+      <Consumption
+        catalog={
+          {
+            pricing: {
+              currency: "EUR",
+              centsPerUnit: { workflow: 0, workflow_run: 0 },
+              monthlyCapCents: null,
+            },
+            meters: {
+              workflow: { category: "Workflows", unit: "exécution" },
+              workflow_run: { category: "Workflows", unit: "exécution" },
+            },
+          } as unknown as Catalog
+        }
+        runs={[mission, sub]}
+        selected={null}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("1 mission · 1 sous-mission")).toBeTruthy();
+    expect(screen.getByText("Sous-mission : Portail FICTIF")).toBeTruthy();
+    expect(screen.getAllByText("Workflows")).toHaveLength(1);
+  });
+});

@@ -142,6 +142,32 @@ describe("réponse de l'agent : texte d'abord", () => {
     expect(box.textContent).toMatch(/2025 · 774,7/);
     expect(box.textContent).toMatch(/2034 · 1\s450,9/);
   });
+  // 21/11 (test complet) : sans ligne zéro, -40 faisait 1 % et -10 plus haut que +5.
+  it("barres négatives : elles partent de la ligne zéro, vers le bas", () => {
+    render(
+      <Markdown
+        text={fence(
+          JSON.stringify({
+            type: "bar",
+            title: "Solde FICTIF",
+            x: ["a", "b", "c", "d"],
+            y: [-40, -10, 5, 60],
+          }),
+        )}
+      />,
+    );
+    const plot = screen.getByRole("img", { name: "Solde FICTIF" });
+    const bars = [...plot.querySelectorAll<HTMLElement>(".chart-bar")];
+    expect(plot.querySelector(".chart-zero")).toBeTruthy();
+    expect(bars[0].className).toContain("neg");
+    expect(bars[2].className).not.toContain("neg");
+    const height = (b: HTMLElement) => parseFloat(b.style.height);
+    // Valeurs absolues dans l'ordre : 40 > 10 > 5, sur une échelle de 100 (de -40 à 60).
+    expect(height(bars[0])).toBeCloseTo(40);
+    expect(height(bars[1])).toBeCloseTo(10);
+    expect(height(bars[2])).toBeCloseTo(5);
+    expect(parseFloat(bars[2].style.bottom)).toBeCloseTo(40);
+  });
   it("un bloc ```chart de type line donne une courbe", () => {
     render(
       <Markdown text={fence(JSON.stringify({ ...chart, type: "line" }))} />,

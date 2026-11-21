@@ -119,6 +119,29 @@ describe("raccourci Nouvelle mission", () => {
   });
 });
 
+// 21/11 (test complet) : recharger la page en pleine mission ramenait à l'accueil.
+describe("mission gardée dans l'adresse", () => {
+  it("ouvrir une mission met son identifiant dans l'adresse ; l'accueil l'enlève", async () => {
+    serve(base);
+    render(<App />);
+    fireEvent.click(await screen.findByText("Mission FICTIVE"));
+    await screen.findByRole("button", { name: "Arrêter" });
+    await waitFor(() => expect(location.hash).toBe("#mission/r1"));
+    fireEvent.click(screen.getByRole("button", { name: /Nouvelle mission/ }));
+    await waitFor(() => expect(location.hash).toBe(""));
+  });
+  it("au rechargement, la mission de l'adresse se rouvre", async () => {
+    history.replaceState(null, "", "/#mission/r1");
+    serve(base);
+    render(<App />);
+    expect(
+      await screen.findByText("Mission FICTIVE", {
+        selector: ".prompt-bubble-text",
+      }),
+    ).toBeTruthy();
+  });
+});
+
 // 21/11 (test complet) : « API locale inaccessible » restait affiché après la reconnexion du flux.
 describe("reconnexion", () => {
   it("le message « API locale inaccessible » s'efface quand le flux revient", async () => {

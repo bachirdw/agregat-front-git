@@ -694,6 +694,24 @@ describe("swarm-09 : états, membres, chef", () => {
     });
     expect(details.textContent).toContain(`réessayer à ${at}`);
   });
+  // 21/11 (test complet) : un membre arrêté par l'utilisateur était présenté « Échec … : erreur ».
+  it("membre arrêté par l'utilisateur : « Arrêtée après … », pas « Échec »", () => {
+    view({
+      family: [
+        member(ids.a, "Arrêt FICTIF", "cancelled", null, {
+          debut: "2026-11-20T00:00:00.000Z",
+          fin: "2026-11-20T00:06:50.000Z",
+          cause: { type: "erreur", message: "Annulée par l’utilisateur" },
+        }),
+      ],
+    } as never);
+    const details = row("Arrêt FICTIF").querySelector("details")!;
+    expect(details.querySelector("summary")!.textContent).toBe(
+      "Arrêtée après 6 min 50 s",
+    );
+    expect(details.className).not.toContain("team-echec");
+    expect(details.textContent).toContain("Annulée par l’utilisateur");
+  });
   it("échec sans message (mission privée) ni reprise : la cause seule, rien d'inventé", () => {
     view({
       family: [

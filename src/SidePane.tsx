@@ -15,10 +15,12 @@ export function SidePane({
   id,
   onClose,
   onOpenFull,
+  onChanged,
 }: {
   id: string;
   onClose: () => void;
   onOpenFull: (id: string) => void;
+  onChanged?: (run: Run) => void;
 }) {
   const [run, setRun] = useState<Run | null>(null);
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -75,6 +77,10 @@ export function SidePane({
       setBusy(false);
     }
   };
+  // Every state the pane learns goes to the mission list (counter « à toi de répondre », dots).
+  useEffect(() => {
+    if (run) onChanged?.(run);
+  }, [run?.id, run?.state]);
   const title =
     run?.famille?.titre || run?.title || run?.prompt || "Sous-agent";
   return (

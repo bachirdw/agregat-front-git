@@ -1509,8 +1509,14 @@ fieldset.question-field label {
 }
 
 /* swarm-11 : résumé d'équipe d'une ligne de la liste, accord court, motif et jetons d'un membre */
+/* 21/11 (test complet) : en `flex: none`, le résumé écrasait le titre (largeur 0). Le titre garde la
+   place ; le résumé prend au plus 45 % et se termine par « … », entier en infobulle. */
 .mission-link small.team-summary {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .team-accord-plus > summary {
@@ -1688,11 +1694,25 @@ fieldset.question-field label {
 .chart-bar {
   flex: 1;
   min-width: 0;
+  position: relative;
+  align-self: flex-end;
   border-radius: 4px 4px 1px 1px;
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .chart-bar.hi {
   background: var(--accent);
+}
+.chart-bar.neg {
+  border-radius: 1px 1px 4px 4px;
+}
+/* Ligne zéro d'un graphique en barres qui a des valeurs négatives. */
+.chart-zero {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--sep);
+  pointer-events: none;
 }
 .chart-plot.line svg {
   position: absolute;
@@ -2157,14 +2177,20 @@ fieldset.question-field label {
   gap: 4px;
   min-width: 0;
 }
+/* 21/11 (test complet) : titres coupés à ~15 caractères, tous pareils (« Offres FICTIVES, … ») ; ils
+   passent sur trois lignes au plus, le titre entier reste en infobulle. */
 .activity-panel .team-open,
 .activity-panel .team-members strong {
   max-width: 100%;
   overflow: hidden;
   font-size: 12px;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 .activity-panel .team-open {
   height: auto;
@@ -2174,10 +2200,14 @@ fieldset.question-field label {
   text-align: left;
 }
 .activity-panel .team-members .badge {
-  height: 18px;
-  padding: 0 7px;
+  height: auto;
+  min-height: 18px;
+  max-width: 100%;
+  padding: 2px 7px;
   font-size: 10.5px;
-  line-height: 18px;
+  line-height: 1.35;
+  white-space: normal;
+  box-sizing: border-box;
 }
 .activity-panel .team-members .tags {
   display: flex;
@@ -2295,7 +2325,8 @@ fieldset.question-field label {
 .side-pane .reponse {
   font-size: 14px;
 }
-@media (max-width: 760px) {
+/* Sous 980 px, une vue de 410 px laisserait moins de 560 px au fil : elle passe en plein écran. */
+@media (max-width: 980px) {
   .side-pane {
     position: absolute;
     inset: 0;

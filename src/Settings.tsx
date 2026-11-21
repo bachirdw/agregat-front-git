@@ -91,7 +91,7 @@ export function Settings({
       {tab === "usage" && usage}
       {tab === "dispo" && (
         <>
-          <h2>Agents connectés</h2>
+          <h2>Agents de ta machine</h2>
           <div className="settings-group">
             {catalog?.agents
               .filter((agent) => !agent.simulated)

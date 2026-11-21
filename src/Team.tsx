@@ -140,6 +140,14 @@ function Failure({ member }: { member: FamilyMember }) {
   const message = text(cause.message);
   // Only a valid hour: a raw or unreadable `reprise` is left out, never shown as is.
   const retry = hour(text(cause.reprise));
+  // Stopped by the owner (or the chief): not a failure of the member.
+  if (member.state === "cancelled")
+    return (
+      <details className="team-pli" open>
+        <summary>{after ? `Arrêtée après ${after}` : "Arrêtée"}</summary>
+        {message && <p>{message}</p>}
+      </details>
+    );
   return (
     <details className="team-pli team-echec" open>
       <summary>
@@ -245,12 +253,13 @@ export function TeamBlock({
                     type="button"
                     className="team-open"
                     aria-label={`Ouvrir la sous-mission ${title}`}
+                    title={title}
                     onClick={() => openRun(m.id)}
                   >
                     {title}
                   </button>
                 ) : (
-                  <strong>{title}</strong>
+                  <strong title={title}>{title}</strong>
                 )}
                 <span
                   className={

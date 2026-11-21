@@ -58,7 +58,8 @@ export function trackerPhrase(run: Run, items: TrackerItem[]) {
   if (run.permissions?.length) return "Attend ton accord";
   if (run.pendingQuestion) return "Attend ta réponse";
   const count = `${items.length} ${items.length > 1 ? "étapes" : "étape"}`;
-  if (run.state === "completed") return "Mission terminée · " + count;
+  if (run.state === "completed")
+    return items.length ? "Mission terminée · " + count : "Mission terminée";
   if (finalStates.has(run.state))
     return `Mission ${lower(labels[run.state] || run.state)}`;
   const current = [...items].reverse().find((item) => item.mark === "running");

@@ -159,6 +159,140 @@ describe("sous-agents dans l'application", () => {
       }),
     ).toBeNull();
   });
+  // 21/11 (test complet) : trois défauts de la vue scindée.
+  it("vue scindée : un membre qui change d'état dans la vue met à jour le compteur de la liste", async () => {
+    width(1600);
+    const waiting = { ...child, state: "awaiting_owner" } as Run;
+    const handlers = new Map<string, { update: (e: unknown) => void }>();
+    vi.mocked(watchRun).mockImplementation((id, h) => {
+      handlers.set(id, h as never);
+      return () => {};
+    });
+    let served = waiting;
+    vi.mocked(api).mockImplementation((path) => {
+      if (path === "/catalog") return Promise.resolve(catalog) as never;
+      if (path === "/runs") return Promise.resolve([mother, served]) as never;
+      if (String(path).startsWith("/runs/c1"))
+        return Promise.resolve(served) as never;
+      return Promise.resolve(mother) as never;
+    });
+    const { container } = render(<App />);
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
+    await waitFor(() =>
+      expect(container.querySelector(".owner-count")).toBeTruthy(),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Voir à côté Offres FICTIVES sur SEEK",
+      }),
+    );
+    await screen.findByRole("complementary", {
+      name: "Sous-agent : Offres FICTIVES sur SEEK",
+    });
+    served = { ...child, state: "completed" } as Run;
+    await act(async () => {
+      handlers.get("c1")!.update({ seq: 9, type: "state", data: {} });
+      await new Promise((r) => setTimeout(r, 400));
+    });
+    await waitFor(() =>
+      expect(container.querySelector(".owner-count")).toBeNull(),
+    );
+  });
+  it("vue scindée : la fermer rend la barre latérale qu'elle avait effacée", async () => {
+    serve([mother, child]);
+    const { container } = render(<App />);
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
+    expect(container.querySelector(".sidebar")).toBeTruthy();
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Voir à côté Offres FICTIVES sur SEEK",
+      }),
+    );
+    const pane = await screen.findByRole("complementary", {
+      name: "Sous-agent : Offres FICTIVES sur SEEK",
+    });
+    expect(container.querySelector(".sidebar")).toBeNull();
+    fireEvent.click(
+      within(pane).getByRole("button", { name: "Fermer la vue à côté" }),
+    );
+    expect(container.querySelector(".sidebar")).toBeTruthy();
+  });
+  // 21/11 (test complet, mise en page) : vue ouverte en grand puis fenêtre réduite, le fil tombait à
+  // 0 px. Les seuils du clic (1560 : barre, 1340 : panneau) valent aussi au redimensionnement.
+  it("vue scindée puis fenêtre réduite : la barre puis le panneau cèdent la place au fil", async () => {
+    width(1920);
+    serve([mother, child]);
+    const { container } = render(<App />);
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails"),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Voir à côté Offres FICTIVES sur SEEK",
+      }),
+    );
+    await screen.findByRole("complementary", {
+      name: "Sous-agent : Offres FICTIVES sur SEEK",
+    });
+    expect(container.querySelector(".sidebar")).toBeTruthy();
+    expect(
+      screen.getByRole("complementary", { name: "Activité" }),
+    ).toBeTruthy();
+    width(1440);
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(container.querySelector(".sidebar")).toBeNull();
+    expect(
+      screen.getByRole("complementary", { name: "Activité" }),
+    ).toBeTruthy();
+    width(1200);
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(
+      screen.queryByRole("complementary", { name: "Activité" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("complementary", {
+        name: "Sous-agent : Offres FICTIVES sur SEEK",
+      }),
+    ).toBeTruthy();
+  });
+  it("vue scindée sur mobile : Échap la ferme", async () => {
+    width(375);
+    serve([mother, child]);
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Afficher la barre latérale" }),
+    );
+    fireEvent.click(
+      await screen.findByText("Mission FICTIVE à trois portails", {
+        selector: "span",
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Afficher l’activité" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Voir à côté Offres FICTIVES sur SEEK",
+      }),
+    );
+    await screen.findByRole("complementary", {
+      name: "Sous-agent : Offres FICTIVES sur SEEK",
+    });
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(
+      screen.queryByRole("complementary", {
+        name: "Sous-agent : Offres FICTIVES sur SEEK",
+      }),
+    ).toBeNull();
+  });
   it("vue scindée : « Ouvrir en grand » ouvre le membre à la place de sa mission", async () => {
     serve([mother, child]);
     render(<App />);

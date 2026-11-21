@@ -66,10 +66,19 @@ export const safeHref = (url?: string) =>
     : undefined;
 
 // Connecteurs : mêmes règles que l'ancien panneau (agents réels seulement, jamais le démonstrateur).
+// Without a probe the agent is only detected, as the Agents page says (« Détecté · non testé »).
+const isUntested = (agent: Agent) =>
+  agent.installed && agent.compatible && !agent.probe;
 const isReady = (agent: Agent) =>
-  agent.installed && agent.compatible && !agent.probe?.error;
+  agent.installed && agent.compatible && !!agent.probe && !agent.probe.error;
 function connector(agent: Agent) {
   if (isReady(agent)) return { tone: "ready", state: "Connecté", why: "Prêt" };
+  if (isUntested(agent))
+    return {
+      tone: "missing",
+      state: "Détecté",
+      why: "Détecté · non testé : la première mission le vérifiera",
+    };
   if (!agent.installed)
     return {
       tone: "missing",
@@ -87,12 +96,14 @@ export function connectorsSummary(catalog: Catalog | null) {
   const agents = catalog.agents.filter((agent) => !agent.simulated);
   if (!agents.length) return "Aucun agent détecté";
   const broken = agents.filter(
-    (agent) => agent.installed && !isReady(agent),
+    (agent) => agent.installed && !isReady(agent) && !isUntested(agent),
   ).length;
   if (broken) return `${broken} à reconnecter`;
   const ready = agents.filter(isReady).length;
   if (ready === agents.length) return "Tous connectés";
-  return ready ? `${ready} connecté${ready > 1 ? "s" : ""}` : "Aucun connecté";
+  if (ready) return `${ready} connecté${ready > 1 ? "s" : ""}`;
+  const seen = agents.filter(isUntested).length;
+  return seen ? `${seen} détecté${seen > 1 ? "s" : ""}` : "Aucun connecté";
 }
 // Hôtes distincts lus pendant la mission (origine seulement : ni chemin ni requête).
 export function visitedHosts(run: Run | null) {

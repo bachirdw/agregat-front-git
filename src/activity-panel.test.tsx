@@ -130,6 +130,29 @@ describe("Connecteurs", () => {
     expect(within(gemini).getByText("Non installé")).toBeTruthy();
     expect(screen.queryByText("Démonstrateur")).toBeNull();
   });
+  // 21/11 (test complet) : un agent jamais testé (sans sonde) était « Connecté » dans le panneau et
+  // « Détecté · non testé » dans la page Agents.
+  it("agent installé jamais testé : « Détecté », pas « Connecté »", () => {
+    panel({
+      catalog: {
+        agents: [
+          {
+            id: "codex",
+            name: "Codex",
+            installed: true,
+            compatible: true,
+          },
+        ],
+      } as unknown as Catalog,
+    });
+    const toggle = screen.getByRole("button", { name: /^Connecteurs/ });
+    expect(toggle.textContent).toContain("1 détecté");
+    expect(toggle.textContent).not.toMatch(/connecté/i);
+    fireEvent.click(toggle);
+    const codex = screen.getByText("Codex").closest("li")!;
+    expect(within(codex).getByText("Détecté")).toBeTruthy();
+    expect(codex.title).toMatch(/non testé/);
+  });
   it("« Tous connectés » quand chaque agent réel est prêt", () => {
     panel({
       catalog: {

@@ -48,8 +48,11 @@ export function useFollow(
       if ((e.touches[0]?.clientY ?? 0) > touchY + 1) up();
     };
     const key = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("input, textarea, select, [contenteditable='true']"))
+      const target = e.target;
+      if (
+        target instanceof Element &&
+        target.closest("input, textarea, select, [contenteditable='true']")
+      )
         return;
       if (["ArrowUp", "PageUp", "Home"].includes(e.key)) up();
     };

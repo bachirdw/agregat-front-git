@@ -306,6 +306,12 @@ describe("suivi de mission v3", () => {
     ]);
     expect(items[0].mark).toBe("pending");
   });
+  // 21/11 (test complet) : « Mission terminée · 0 étape » pour une mission sans étape.
+  it("mission terminée sans étape : pas de « 0 étape »", () => {
+    expect(trackerPhrase({ ...baseRun, state: "completed" }, [])).toBe(
+      "Mission terminée",
+    );
+  });
   it("la mission annulée ne se dit jamais terminée", () => {
     expect(trackerPhrase({ ...baseRun, state: "cancelled" }, [])).toBe(
       "Mission annulée",
