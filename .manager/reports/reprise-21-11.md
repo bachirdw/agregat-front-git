@@ -22,6 +22,13 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 13:25 — lot `orchestre-22-11`** (rapport du même nom, journal `docs/orchestration/log.md`) : deux Codex en
+> parallèle, fusionnés par rebase sur **`main` local = `7b605ab`** (non poussé) depuis le worktree
+> `new-session-1f8da9` : écran Skills et menu « + » du composer (maquettes « Skills et composer » et « Conversation
+> agent v5 »), écran Consommation (maquette « Consommation »). 559/559, build vert, E2E 18/18 avec
+> `agregat-back-reponse-04` (17/18 avec `agregat-back` : fixture sans `askQuestion`). Les champs backend manquants
+> consolidés sont dans le rapport.
+
 > **22/11, fin de matinée — essai réel des Skills sur 4310** (accord du propriétaire) : refus du dépôt entier
 > avec candidats et plugin, import de `customer-research` **en quarantaine sur le back du propriétaire**, « Vérifier »
 > sur prospecting (à jour). Six défauts d'affichage corrigés (voir `skills-nuit-22-11.md`), 510/510.
