@@ -24,8 +24,8 @@
 
 > **22/11, 14:15 — lot `equipe-lisible-22-11`** (rapport du même nom), demande du propriétaire via le manager de
 > l'arrière : réponse d'une mission en équipe lisible (carte Résultat, trouvailles par membre, tableau des tâches avec
-> reprises, sites non lus, détails techniques repliés ligne à ligne, fil replié). **`main` local = `c4e48d9`, non
-> poussé** (`origin/main` = `d147d28`). 579/579, E2E 18/18 (back reponse-04). Captures avant/après (vraies données)
+> reprises, sites non lus, détails techniques repliés ligne à ligne, fil replié). **`main` = `85bfc59`, poussé sur
+> `origin` le 22/11 vers 14:20** à la demande du propriétaire (avance rapide depuis `d147d28`). 579/579, E2E 18/18 (back reponse-04). Captures avant/après (vraies données)
 > hors du dépôt : `~/Downloads/agregat-orchestre-06-journaux/captures-equipe-lisible/`.
 
 > **22/11, 13:25 — lot `orchestre-22-11`** (rapport du même nom, journal `docs/orchestration/log.md`) : deux Codex en
