@@ -1050,10 +1050,21 @@ test(
       "Relance FICTIVE deux",
       "Relance FICTIVE trois",
     ];
-    await page.waitForFunction(
-      (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
-      expected.length,
-    );
+    // conversation-22-11 : le dernier tour précédent reste visible, les plus anciens se replient en haut.
+    const unfold = async () => {
+      await page.waitForFunction(
+        (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
+        expected.length - 1,
+      );
+      await page
+        .getByRole("button", { name: "Afficher l’échange précédent" })
+        .click();
+      await page.waitForFunction(
+        (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
+        expected.length,
+      );
+    };
+    await unfold();
     assert.deepEqual(await bubbles(), expected);
     // One conversation, one entry: its latest turn, with the number of turns.
     const entries = await page.locator(".mission-link").allInnerTexts();
@@ -1066,10 +1077,7 @@ test(
     await page.reload();
     await page.locator(".app[data-ready=true]").waitFor();
     await page.locator(".mission-link").first().click();
-    await page.waitForFunction(
-      (n) => document.querySelectorAll(".thread .prompt-bubble").length === n,
-      expected.length,
-    );
+    await unfold();
     assert.deepEqual(await bubbles(), expected);
     assert.deepEqual(errors, []);
   },

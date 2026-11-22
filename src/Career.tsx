@@ -1385,14 +1385,107 @@ function Turn({
     </>
   );
 }
-// Earlier turns of a resumable conversation, above the current run's own view.
+// conversation-22-11 : un tour précédent, dans la même présentation que la réponse en cours (bulle,
+// puis réponse en `.reponse`), lu dans la liste des missions : rien n'est relu au moment d'une réponse
+// (le tour disparaissait puis réapparaissait quand GET /runs/:id était lent). Relecture seulement si la
+// liste ne porte pas la réponse (ancien back) ; career-ops : réponse privée, lue par sa route.
+function PastTurn({ run }: { run: Run }) {
+  const career = isCareerRun(run);
+  const done = run.state === "completed";
+  const listed = run.result?.summary;
+  const privateResult = usePrivateResult(run);
+  const [fetched, setFetched] = useState<{
+    summary: string;
+    answer?: string;
+    notes?: string[];
+  } | null>(null);
+  const [error, setError] = useState("");
+  const needFetch = !career && done && !listed;
+  useEffect(() => {
+    setFetched(null);
+    setError("");
+    if (!needFetch) return;
+    const abort = new AbortController();
+    api<Run>(`/runs/${run.id}`, undefined, abort.signal)
+      .then((r) => {
+        if (!abort.signal.aborted)
+          setFetched({
+            summary: r.result?.summary || "",
+            answer: r.result?.answer,
+            notes: r.result?.platformNotes,
+          });
+      })
+      .catch((e) => {
+        if (!abort.signal.aborted) setError((e as Error).message);
+      });
+    return () => abort.abort();
+  }, [run.id, needFetch]);
+  const summary = career
+    ? (privateResult.text ?? (privateResult.failed ? listed || "" : null))
+    : (listed ?? fetched?.summary ?? null);
+  return (
+    <>
+      <MissionPrompt run={run} />
+      <div className="reponse reponse-passee">
+        {summary ? (
+          <AgentAnswer
+            text={summary}
+            answer={
+              career ? undefined : (run.result?.answer ?? fetched?.answer)
+            }
+            notes={
+              career ? undefined : (run.result?.platformNotes ?? fetched?.notes)
+            }
+          />
+        ) : (
+          done && !error && summary === null && <Waiting label="Chargement…" />
+        )}
+        {privateResult.failed && (
+          <p className="muted answer-source">
+            Résultat privé illisible : réponse enregistrée sur la mission.
+          </p>
+        )}
+        {["failed", "cancelled", "interrupted"].includes(run.state) && (
+          <p className="danger">{run.error || "Tour interrompu."}</p>
+        )}
+        {error && (
+          <p className="danger" role="alert">
+            {error}
+          </p>
+        )}
+        {!["queued", "running"].includes(run.state) && (
+          <PastSteps run={run} answer={summary} />
+        )}
+      </div>
+    </>
+  );
+}
+// Earlier turns of a resumable conversation, above the current run's own view. The last one stays
+// visible ; older ones fold at the top (fil-long-22-11 : never a fold at the bottom).
 export function SessionHistory({ run, runs }: { run: Run; runs: Run[] }) {
+  const [open, setOpen] = useState(false);
   const turns = sessionThread(run, runs).filter((t) => t.id !== run.id);
   if (!turns.length) return null;
+  const older = turns.length - 1;
+  const shown = open || older <= 0 ? turns : turns.slice(older);
   return (
-    <div className="career-thread">
-      {turns.map((t) => (
-        <Turn key={t.id} run={t} source={isCareerRun(t) ? "career" : "run"} />
+    <div className="session-history">
+      {older > 0 && (
+        <button
+          type="button"
+          className="fil-precedents"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open
+            ? "Masquer les échanges précédents"
+            : older === 1
+              ? "Afficher l’échange précédent"
+              : `Afficher les ${older} échanges précédents`}
+        </button>
+      )}
+      {shown.map((t) => (
+        <PastTurn key={t.id} run={t} />
       ))}
     </div>
   );

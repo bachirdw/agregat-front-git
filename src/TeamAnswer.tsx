@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { isPlatform, items as splitList } from "./Bilan";
+import { Markdown } from "./Markdown";
 import type { FamilyMember, Run, RunEvent } from "./types";
 
 // equipe-lisible-22-11 : réponse d'une mission en équipe lisible sans connaître les outils (demande du
@@ -459,7 +460,9 @@ export function TeamAnswer({
         {parties?.reponse && (
           <div className="equipe-carte">
             <p className="equipe-carte-titre">Synthèse de l’agent principal</p>
-            <p className="equipe-texte">{parties.reponse}</p>
+            <div className="equipe-texte">
+              <Markdown text={parties.reponse} />
+            </div>
           </div>
         )}
         {termines.map((m) => (
@@ -477,10 +480,11 @@ export function TeamAnswer({
                 </button>
               )}
             </div>
+            {/* conversation-22-11 : le résultat d'un membre est du Markdown (tableaux, gras) : rendu. */}
             {text(m.resultat) && (
-              <p className="equipe-texte">
-                {resultatLisible(text(m.resultat))}
-              </p>
+              <div className="equipe-texte">
+                <Markdown text={resultatLisible(text(m.resultat))} />
+              </div>
             )}
             {text(m.resultat).length >= 599 && onOpenMember && (
               <p className="equipe-suite">
