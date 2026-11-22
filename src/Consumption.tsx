@@ -462,7 +462,9 @@ export function Consumption({
                     <span />
                     <span>Mission</span>
                     <span className="cs-number">Tokens</span>
-                    <span className="cs-number">Part {period} j</span>
+                    <span className="cs-number cs-col-share">
+                      Part {period} j
+                    </span>
                     <span className="cs-number">Plateforme</span>
                     <span className="cs-number">Durée</span>
                   </div>
@@ -520,7 +522,7 @@ export function Consumption({
                             <span className="cs-number">
                               {tokenValue(tokens?.total)}
                             </span>
-                            <span className="cs-number cs-secondary">
+                            <span className="cs-number cs-secondary cs-col-share">
                               {periodTokens !== undefined && totalTokens > 0
                                 ? percentage(periodTokens, totalTokens)
                                 : "Bientôt"}
@@ -544,7 +546,10 @@ export function Consumption({
                                 <span>Sous-agent</span>
                                 {["Entrée", "Sortie", "Cache", "Outils"].map(
                                   (label) => (
-                                    <span className="cs-number" key={label}>
+                                    <span
+                                      className={`cs-number${label === "Cache" ? " cs-col-cache" : ""}`}
+                                      key={label}
+                                    >
                                       {label}
                                     </span>
                                   ),
@@ -567,7 +572,10 @@ export function Consumption({
                                       >
                                         {row.name}
                                       </span>
-                                      <span className="cs-member-agent">
+                                      <span
+                                        className="cs-member-agent"
+                                        title={row.agent || "Bientôt"}
+                                      >
                                         {row.agent || "Bientôt"}
                                       </span>
                                     </span>
@@ -577,7 +585,7 @@ export function Consumption({
                                     <span className="cs-number">
                                       {tokenValue(detail?.output)}
                                     </span>
-                                    <span className="cs-number">
+                                    <span className="cs-number cs-col-cache">
                                       {tokenValue(detail?.cache)}
                                     </span>
                                     <span className="cs-number">

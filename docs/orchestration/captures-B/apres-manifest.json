@@ -4,7 +4,7 @@
   "backend": "API réelle en fixture isolée, aucun agent lancé",
   "expectedSourceRevision": null,
   "baselineNote": "Les captures AVANT exigent un dist reconstruit à b9cbe19 ; le script ne reconstruit pas cette révision.",
-  "createdAt": "2026-11-22T01:47:20.326Z",
+  "createdAt": "2026-11-22T01:57:48.433Z",
   "shots": [
     "apres-apercu-1440-sombre.png",
     "apres-statistiques-1440-sombre.png",
@@ -20,5 +20,111 @@
     "apres-liste-vide-768-sombre.png"
   ],
   "unavailable": [],
-  "pageErrors": []
+  "pageErrors": [],
+  "layoutChecks": [
+    {
+      "state": "apercu",
+      "width": 1024,
+      "contentWidth": 734,
+      "overflows": [],
+      "shareColumns": [],
+      "cacheColumns": []
+    },
+    {
+      "state": "statistiques",
+      "width": 1024,
+      "contentWidth": 734,
+      "overflows": [],
+      "shareColumns": [
+        "block",
+        "block",
+        "block",
+        "block",
+        "block",
+        "block"
+      ],
+      "cacheColumns": []
+    },
+    {
+      "state": "mission-depliee",
+      "width": 1024,
+      "contentWidth": 734,
+      "overflows": [],
+      "shareColumns": [
+        "block",
+        "block",
+        "block",
+        "block",
+        "block",
+        "block"
+      ],
+      "cacheColumns": [
+        "block",
+        "block",
+        "block"
+      ]
+    },
+    {
+      "state": "apercu",
+      "width": 768,
+      "contentWidth": 478,
+      "overflows": [],
+      "shareColumns": [],
+      "cacheColumns": []
+    },
+    {
+      "state": "statistiques",
+      "width": 768,
+      "contentWidth": 478,
+      "overflows": [],
+      "shareColumns": [
+        "none",
+        "none",
+        "none",
+        "none",
+        "none",
+        "none"
+      ],
+      "cacheColumns": []
+    },
+    {
+      "state": "mission-depliee",
+      "width": 768,
+      "contentWidth": 478,
+      "overflows": [],
+      "shareColumns": [
+        "none",
+        "none",
+        "none",
+        "none",
+        "none",
+        "none"
+      ],
+      "cacheColumns": [
+        "none",
+        "none",
+        "none"
+      ]
+    },
+    {
+      "state": "liste-vide",
+      "width": 1024,
+      "contentWidth": 734,
+      "overflows": [],
+      "shareColumns": [
+        "block"
+      ],
+      "cacheColumns": []
+    },
+    {
+      "state": "liste-vide",
+      "width": 768,
+      "contentWidth": 478,
+      "overflows": [],
+      "shareColumns": [
+        "none"
+      ],
+      "cacheColumns": []
+    }
+  ]
 }

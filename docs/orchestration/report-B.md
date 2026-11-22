@@ -2,7 +2,7 @@
 
 ## 1. Fait
 
-- Livraison de code validée ; **aucun commit créé** à cause du refus d’écriture du verrou Git décrit ci-dessous. Branche conservée : `feat/consommation`, base `b9cbe19`.
+- Première livraison enregistrée par le chef de chantier dans **`93bb5f0`**, après les refus initiaux de verrou Git conservés dans le journal. Captures avant/après également réalisées par le chef aux trois largeurs. Branche conservée : `feat/consommation`, base initiale `b9cbe19`.
 - 12:08 — Lecture de `AGENTS.md`, du plan d’orchestration, des deux skills de design, de la maquette lisible, des types et de l’écran existant. Aucun fichier partagé modifié.
 - Travail parallèle limité au périmètre B : tests de comportement et banc de captures ; implémentation de l’écran et journal par l’agent principal.
 - Journal centralisé ici conformément au brief et à sa liste exclusive de fichiers autorisés (pas de second rapport dans `.manager`).
@@ -13,8 +13,8 @@
 
 ## 2. Non fait
 
-- **Commits locaux bloqués par le bac à sable** : `git add` refuse de créer `/Users/diaw/Downloads/agregat-front/.git/worktrees/agregat-wt-b/index.lock` (`Operation not permitted`, code 128). Aucun commit créé, aucune réécriture, aucun push. Le chef devra enregistrer les changements après relecture.
-- Le code est finalisé et validé. Restent uniquement l’enregistrement Git et les captures/comparaisons visuelles, impossibles dans ce bac à sable. Il serait inexact d’inscrire « ÉTAT : TERMINÉ » avant les commits demandés.
+- Les blocages initiaux de commit/captures ont été pris en charge par le chef de chantier. Sa consigne pour l’aller-retour 1 est de laisser les corrections dans le worktree, **sans aucune tentative de commit**.
+- Correction responsive et validation de l’aller-retour 1 terminées. Les nouvelles dimensions en navigateur pourront être contrôlées par le chef avec le banc enrichi ; les mesures en navigateur n’ont pas été exécutées dans ce bac à sable.
 
 ## 3. Fichiers touchés
 
@@ -50,7 +50,7 @@ Points d’adaptation supplémentaires : `getOverviewTokens(runs, 7): TokenUsage
 - Coût estimé annoté, tarifs réels conservés dans un détail repliable de l’Aperçu, registre réel accessible dans un détail de mission : ajouts nécessaires pour conserver le comportement existant.
 - Les missions sont initialement repliées ; leur ouverture demande à `App` le détail réel avec `onSelect(id)`. Les sous-missions rattachées apparaissent sous leur mère ; les orphelines restent visibles.
 - 12:19 — Relecture croisée : corrections des espacements des barres (18 / 4 px), du `box-sizing` hérité (880 px de contenu + 64 px de marge intérieure, graphique 160 + 8 px), de la palette « Inconnu » (gris), du survol hérité, de l’accessibilité des infobulles et de la validation des dates de reprise. Le catalogue n’est pas présenté comme une preuve de connexion à un compte ; les démonstrateurs sont identifiés.
-- Pas de comparaison visuelle effective, car les serveurs locaux sont interdits par le bac à sable ; fidélité vérifiée par lecture des valeurs uniquement.
+- À la livraison initiale, comparaison visuelle impossible dans le bac à sable ; les captures réalisées ensuite par le chef ont été examinées pour l’aller-retour 1 (voir section dédiée).
 - La barre d’application existante (48 px) est réservée **hors** de l’écran ; les 48 px internes de la maquette sont conservés. Aucune réserve supplémentaire dans l’intégration à Settings. Animations de la source reprises (0,2 s / 0,18 s, translation de 4 px), désactivées en mouvement réduit.
 
 ## 6. Captures avant/après
@@ -58,13 +58,14 @@ Points d’adaptation supplémentaires : `getOverviewTokens(runs, 7): TokenUsage
 - 12:10 — AVANT tenté après build vert. Échec réel : `Error: listen EPERM: operation not permitted 127.0.0.1`. Chrome n’a pas été lancé, aucun contournement. Serveur fermé et dossier temporaire supprimé dans `finally`.
 - Erreur complète : `captures-B/avant-manifest.json`. Script prêt pour les captures APRÈS : Aperçu, Statistiques, mission dépliée, liste vide × 1440, 1024, 768 px. État AVANT : les onglets et les missions dépliables n’existaient pas ; le script documente les substitutions disponibles.
 - 12:19 — APRÈS tenté sur build vert : même refus `listen EPERM` sur `127.0.0.1` (code 1), conservé dans `captures-B/apres-manifest.json`. Aucune capture produite, aucun Chrome lancé, ressources temporaires supprimées.
+- Après la livraison initiale : le chef a réalisé les captures avant/après à 1440, 1024 et 768 px et les a enregistrées dans `93bb5f0`, avec le sélecteur `.cs-mission-toggle` corrigé. Les captures Statistiques, mission dépliée et Aperçu à 768/1024 ont servi à l’aller-retour 1. Les fichiers du chef sont conservés ; aucune nouvelle capture prétendument vérifiée n’est ajoutée ici.
 
 ## 7. Demandes au chef de chantier
 
 - Exposer un agrégat mensuel du ledger (devise/période/exhaustivité) : la liste de missions est limitée et ne contient pas `usage`, seul le détail le fournit aujourd’hui. La date de création d’une mission n’est pas la date de ses charges.
 - Fournir les champs du tableau ci-dessus et confirmer la disponibilité du contrat `family` sur le backend déployé. Les types/props/API partagés n’ont pas été modifiés.
-- Relancer le banc de captures depuis un environnement autorisant les serveurs locaux et Chrome, puis faire la comparaison visuelle (non vérifiable dans ce bac à sable).
-- Enregistrer les changements dans des commits locaux préfixés `[orchestre-B]` : l’écriture du verrou Git est interdite ici malgré le chemin annoncé comme autorisé. Aucun contournement tenté.
+- Captures et premier commit pris en charge par le chef (`93bb5f0`). Pour le contrôle visuel après correction responsive, le banc enrichi vérifiera aussi les dimensions réelles à 768/1024 lors de sa prochaine exécution autorisée.
+- Les corrections de l’aller-retour 1 restent dans le worktree, conformément à la nouvelle consigne du chef ; aucune tentative de commit.
 
 ## 8. Commandes et résultats
 
@@ -96,4 +97,22 @@ Points d’adaptation supplémentaires : `getOverviewTokens(runs, 7): TokenUsage
 
 - `git diff --check` et syntaxe du banc : verts. Tentative de lecture des processus via `ps` refusée par le bac à sable (`operation not permitted`), aucun contournement.
 
-ÉTAT : BLOQUÉ — code terminé et tests verts ; commits locaux et captures refusés par le bac à sable.
+## Aller-retour 1
+
+- 12:52 — Retour reçu : première livraison commitée par le chef (`93bb5f0`), captures avant/après présentes à 1440, 1024 et 768 px. Sa correction du sélecteur `.cs-mission-toggle` dans le banc est conservée. Worktree propre au début de ce retour.
+- Captures examinées : Statistiques, mission dépliée et Aperçu à 768 et 1024 px. À 768 px, le contenu fait environ 478 px après la barre latérale et les marges ; le `min-width: 560px` du tableau impose environ 82 px de débordement. À 1024 px, les tableaux et l’Aperçu tiennent dans environ 734 px ; les trois indicateurs de l’Aperçu et les comptes restent lisibles.
+- Test de régression écrit avant correction : repères de colonnes repliables sur les en-têtes **et** les cellules, titres complets accessibles malgré l’ellipse, durée et outils conservés. jsdom ne calcule pas les dimensions ; la règle de repli sera décrite ici et les mesures pourront être vérifiées par le banc de captures.
+- 12:54 — Test d’abord : `npx vitest run src/consommation-responsive.test.tsx` rouge, **1 échec / 1 test**, 4,63 s (classe de repli absente, échec attendu).
+- 12:55 — Correction dans `src/Consumption.tsx` et `src/screen-consumption.css` : suppression de la largeur minimale de 560 px et du défilement horizontal ; les grilles utilisent toute la largeur disponible, avec les titres tronqués par ellipse et leur texte complet en infobulle. Aucun masquage global du débordement.
+- Repli par **largeur du contenu**, via `container-name: cs-content` / `container-type: inline-size`, pour prendre en compte la barre latérale et l’intégration dans Settings :
+  - À **680 px ou moins**, `Part 7 j / 30 j` porte `cs-col-share` sur en-tête et cellule, puis est masquée ; grille mission `16px minmax(0,1fr) 70px 80px 64px`, espaces de 8 px. Durée reste visible.
+  - À **520 px ou moins**, `Cache` porte `cs-col-cache` sur en-tête et cellule, puis est masquée ; retrait du détail réduit de 52 à 30 px ; grille détail `minmax(0,1fr) 70px 70px 60px`, espaces de 8 px. Nom tronqué et agent sur une seconde ligne, avec noms complets dans les attributs `title`. Entrée, Sortie et Outils restent visibles.
+  - Avec les **478 px** de contenu de la capture 768, cela laisse **208 px** au titre de mission et **224 px** à l’identité du sous-agent. Avec les **734 px** de contenu de la capture 1024, aucune colonne n’est masquée et les espacements de la maquette sont conservés.
+- Aperçu vérifié sur les deux captures : disposition existante conservée (3 indicateurs à 1024, 2 puis 1 à 768). Les indicateurs reçoivent `min-width:0`, une borne minimale limitée à la largeur disponible et le retour à la ligne des textes/montants longs ; noms et descriptions de comptes peuvent couper les mots très longs. Le registre dépliable passe en une colonne dans un contenu étroit.
+- `scripts/orchestre-B-captures.mjs` enrichi, sans changer le sélecteur corrigé par le chef : avant chaque capture APRÈS à 1024 et 768, vérifie `scrollWidth <= clientWidth + 1` et les rectangles des tableaux/détails/indicateurs/comptes dans les limites du contenu, puis vérifie le masquage des colonnes selon les seuils. Les mesures sont enregistrées dans `layoutChecks` du manifeste lors de sa prochaine exécution. Non exécuté ici : le refus de serveur déjà constaté n’est pas contourné et les captures du chef ne sont pas écrasées.
+- 12:55 — Tests ciblés : `npx vitest run src/consommation-responsive.test.tsx src/consommation.test.tsx src/consommation-notes.test.tsx` : **24 tests verts, 3 fichiers verts**, 1,43 s. Syntaxe du banc et `git diff --check` verts.
+- 12:56 — `npm run build` : **vert** (TypeScript et Vite, 650 ms Vite ; avertissement de chunks > 500 kB déjà connu). **`npm test` complet sans option : 534 tests verts, 38 fichiers verts, 11,23 s, code 0**. Sorties : `/tmp/orchestre-B-retour-1-build.log` et `/tmp/orchestre-B-retour-1-tests.log`.
+- Fichiers de cet aller-retour : `src/Consumption.tsx`, `src/screen-consumption.css`, nouveau `src/consommation-responsive.test.tsx`, `scripts/orchestre-B-captures.mjs`, `docs/orchestration/report-B.md`. Aucun test existant adapté dans cet aller-retour, aucune assertion retirée ou désactivée.
+- Aucun commit tenté dans cet aller-retour, aucun serveur/Chrome relancé, aucune dépendance ajoutée.
+
+ÉTAT : TERMINÉ

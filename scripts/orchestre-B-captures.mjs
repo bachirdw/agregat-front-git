@@ -34,6 +34,7 @@ const manifest = {
   shots: [],
   unavailable: [],
   pageErrors: [],
+  layoutChecks: [],
 };
 let browser;
 let app;
@@ -186,6 +187,56 @@ async function listen() {
 }
 
 async function capture(page, state, width) {
+  if (label === "apres" && [1024, 768].includes(width)) {
+    const layout = await page.locator(".cs-screen").evaluate((screen) => {
+      const content = screen.querySelector(".cs-content");
+      const box = content.getBoundingClientRect();
+      const style = getComputedStyle(content);
+      const left = box.left + parseFloat(style.paddingLeft);
+      const right = box.right - parseFloat(style.paddingRight);
+      const overflows = [
+        ...screen.querySelectorAll(
+          ".cs-missions, .cs-table, .cs-mission-columns, .cs-detail, .cs-detail-columns, .cs-kpis, .cs-kpi, .cs-account, .cs-limit",
+        ),
+      ]
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return (
+            rect.width &&
+            rect.height &&
+            (element.scrollWidth > element.clientWidth + 1 ||
+              rect.left < left - 1 ||
+              rect.right > right + 1)
+          );
+        })
+        .map((element) => element.className);
+      const columns = (selector) =>
+        [...screen.querySelectorAll(selector)].map(
+          (element) => getComputedStyle(element).display,
+        );
+      return {
+        contentWidth: right - left,
+        overflows,
+        shareColumns: columns(".cs-col-share"),
+        cacheColumns: columns(".cs-col-cache"),
+      };
+    });
+    manifest.layoutChecks.push({ state, width, ...layout });
+    if (layout.overflows.length)
+      throw new Error(
+        `Débordement horizontal à ${width}px (${state}) : ${layout.overflows.join(", ")}`,
+      );
+    if (
+      layout.contentWidth <= 680 &&
+      layout.shareColumns.some((display) => display !== "none")
+    )
+      throw new Error(`Colonne Part non repliée à ${width}px (${state})`);
+    if (
+      layout.contentWidth <= 520 &&
+      layout.cacheColumns.some((display) => display !== "none")
+    )
+      throw new Error(`Colonne Cache non repliée à ${width}px (${state})`);
+  }
   const name = `${label}-${state}-${width}-sombre.png`;
   await page.screenshot({ path: join(out, name), fullPage: true });
   manifest.shots.push(name);
