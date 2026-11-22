@@ -121,6 +121,7 @@ export function Composer({
   sessionSettings,
   agentWarning,
   onManageSkills,
+  onLeaveDemo,
 }: {
   catalog: Catalog | null;
   input: MissionInput;
@@ -142,8 +143,17 @@ export function Composer({
   agentWarning?: string | null;
   // orchestre-22-11 : « Gérer les Skills » du menu « + » ouvre la page Skills (branché par App).
   onManageSkills?: () => void;
+  // demo-fictive-22-11 (E204) : sortir d'un pack de démonstration (pack et workflow en « auto »).
+  onLeaveDemo?: () => void;
 }) {
   const teamHelp = useId();
+  // Pack de démonstration choisi pour la prochaine mission (le catalogue l'annonce : `dataMode: "fixture"`).
+  const demoPack =
+    !reply && !sessionSettings
+      ? catalog?.packs.find(
+          (p) => p.id === input.pack && p.dataMode === "fixture",
+        )
+      : undefined;
   const shortcutsHelp = useId();
   const [plusOpen, setPlusOpen] = useState(false);
   const [shortcutGroup, setShortcutGroup] = useState<ComposerGroup>();
@@ -842,6 +852,17 @@ export function Composer({
               garder le workflow.
             </p>
           )}
+        {demoPack && (
+          <p className="agent-warning demo-warning" role="status">
+            Démonstration fictive : aucun site réel ne sera lu
+            {demoPack.name ? ` (pack ${demoPack.name})` : ""}.
+            {onLeaveDemo && (
+              <button type="button" onClick={onLeaveDemo}>
+                Faire une vraie recherche
+              </button>
+            )}
+          </p>
+        )}
         <div className="composer-bottom">
           <ComposerMenu
             open={plusOpen}

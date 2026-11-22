@@ -198,6 +198,8 @@ export interface Pack {
   id: string;
   name: string;
   description: string;
+  // demo-fictive-22-11 (E204) : « fixture » = pack de démonstration (navigateur et données fictifs).
+  dataMode?: string;
   skills: { id: string }[];
   dags: {
     id: string;

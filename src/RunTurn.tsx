@@ -1203,6 +1203,13 @@ export function RunTurn({
     <>
       {live && <SkillChip events={events} run={run} />}
       <div className="reponse">
+        {/* demo-fictive-22-11 (E204) : une mission en données fictives le dit avant tout le reste. */}
+        {run.dataMode === "fixture" && (
+          <p className="demo-bandeau" role="note">
+            <strong>Démonstration fictive</strong> : navigateur et données
+            fictifs, aucun site réel n’a été lu.
+          </p>
+        )}
         {team ? (
           <>
             <TeamAnswer

@@ -22,6 +22,10 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 15:15 — lot `demo-fictive-22-11`** (E204, rapport du même nom) : le pack de démonstration d'une
+> suggestion ne reste plus choisi, avertissement avant l'envoi, bandeau sur la réponse. 586/586, E2E 18/18. Commité
+> sur `main` local, **non poussé** au moment de l'écrire. Aperçu 5173 lancé depuis ce worktree (sur 4310).
+
 > **22/11, 14:15 — lot `equipe-lisible-22-11`** (rapport du même nom), demande du propriétaire via le manager de
 > l'arrière : réponse d'une mission en équipe lisible (carte Résultat, trouvailles par membre, tableau des tâches avec
 > reprises, sites non lus, détails techniques repliés ligne à ligne, fil replié). **`main` = `85bfc59`, poussé sur

@@ -353,13 +353,31 @@ export default function App() {
     setError("");
     if (innerWidth <= 760) setSide(false);
   };
+  // demo-fictive-22-11 (E204) : le pack et le workflow posés par une suggestion ne valent que pour elle.
+  // `suggestion` garde son texte, ce qu'elle a posé et le mode d'avant, pour y revenir.
+  const suggestion = useRef<{
+    prompt: string;
+    pack: string;
+    workflow: string;
+    mode: MissionInput["mode"];
+  } | null>(null);
   const newMission = useCallback(() => {
     viewVersion.current++;
     setPage("home");
     setRun(null);
     setImmediatePrompt(null);
     current.current = "";
-    setInput((old) => ({ ...old, prompt: "", attachments: [] }));
+    // Chaque nouvelle mission repart sans pack ni workflow (agent, modèle, Skill, navigateur restent).
+    const before = suggestion.current;
+    suggestion.current = null;
+    setInput((old) => ({
+      ...old,
+      prompt: "",
+      attachments: [],
+      pack: "auto",
+      workflow: "auto",
+      ...(before ? { mode: before.mode } : {}),
+    }));
     setError("");
     if (innerWidth <= 760) setSide(false);
     requestAnimationFrame(() => document.getElementById("prompt")?.focus());
@@ -752,8 +770,29 @@ export default function App() {
         setNotice((old) => (old.startsWith(ENDED_NOTICE) ? "" : old));
       });
   }, [runId, runState, busy, queued]);
+  // Sortie de la suggestion : pack et workflow en « auto », mode d'avant la suggestion.
+  const leaveSuggestion = (next: MissionInput): MissionInput => {
+    const before = suggestion.current;
+    suggestion.current = null;
+    return {
+      ...next,
+      pack: "auto",
+      workflow: "auto",
+      ...(before ? { mode: before.mode } : {}),
+    };
+  };
   const change = (next: MissionInput) => {
     if (busy) return;
+    const s = suggestion.current;
+    // Le texte de la suggestion est modifié ou remplacé : son pack et son workflow ne valent plus, sauf si
+    // le propriétaire les a déjà changés lui-même (alors son choix reste).
+    if (s && next.prompt !== s.prompt) {
+      if (next.pack === s.pack && next.workflow === s.workflow) {
+        setInput(leaveSuggestion(next));
+        return;
+      }
+      suggestion.current = null;
+    }
     setInput(next);
   };
   const choose = (patch: Partial<MissionInput>) => {
@@ -1085,13 +1124,21 @@ export default function App() {
                       key={s.title}
                       disabled={busy}
                       onClick={() => {
-                        change({
-                          ...input,
+                        const mode = s.pack === "core" ? "agent" : "workflow";
+                        suggestion.current = {
                           prompt: s.prompt,
                           pack: s.pack,
-                          mode: s.pack === "core" ? "agent" : "workflow",
                           workflow: s.workflow,
-                        });
+                          mode: suggestion.current?.mode ?? input.mode,
+                        };
+                        if (!busy)
+                          setInput({
+                            ...input,
+                            prompt: s.prompt,
+                            pack: s.pack,
+                            mode,
+                            workflow: s.workflow,
+                          });
                         document.getElementById("prompt")?.focus();
                       }}
                     >
@@ -1269,6 +1316,9 @@ export default function App() {
             scope={viewVersion.current}
             catalog={catalog}
             input={input}
+            onLeaveDemo={() => {
+              if (!busy) setInput(leaveSuggestion(input));
+            }}
             onChange={change}
             onPlan={() => void (canReply ? reply() : launch())}
             agentWarning={agentWarning(input.agent, catalog, runs)}
