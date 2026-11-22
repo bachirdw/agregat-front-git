@@ -161,7 +161,8 @@ test(
     assert.equal(await add.isVisible(), true);
     await add.click();
     const picker = page.waitForEvent("filechooser");
-    await page.getByRole("menuitem", { name: "Ajouter un fichier" }).click();
+    // orchestre-22-11 : entrée « Fichiers et dossiers » du menu « + » (maquette Conversation v5).
+    await page.getByRole("menuitem", { name: /Fichiers et dossiers/ }).click();
     await (
       await picker
     ).setFiles({
@@ -188,6 +189,8 @@ test(
       "Mode",
       "Avancé",
     ].entries()) {
+      // orchestre-22-11 : le choix du Skill est passé dans le menu « + » (vérifié plus bas).
+      if (name === "Skill") continue;
       const summary = page
         .locator(".filter summary")
         .filter({ hasText: name })
@@ -248,22 +251,26 @@ test(
     await shot(page, "03-modeles");
     await page.getByRole("button", { name: "Skills", exact: true }).click();
     await shot(page, "04-skills");
-    const install = page
-      .getByRole("button", { name: "Installer", exact: true })
-      .first();
+    // orchestre-22-11 : « + » d'une ligne Embarqués ; Activer / Désactiver sont dans le détail déplié.
+    const install = page.getByRole("button", { name: /^Installer / }).first();
+    const installed = (await install.getAttribute("aria-label")).slice(
+      "Installer ".length,
+    );
     await install.click();
-    await page
-      .getByRole("button", { name: "Désactiver", exact: true })
-      .first()
-      .waitFor();
-    await page
-      .getByRole("button", { name: "Désactiver", exact: true })
-      .first()
+    const row = page.locator(".sk-row").filter({
+      has: page.getByRole("button", {
+        name: "Détails de " + installed,
+        exact: true,
+      }),
+    });
+    await row
+      .getByRole("button", { name: "Détails de " + installed, exact: true })
       .click();
-    await page
-      .getByRole("button", { name: "Activer", exact: true })
-      .first()
+    await row
+      .getByRole("button", { name: "Désactiver", exact: true })
       .waitFor();
+    await row.getByRole("button", { name: "Désactiver", exact: true }).click();
+    await row.getByRole("button", { name: "Activer", exact: true }).waitFor();
     await page
       .getByRole("button", { name: "Domain Packs", exact: true })
       .click();
@@ -271,10 +278,10 @@ test(
     await page
       .getByRole("button", { name: "Consommation", exact: true })
       .click();
-    await page
-      .getByRole("button", { name: "Voir la consommation" })
-      .first()
-      .click();
+    // orchestre-22-11 : la mission se déplie ; le détail du registre (UsageCard) est dans le dépli.
+    await page.locator(".cs-mission-toggle").first().click();
+    await page.locator(".cs-detail").first().waitFor();
+    await page.locator(".cs-detail summary").first().click();
     await page.locator(".usage-card").waitFor();
     await shot(page, "06-consommation");
     assert.deepEqual(errors, []);
@@ -618,29 +625,34 @@ test(
     await page.reload();
     await page.locator(".app[data-ready=true]").waitFor();
     await page.getByRole("button", { name: "Skills", exact: true }).click();
+    // orchestre-22-11 : l'import passe par le menu « Ajouter » de la maquette Skills.
+    await page
+      .locator(".sk-screen")
+      .getByRole("button", { name: "Ajouter", exact: true })
+      .click();
+    await page
+      .getByRole("menuitem", { name: /Importer depuis GitHub/ })
+      .click();
     await page
       .getByLabel("Dépôt GitHub", { exact: true })
       .fill("https://example.com/refused");
-    await page.getByRole("button", { name: "Importer en quarantaine" }).click();
+    await page.getByRole("button", { name: "Importer", exact: true }).click();
     await page
       .getByRole("alert")
       .filter({ hasText: "Source Git refusée" })
       .waitFor();
-    await page.getByRole("button", { name: "Fermer", exact: true }).click();
-    const card = page.locator(".skill-card").filter({ hasText: imported.name });
-    assert.equal(
-      await card
-        .getByRole("button", { name: "Approuver après lecture" })
-        .isEnabled(),
-      false,
-    );
+    const card = page.locator(".sk-row").filter({ hasText: imported.name });
+    await card
+      .getByRole("button", { name: "Détails de " + imported.name })
+      .click();
+    // App fournit `request` : approuver enchaîne la revue par empreinte et l'installation.
+    const approve = card.getByRole("button", {
+      name: "Approuver et installer",
+    });
+    assert.equal(await approve.isEnabled(), false);
     await card.getByRole("checkbox").check();
     await shot(page, "04-skills-quarantaine");
-    await card.getByRole("button", { name: "Approuver après lecture" }).click();
-    await card
-      .getByRole("button", { name: "Installer", exact: true })
-      .waitFor();
-    await card.getByRole("button", { name: "Installer", exact: true }).click();
+    await approve.click();
     await card
       .getByRole("button", { name: "Désactiver", exact: true })
       .waitFor();
@@ -905,10 +917,8 @@ test(
     await shot(page, "v3-suivi-details");
     await page.getByRole("button", { name: "Paramètres" }).click();
     await page.getByRole("tab", { name: "Utilisation" }).click();
-    await page
-      .getByRole("button", { name: "Voir la consommation" })
-      .first()
-      .waitFor();
+    // orchestre-22-11 : l'écran Consommation déplie chaque mission (maquette), plus de bouton dédié.
+    await page.locator(".cs-mission-toggle").first().waitFor();
     await page.getByRole("tab", { name: "Disponible" }).click();
     await page.getByText("Réglage bientôt").first().waitFor();
     await page.getByRole("tab", { name: "Profil" }).click();
