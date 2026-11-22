@@ -393,8 +393,9 @@ const coutTexte = (m: FamilyMember) => {
   return c ? montant(c.montant, c.devise) : "";
 };
 // Cause d'un membre fini sans succès, en une phrase (l'annulation se lit déjà sur la pastille).
-// Le résultat d'un membre reste du texte brut (contrat du back) ; seuls les « # » de titre en tête de ligne
-// sont retirés. Le back en garde 600 caractères : une coupe le dit.
+// Le résultat d'un membre est rendu en Markdown (conversation-22-11 : tableaux, gras) ; les « # » de titre en
+// tête de ligne sont retirés pour qu'il ne s'affiche pas en gros titres, et un texte simple garde ses retours
+// à la ligne (team-answer.css). Le back en garde 600 caractères : une coupe le dit.
 export function resultatLisible(resultat: string) {
   const net = resultat.replace(/^#{1,6}\s+/gm, "").trim();
   return resultat.length >= 599 ? net.replace(/\s*\S*$/, "") + " …" : net;

@@ -22,6 +22,11 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 17:35 — lot `equipe-blocs-22-11`** (rapport du même nom), feu vert du manager : après `b840a65`
+> (« Reprise du chantier », résultats des membres en Markdown), plus de ligne vide entre les blocs d'une réponse
+> d'équipe (`team-answer.css`) ; un texte simple garde ses retours à la ligne. Mesuré dans Chrome : identique à la
+> réponse principale. 598/598, E2E 18/18 (back `1d8743a`). Commité sur `main` local, non poussé.
+
 > **22/11, 16:45 — lot `sans-restriction-22-11`** (rapport du même nom) : décision du propriétaire sur la liste des
 > mises en garde : retirer ce qui restreint (cases obligatoires des Skills) et les étiquettes « fictif » / la ligne
 > navigateur ; garder questions et messages. Restrictions de navigation transmises au manager (côté serveur).

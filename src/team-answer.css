@@ -64,6 +64,30 @@
   font-size: 14px;
   line-height: 1.55;
 }
+/* equipe-blocs-22-11 : react-markdown place un « \n » entre ses blocs ; sous `pre-line`, chacun devenait une
+   ligne vide (entre paragraphes, autour d'un tableau, dans une liste). Les conteneurs de blocs repassent en
+   `normal` ; les retours à la ligne d'un texte simple restent dans les blocs de texte (paragraphe, cellule,
+   titre, élément de liste sans bloc). */
+.equipe-texte .markdown,
+.equipe-texte .markdown :is(ul, ol, li, blockquote, table) {
+  white-space: normal;
+}
+.equipe-texte
+  .markdown
+  :is(
+    p,
+    td,
+    th,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    li:not(:has(> :is(p, ul, ol, pre, blockquote, table, div)))
+  ) {
+  white-space: pre-line;
+}
 .equipe-ouvrir {
   flex: none;
   height: 26px;
