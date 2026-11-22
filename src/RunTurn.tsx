@@ -8,6 +8,7 @@
 // exportés pour leurs tests de composants, à retirer dans un lot à part.
 import {
   Fragment,
+  type ReactNode,
   useEffect,
   useMemo,
   useState,
@@ -48,6 +49,15 @@ import {
   type Act,
 } from "./OwnerRequests";
 import { SkillSteps } from "./SkillSteps";
+import {
+  dureeMission,
+  derniere,
+  etatDe,
+  membresDe,
+  partiesDuResume,
+  tachesDe,
+  TeamAnswer,
+} from "./TeamAnswer";
 import { texteAnnonce } from "./status";
 import { trackerItems, trackerMarks } from "./Tracker";
 import {
@@ -746,21 +756,41 @@ function Offers({ run }: { run: Run }) {
 // questions de l'agent et réponses). Avant, le texte de l'agent disparaissait à la réponse finale et
 // les questions répondues disparaissaient avec leur formulaire.
 type Entry =
-  | { kind: "text"; id: string; text: string }
+  | {
+      kind: "text";
+      id: string;
+      text: string;
+      // equipe-lisible-22-11 : message écrit juste avant que le chef attende ses sous-missions.
+      attente?: boolean;
+      at?: string;
+    }
   | Owner
   | AskedQuestion
   | (OwnerAnswer & { question?: AskedQuestion });
-export function conversation(items: Item[]): Entry[] {
+// equipe-lisible-22-11 : avec `coupe`, un outil d'équipe (`mission_lancer`, `mission_attendre`…) termine le
+// message en cours ; celui qui précède `mission_attendre` est un message d'attente (regroupé à l'affichage).
+const outilEquipe = (tool: Tool) =>
+  /(?:^|_)mission_[a-z_]+$/.exec(tool.toolName || tool.title || "")?.[0];
+export function conversation(items: Item[], coupe = false): Entry[] {
   const out: Entry[] = [];
   const questions = new Map<string, AskedQuestion>();
+  let ferme = false;
   for (const item of items) {
     if (item.kind === "text") {
       const text = withoutResultEnvelope(item.text, true);
       if (!text.trim()) continue;
       const last = out.at(-1);
       // Un outil entre deux textes ne coupe pas le bloc ; un changement de tour y met un paragraphe.
-      if (last?.kind === "text") last.text += "\n\n" + text;
-      else out.push({ kind: "text", id: item.id, text });
+      if (last?.kind === "text" && !ferme) last.text += "\n\n" + text;
+      else out.push({ kind: "text", id: item.id, text, at: item.at });
+      ferme = false;
+    } else if (item.kind === "tool") {
+      const outil = coupe ? outilEquipe(item) : undefined;
+      const last = out.at(-1);
+      if (outil && last?.kind === "text" && !ferme) {
+        if (outil.endsWith("mission_attendre")) last.attente = true;
+        ferme = true;
+      }
     } else if (item.kind === "owner") out.push(item);
     else if (item.kind === "question") {
       questions.set(item.questionId, item);
@@ -905,6 +935,7 @@ export function RunTurn({
   incident,
   connection,
   requests = true,
+  onOpenMember,
 }: {
   run: Run;
   events: RunEvent[];
@@ -915,7 +946,11 @@ export function RunTurn({
   // État du flux en direct (« Connexion perdue · reconnexion… ») : une ligne tant qu'il est perdu.
   connection?: string;
   requests?: boolean;
+  // equipe-lisible-22-11 : « Ouvrir » d'une sous-mission terminée (vue côte à côte) ; absent : pas de bouton.
+  onOpenMember?: (id: string) => void;
 }) {
+  // Mission en équipe : carte Résultat, trouvailles, tableau, problèmes et détails avant le fil.
+  const team = membresDe(run).length > 0;
   const items = useMemo(() => activity(events, { exchanges: true }), [events]);
   const waits = useMemo(() => ownerWaits(events), [events]);
   // Re-render when this page learns the text of a message it sent (private mission).
@@ -930,7 +965,17 @@ export function RunTurn({
   const live = !finalStates.has(run.state);
   // La réponse finale (run.result) remplace seulement le dernier morceau de texte de l'agent, celui
   // qui l'a écrite, s'il n'est suivi d'aucun échange : le texte des tours d'avant reste dans le fil.
-  const final = !!run.result && !live;
+  // equipe-lisible-22-11 : en équipe, le Bilan peut ne porter aucune réponse de l'agent principal (mission
+  // annulée) ; son dernier message reste alors dans le fil.
+  const final =
+    !!run.result &&
+    !live &&
+    (!team ||
+      !!partiesDuResume(
+        run.result.summary ?? "",
+        run.result.answer,
+        run.result.platformNotes,
+      ).reponse);
   const entries = useMemo(() => {
     let last = -1;
     if (final)
@@ -942,8 +987,11 @@ export function RunTurn({
         }
         if (kind === "owner" || kind === "question" || kind === "answer") break;
       }
-    return conversation(items.filter((_, i) => i !== last));
-  }, [items, final]);
+    return conversation(
+      items.filter((_, i) => i !== last),
+      team,
+    );
+  }, [items, final, team]);
   // The mission waits for the owner: the agent is neither thinking nor writing.
   const ownerTurn = ownerStates.has(run.state);
   const incomplete = run.error?.match(
@@ -983,104 +1031,189 @@ export function RunTurn({
   const browserFallback = events.some(
     (event) => event.type === "browser_fallback",
   );
+  const renderEntry = (entry: Entry, index: number, list: Entry[]) => {
+    if (entry.kind === "owner")
+      return echoed.has(entry.id) ? null : (
+        <OwnerBubble key={entry.id} message={entry} />
+      );
+    if (entry.kind === "answer")
+      return <AnswerBubble key={entry.id} answer={entry} />;
+    if (entry.kind === "question") {
+      // Question encore ouverte : son formulaire (OwnerRequests) la montre déjà.
+      if (!answered.has(entry.questionId) && live) return null;
+      // Question déjà écrite à la fin du texte de l'agent : pas de doublon.
+      const before = list[index - 1];
+      if (
+        before?.kind === "text" &&
+        flat(before.text).endsWith(flat(entry.message))
+      )
+        return null;
+      return (
+        <div key={entry.id} className="reponse-texte reponse-question">
+          <small className="reponse-question-head">Question de l’agent</small>
+          <Markdown text={entry.message} />
+        </div>
+      );
+    }
+    return (
+      <div key={entry.id} className="reponse-texte">
+        <Markdown text={entry.text} />
+        {index === list.length - 1 && live && !ownerTurn && (
+          <span className="stream-caret" aria-hidden="true" />
+        )}
+      </div>
+    );
+  };
+  const activite = (
+    <div className="reponse-activite">
+      <StepsLine run={run} events={events} />
+      <ActivityLine tools={tools} waits={waits} />
+      <InternalSubagents run={run} items={items} live={live} />
+      {incident && <Incident text={incident} />}
+      {connection?.includes("perdue") && <Incident text={connection} />}
+      {run.error && !live && (
+        <Incident
+          text={
+            incomplete
+              ? `Mission incomplète : ${incomplete}`
+              : `${labels[run.state] || run.state} : ${plainRunError(run)}`
+          }
+        />
+      )}
+      {expired.map((title, i) => (
+        <Incident key={i} text={`Accord expiré sans réponse : ${title}`} />
+      ))}
+      {failedMembers > 0 && (
+        <Incident
+          text={`${plural(failedMembers, "sous-agent a échoué", "sous-agents ont échoué")} : détail dans le panneau Activité.`}
+        />
+      )}
+      {requests && missionGrantActive(events, run.state) && (
+        <Incident text={MISSION_GRANT_NOTICE} />
+      )}
+      {silent && (
+        <Incident
+          text={`Agent silencieux depuis ${Math.max(1, Math.ceil(Number(silent.data?.elapsedMs || 60000) / 60000))} min. Vous pouvez arrêter la mission.`}
+        />
+      )}
+      {browserFallback && (
+        <Incident text="Navigateur : Chrome isolé, non connecté à vos comptes (extension Playwriter indisponible)." />
+      )}
+    </div>
+  );
+  // equipe-lisible-22-11 : messages d'attente consécutifs du chef regroupés ; le dernier reste visible,
+  // les précédents sont repliés (rien n'est retiré du fil).
+  const filEquipe = () => {
+    const out: ReactNode[] = [];
+    const enCours = tachesDe(membresDe(run)).filter(
+      (t) => etatDe(derniere(t).state) === "encours",
+    ).length;
+    for (let i = 0; i < shown.length; i++) {
+      const entry = shown[i];
+      if (entry.kind !== "text" || !entry.attente) {
+        out.push(renderEntry(entry, i, shown));
+        continue;
+      }
+      let j = i;
+      while (
+        j + 1 < shown.length &&
+        shown[j + 1].kind === "text" &&
+        (shown[j + 1] as { attente?: boolean }).attente
+      )
+        j++;
+      const groupe = shown.slice(i, j + 1);
+      const debut = (groupe[0] as { at?: string }).at;
+      const depuis = debut ? Date.now() - Date.parse(debut) : NaN;
+      const enTete =
+        live && j === shown.length - 1 && enCours > 0 && Number.isFinite(depuis)
+          ? `En attente de ${plural(enCours, "tâche", "tâches")}, depuis ${dureeMission(depuis)}`
+          : "";
+      out.push(
+        <div className="attente-groupe" key={"attente-" + entry.id}>
+          {enTete && <p className="attente-entete">{enTete}</p>}
+          {groupe.length > 1 && (
+            <details className="fold attente-precedente">
+              <summary>
+                {plural(
+                  groupe.length - 1,
+                  "message d’attente précédent",
+                  "messages d’attente précédents",
+                )}
+              </summary>
+              {groupe.slice(0, -1).map((e, k) => renderEntry(e, i + k, shown))}
+            </details>
+          )}
+          {renderEntry(groupe.at(-1)!, j, shown)}
+        </div>,
+      );
+      i = j;
+    }
+    return out;
+  };
+  const messages = shown.filter(
+    (e) => !(e.kind === "owner" && echoed.has(e.id)),
+  ).length;
+  const resultat = run.result && (
+    <section className="reponse-resultat" aria-label="Résultats">
+      {!team && summary !== null && (
+        <AgentAnswer
+          text={summary}
+          answer={career ? undefined : run.result.answer}
+          notes={career ? undefined : run.result.platformNotes}
+        />
+      )}
+      {privateResult.failed && (
+        <p className="muted answer-source">
+          Résultat privé illisible : réponse enregistrée sur la mission.
+        </p>
+      )}
+      {run.result.simulated && (
+        <small className="fictif">Données fictives</small>
+      )}
+      <Offers run={run} />
+    </section>
+  );
   return (
     <>
       {live && <SkillChip events={events} run={run} />}
       <div className="reponse">
-        <div className="reponse-activite">
-          <StepsLine run={run} events={events} />
-          <ActivityLine tools={tools} waits={waits} />
-          <InternalSubagents run={run} items={items} live={live} />
-          {incident && <Incident text={incident} />}
-          {connection?.includes("perdue") && <Incident text={connection} />}
-          {run.error && !live && (
-            <Incident
-              text={
-                incomplete
-                  ? `Mission incomplète : ${incomplete}`
-                  : `${labels[run.state] || run.state} : ${plainRunError(run)}`
-              }
+        {team ? (
+          <>
+            <TeamAnswer
+              run={run}
+              events={events}
+              summary={run.result ? summary : null}
+              erreur={run.error ? plainRunError(run) : ""}
+              onOpenMember={onOpenMember}
+              technique={<SkillSteps progress={run.skillProgress} />}
             />
-          )}
-          {expired.map((title, i) => (
-            <Incident key={i} text={`Accord expiré sans réponse : ${title}`} />
-          ))}
-          {failedMembers > 0 && (
-            <Incident
-              text={`${plural(failedMembers, "sous-agent a échoué", "sous-agents ont échoué")} : détail dans le panneau Activité.`}
-            />
-          )}
-          {requests && missionGrantActive(events, run.state) && (
-            <Incident text={MISSION_GRANT_NOTICE} />
-          )}
-          {silent && (
-            <Incident
-              text={`Agent silencieux depuis ${Math.max(1, Math.ceil(Number(silent.data?.elapsedMs || 60000) / 60000))} min. Vous pouvez arrêter la mission.`}
-            />
-          )}
-          {browserFallback && (
-            <Incident text="Navigateur : Chrome isolé, non connecté à vos comptes (extension Playwriter indisponible)." />
-          )}
-        </div>
-        {shown.map((entry, index) => {
-          if (entry.kind === "owner")
-            return echoed.has(entry.id) ? null : (
-              <OwnerBubble key={entry.id} message={entry} />
-            );
-          if (entry.kind === "answer")
-            return <AnswerBubble key={entry.id} answer={entry} />;
-          if (entry.kind === "question") {
-            // Question encore ouverte : son formulaire (OwnerRequests) la montre déjà.
-            if (!answered.has(entry.questionId) && live) return null;
-            // Question déjà écrite à la fin du texte de l'agent : pas de doublon.
-            const before = shown[index - 1];
-            if (
-              before?.kind === "text" &&
-              flat(before.text).endsWith(flat(entry.message))
-            )
-              return null;
-            return (
-              <div key={entry.id} className="reponse-texte reponse-question">
-                <small className="reponse-question-head">
-                  Question de l’agent
-                </small>
-                <Markdown text={entry.message} />
-              </div>
-            );
-          }
-          return (
-            <div key={entry.id} className="reponse-texte">
-              <Markdown text={entry.text} />
-              {index === shown.length - 1 && live && !ownerTurn && (
-                <span className="stream-caret" aria-hidden="true" />
-              )}
-            </div>
-          );
-        })}
-        {label && <Waiting label={label} />}
-        <SkillSteps progress={run.skillProgress} />
+            {live ? (
+              <>
+                {activite}
+                {filEquipe()}
+                {label && <Waiting label={label} />}
+              </>
+            ) : (
+              <details className="fold deroule">
+                <summary>
+                  Déroulé ({plural(messages, "message", "messages")})
+                </summary>
+                {activite}
+                {filEquipe()}
+              </details>
+            )}
+          </>
+        ) : (
+          <>
+            {activite}
+            {shown.map((entry, index) => renderEntry(entry, index, shown))}
+            {label && <Waiting label={label} />}
+            <SkillSteps progress={run.skillProgress} />
+          </>
+        )}
         <StepApprovals run={run} busy={busy} act={act} />
         {requests && <OwnerRequests run={run} busy={busy} act={act} />}
-        {run.result && (
-          <section className="reponse-resultat" aria-label="Résultats">
-            {summary !== null && (
-              <AgentAnswer
-                text={summary}
-                answer={career ? undefined : run.result.answer}
-                notes={career ? undefined : run.result.platformNotes}
-              />
-            )}
-            {privateResult.failed && (
-              <p className="muted answer-source">
-                Résultat privé illisible : réponse enregistrée sur la mission.
-              </p>
-            )}
-            {run.result.simulated && (
-              <small className="fictif">Données fictives</small>
-            )}
-            <Offers run={run} />
-          </section>
-        )}
+        {resultat}
         {career && <CareerOffers done={run.state === "completed"} />}
         {files.length > 0 && (
           <div className="reponse-fichiers">

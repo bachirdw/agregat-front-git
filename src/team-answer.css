@@ -1,0 +1,220 @@
+/* equipe-lisible-22-11 — réponse d'une mission en équipe : Résultat, Ce qui a été trouvé, Équipe,
+   Problèmes, Détails techniques, Déroulé. Couleurs et tailles des jetons du thème (style.css, v2.css). */
+.equipe-reponse {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.equipe-reponse h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.equipe-resultat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 0 0 0.5px var(--sep);
+}
+.equipe-resultat p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.equipe-resultat .equipe-etat {
+  color: var(--label);
+  font-size: 15px;
+  font-weight: 600;
+}
+.equipe-trouve,
+.equipe-table,
+.equipe-problemes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.equipe-carte {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 0 0 0.5px var(--sep);
+  min-width: 0;
+}
+.equipe-carte-tete {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.equipe-carte-titre {
+  flex: 1;
+  margin: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+.equipe-texte {
+  margin: 6px 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.equipe-ouvrir {
+  flex: none;
+  height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 13px;
+  background: rgba(120, 120, 128, 0.18);
+  color: var(--label);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.equipe-ouvrir:hover {
+  background: rgba(120, 120, 128, 0.28);
+}
+.equipe-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.equipe-table th,
+.equipe-table td {
+  padding: 8px 8px 8px 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 0.5px solid var(--sep);
+}
+.equipe-table thead th {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.equipe-table tbody th {
+  font-weight: 500;
+}
+.equipe-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.equipe-suite {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.equipe-table .equipe-cause td,
+.equipe-table .equipe-reprise td {
+  color: var(--muted);
+  font-size: 13px;
+}
+.equipe-table .equipe-cause td {
+  padding-top: 0;
+  text-align: left;
+}
+.equipe-table .equipe-reprise td:first-child {
+  padding-left: 18px;
+  text-align: left;
+}
+.equipe-pastille {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.equipe-pastille.ok {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
+}
+.equipe-pastille.echec {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  color: var(--red);
+}
+.equipe-pastille.annulee {
+  background: rgba(120, 120, 128, 0.18);
+  color: var(--muted);
+}
+.equipe-pastille.encours {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+.equipe-problemes p {
+  margin: 0;
+}
+.equipe-problemes ul,
+.tech-texte ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+.equipe-details,
+.deroule {
+  min-width: 0;
+}
+.equipe-details > summary,
+.deroule > summary {
+  color: var(--muted);
+  font-size: 14px;
+}
+.tech-texte {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.tech-texte p {
+  margin: 0;
+}
+.tech-texte .tech-titre {
+  margin-top: 6px;
+  font-weight: 600;
+}
+.tech-texte .tech-membre {
+  margin-top: 10px;
+  font-weight: 500;
+}
+.tech-citation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 2px 4px;
+  padding-left: 12px;
+  border-left: 2px solid var(--sep);
+  color: var(--muted);
+}
+.deroule[open] > summary {
+  margin-bottom: 12px;
+}
+.deroule {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.attente-groupe {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.attente-entete {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.attente-precedente > summary {
+  color: var(--muted);
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .equipe-table td.num:last-child,
+  .equipe-table thead th.num:last-child {
+    display: none;
+  }
+}

@@ -261,6 +261,9 @@ export interface FamilyMember {
   // Sent only by `GET /api/runs/:id?equipe=1` (back api-equipe-vue.md, swarm-07); absent otherwise.
   modele?: string;
   continue?: string;
+  // equipe-lisible-22-11 : tentative que ce membre reprend (`famille.reprend` de sa ligne de `GET /api/runs`,
+  // recopié par `avecDetailsDesLignes`) ; jamais envoyé dans `family[]`.
+  reprend?: string;
   pourquoi?: string;
   debut?: string | null;
   fin?: string | null;
@@ -320,6 +323,8 @@ export interface RunLink {
   motif?: string;
   agentPrevu?: string;
   agentImpose?: boolean;
+  // Sous-mission qui reprend une tentative précédente (back `famille.reprend`, `famille.reprise` = rang).
+  reprend?: string;
 }
 export interface CarnetNote {
   n?: number;

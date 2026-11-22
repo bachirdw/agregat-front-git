@@ -373,7 +373,14 @@ export function texteResume(
  * `family[]` members: `family[]` never carries them. Returns the same run when nothing is added.
  */
 export function avecDetailsDesLignes<
-  R extends { family?: { id: string; motif?: string; agentPrevu?: string }[] },
+  R extends {
+    family?: {
+      id: string;
+      motif?: string;
+      agentPrevu?: string;
+      reprend?: string;
+    }[];
+  },
 >(run: R, rows: readonly unknown[]): R {
   const family = Array.isArray(run.family) ? run.family : null;
   if (!family || !family.length || !Array.isArray(rows)) return run;
@@ -391,12 +398,15 @@ export function avecDetailsDesLignes<
     if (!f) return m;
     const motif = texte(f.motif);
     const agentPrevu = texte(f.agentPrevu);
-    if (!motif && !agentPrevu) return m;
+    // equipe-lisible-22-11 : la tentative reprise, pour ranger une reprise sous sa première tentative.
+    const reprend = texte(f.reprend);
+    if (!motif && !agentPrevu && !reprend) return m;
     change = true;
     return {
       ...m,
       ...(motif ? { motif } : {}),
       ...(agentPrevu ? { agentPrevu } : {}),
+      ...(reprend ? { reprend } : {}),
     };
   });
   return change ? { ...run, family: suite } : run;

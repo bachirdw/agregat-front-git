@@ -21,7 +21,8 @@ const platformLine = [
   /^Notes non vérifiées : /,
   /^Mission incomplète : /,
 ];
-const isPlatform = (line: string) => platformLine.some((re) => re.test(line));
+export const isPlatform = (line: string) =>
+  platformLine.some((re) => re.test(line));
 
 // Lines that must stay in sight: a send not made or unsure, a failed or incomplete mission, an
 // action left undone, a question left unanswered.
@@ -52,7 +53,7 @@ export type SplitSummary = {
 };
 
 // Items of a Bilan list, split on the separator outside parentheses.
-function items(list: string, separator: string) {
+export function items(list: string, separator: string) {
   const out: string[] = [];
   let depth = 0;
   let current = "";

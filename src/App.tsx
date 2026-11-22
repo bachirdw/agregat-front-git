@@ -1138,6 +1138,7 @@ export default function App() {
                 act={action}
                 incident={inlineError}
                 connection={connection}
+                onOpenMember={openSide}
               />
               {delegationNote && (
                 <p className="delegation-note">{delegationNote}</p>
