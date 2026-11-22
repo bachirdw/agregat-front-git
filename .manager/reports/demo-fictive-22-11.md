@@ -36,3 +36,7 @@ Fichiers : `src/App.tsx`, `src/Composer.tsx`, `src/RunTurn.tsx`, `src/types.ts` 
 - Aperçu 5173 sur 4310 : 80794f16 rouverte (GET) montre le bandeau ; à l'accueil, la suggestion affiche
   l'avertissement, qui disparaît dès que le texte change (rien envoyé).
 - Build vert ; vitest **586/586** (42 fichiers) ; E2E **18/18** (back `agregat-back-reponse-04`).
+- Rebasé sur `deb7ea4` (lot `fil-long-22-11` de la session « Reprise du chantier », poussé entre-temps : le pli
+  « Déroulé » de `equipe-lisible-22-11` est retiré à la demande du propriétaire, gardé tel quel). Un seul conflit,
+  `team-answer.css` (deux blocs ajoutés au même endroit, les deux gardés). Après rebase : vitest **588/588**
+  (43 fichiers), build vert, E2E **18/18**.
