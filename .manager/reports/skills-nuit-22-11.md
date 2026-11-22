@@ -52,3 +52,38 @@ Contrat suivi : `docs/api-skills-import.md` (skills-install-01/02, fiche-02, ski
   « Vérifier », « Mettre à jour », revue d'un candidat, installation, retour arrière ; aucun Skill n'a de
   `notification`, `problemes` ni `miseAJour` aujourd'hui ; aucun membre avec `agentImpose`. Ces cas sont couverts
   seulement par les tests unitaires. E2E non relancé.
+
+## Essai réel sur 4310 (22/11, fin de matinée, accord du propriétaire : « Oui, essaie-les »)
+Fait dans Chrome (aperçu 5174 → API 4310), sans approuver, installer ni activer quoi que ce soit.
+1. Adresse du dépôt entier `https://github.com/coreyhaines31/marketingskills` : refus attendu avec `plugin`
+   « marketing-skills » (53 Skills, 0 agent, 0 MCP), `catalogue` et 53 `candidats`, rien d'enregistré. Durée du
+   clone côté back : 39 s au premier appel, une à deux minutes ensuite.
+2. Sélection de `customer-research` (cité par prospecting comme « à importer aussi ») : un premier essai a échoué
+   (le back a renvoyé la commande `git clone` brute, avec un chemin temporaire local, après plus de 2 min) ; le
+   second a réussi : « 1 Skill(s) importé(s) en quarantaine, à approuver un par un », « customer-research ·
+   importé ». Vérifié par `GET /api/catalog` : 9 Skills, `customer-research` en quarantaine, non actif ; la
+   dépendance de prospecting dit maintenant « déjà importé (état : en quarantaine) ».
+   **Effet sur le back du propriétaire : un Skill de plus, en quarantaine.** Il peut être rejeté depuis sa carte.
+3. « Vérifier » sur prospecting : « À jour : la référence suivie n’a pas bougé depuis l’import. » ; pas de
+   « Mettre à jour » (rien de disponible).
+Non essayé en vrai : « Importer le plugin » (53 Skills), « Mettre à jour », revue d'un candidat, installation,
+retour arrière (aucune mise à jour disponible sur ces Skills).
+
+### Défauts trouvés par l'essai, corrigés côté front (tests d'abord vus en échec, sauf le dernier)
+- Rien n'indiquait l'import en cours pendant le clone : ligne « Téléchargement du dépôt depuis GitHub et lecture
+  de ses Skills… Cela peut prendre une à deux minutes. »
+- Le refus « choisissez » (candidats ou plugin) s'affichait en rouge comme une erreur : texte neutre.
+- Les adresses longues débordaient du cadre : passage à la ligne.
+- 53 descriptions entières : description sur deux lignes ; « déjà importé (état) » pour un candidat déjà au registre.
+- Après un échec, la liste des candidats disparaissait : elle reste, avec la sélection, prête à être renvoyée.
+- Échec de clone : « Le téléchargement du dépôt depuis GitHub a échoué (réseau lent ou coupé, ou délai dépassé) :
+  réessayez dans un moment. », la commande brute dans « Détail technique » replié.
+- Versions affichées en empreinte complète : 7 caractères ; ligne « Vérification auprès du dépôt d’origine… »
+  pendant « Vérifier » (test écrit en même temps que le code, pas vu en échec).
+- Suite complète 35 fichiers, 510/510 ; build et prettier OK.
+
+### Pour le manager du back (constats, rien modifié chez lui)
+- Le refus de l'adresse racine dit « Relay n’importe pas encore un plugin en entier » alors que
+  `plugin: true` existe (skills-install-02).
+- Un clone en échec renvoie `Command failed: git … clone …` avec un chemin temporaire local dans `error`.
+- Clones lents (39 s à plus de 2 min pour ce dépôt) ; un échec au deuxième appel.

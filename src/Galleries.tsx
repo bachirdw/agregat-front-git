@@ -4,9 +4,23 @@ import { ApiError } from "./api";
 import {
   CompatibilityPanel,
   FindingLine,
+  stateLabel,
   UpdatePanel,
   type SkillRequest,
 } from "./SkillDetails";
+// What the import column shows: the back's answer, plus `notice` (a refusal that asks to choose: a
+// step, not an error) and `detail` (the raw text of a technical failure, folded).
+type ImportView = SkillImportAnswer & { notice?: string; detail?: string };
+// Essai réel du 22/11 : un clone qui échoue rend la commande git brute (chemins temporaires locaux).
+function plainImportError(message: string) {
+  if (/^Command failed: git\b|\bgit\b[^\n]*\bclone\b/.test(message))
+    return {
+      error:
+        "Le téléchargement du dépôt depuis GitHub a échoué (réseau lent ou coupé, ou délai dépassé) : réessayez dans un moment.",
+      detail: message,
+    };
+  return { error: message };
+}
 import { agentStatus, labels, money, readinessLabel } from "./types";
 import { UsageCard } from "./Mission";
 export function Agents({
@@ -302,12 +316,15 @@ function ImportOutcome({
   setChosen,
   busy,
   importSkills,
+  known,
 }: {
-  outcome: SkillImportAnswer;
+  outcome: ImportView;
   chosen: string[];
   setChosen: (paths: string[]) => void;
   busy: boolean;
   importSkills: (extra?: Record<string, unknown>) => Promise<void>;
+  // Skills already in the registry, by id, with their state.
+  known: Map<string, string>;
 }) {
   const candidates = outcome.candidats ?? [];
   const plugin = outcome.plugin;
@@ -321,6 +338,13 @@ function ImportOutcome({
           {outcome.error}
         </p>
       )}
+      {outcome.detail && (
+        <details className="import-detail">
+          <summary>Détail technique</summary>
+          <p className="mono">{outcome.detail}</p>
+        </details>
+      )}
+      {outcome.notice && <p className="import-step">{outcome.notice}</p>}
       {outcome.message && <p role="status">{outcome.message}</p>}
       {(outcome.rapport ?? []).length > 0 && (
         <ul className="import-report">
@@ -351,7 +375,8 @@ function ImportOutcome({
               {m.transport ? ` (${m.transport})` : ""} · non lancé
             </small>
           ))}
-          {outcome.error && (
+          {/* Refusal that describes a plugin (not yet imported): it can be imported whole. */}
+          {outcome.importes === undefined && (
             <button
               className="primary"
               disabled={busy}
@@ -374,9 +399,14 @@ function ImportOutcome({
                 onChange={(e) => toggle(c.chemin, e.target.checked)}
               />
               <span>
-                {c.id || c.chemin}
-                {c.description ? ` · ${c.description}` : ""}
+                <strong>{c.id || c.chemin}</strong>
+                {c.id && known.has(c.id)
+                  ? ` · déjà importé (${stateLabel(known.get(c.id)!)})`
+                  : ""}
                 {c.erreur ? ` · non importable : ${c.erreur}` : ""}
+                {c.description && (
+                  <small className="import-desc"> · {c.description}</small>
+                )}
               </span>
             </label>
           ))}
@@ -424,10 +454,14 @@ export function Skills({
   const send: SkillRequest =
     request ?? ((path, body) => act(path, body).then(() => undefined));
   // The last import: the back's answer, or its refusal with candidates or a plugin to choose from.
-  const [outcome, setOutcome] = useState<SkillImportAnswer | null>(null);
+  const [outcome, setOutcome] = useState<ImportView | null>(null);
   const [chosen, setChosen] = useState<string[]>([]);
+  // A clone of the repository can take minutes (22/11: 40 s, then more than 2 min).
+  const [pending, setPending] = useState(false);
+  const known = new Map(catalog.skills.map((s) => [s.id, s.state]));
   const target = { git: git.trim(), subdir: subdir.trim() || "." };
   const importSkills = async (extra: Record<string, unknown> = {}) => {
+    setPending(true);
     try {
       const answer = (await send("/skills/import", {
         ...target,
@@ -441,11 +475,25 @@ export function Skills({
       setChosen([]);
     } catch (e) {
       const data = (e as ApiError).data as SkillImportAnswer | undefined;
-      setOutcome({
-        ...(data && typeof data === "object" ? data : {}),
-        error: e instanceof Error ? e.message : String(e),
-      });
-      setChosen([]);
+      const message = e instanceof Error ? e.message : String(e);
+      const body = data && typeof data === "object" ? data : {};
+      if ((body.candidats?.length ?? 0) > 0 || body.plugin) {
+        // A repository with several Skills, or a plugin: the owner chooses, nothing went wrong.
+        setOutcome({ ...body, error: undefined, notice: message });
+        setChosen([]);
+      } else
+        // A failure keeps the candidates and the selection, ready to be sent again.
+        setOutcome((old) => ({
+          ...body,
+          candidats: old?.candidats,
+          plugin: old?.plugin,
+          restants: body.restants ?? old?.restants,
+          notice: old?.notice,
+          tronque: old?.tronque,
+          ...plainImportError(message),
+        }));
+    } finally {
+      setPending(false);
     }
   };
   const visible = catalog.skills.filter(
@@ -509,13 +557,20 @@ export function Skills({
               Importer en quarantaine
             </button>
           </form>
+          {pending && (
+            <p className="import-pending" role="status">
+              Téléchargement du dépôt depuis GitHub et lecture de ses Skills…
+              Cela peut prendre une à deux minutes.
+            </p>
+          )}
           {outcome && (
             <ImportOutcome
               outcome={outcome}
               chosen={chosen}
               setChosen={setChosen}
-              busy={busy}
+              busy={busy || pending}
               importSkills={importSkills}
+              known={known}
             />
           )}
           <div className="segmented skill-filters">

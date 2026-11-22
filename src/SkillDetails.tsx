@@ -179,6 +179,9 @@ const githubRepo = (url?: string | null) =>
     ? url.replace(/\.git$/, "").replace(/\/$/, "")
     : null;
 const short = (sha?: string) => (sha ? sha.slice(0, 7) : "");
+// A version given as a full commit hash is shown short, like GitHub does.
+const version = (v?: string | null) =>
+  v && /^[0-9a-f]{40}$/i.test(v) ? v.slice(0, 7) : v || "";
 
 // Problèmes, mise à jour proposée, nouvelle version en revue et versions précédentes.
 export function UpdatePanel({
@@ -194,6 +197,8 @@ export function UpdatePanel({
   const [steps, setSteps] = useState("");
   const [note, setNote] = useState("");
   const [read, setRead] = useState(false);
+  // The request under way (« Vérifier » reads the origin repository : it can take a while).
+  const [working, setWorking] = useState("");
   const update = skill.miseAJour;
   const problems = skill.problemes ?? [];
   if (skill.origin !== "third-party" && !update && !problems.length)
@@ -203,6 +208,13 @@ export function UpdatePanel({
     setError("");
     setSteps("");
     setNote("");
+    setWorking(
+      path.endsWith("/verifier")
+        ? "Vérification auprès du dépôt d’origine…"
+        : path.endsWith("/mettre-a-jour")
+          ? "Téléchargement de la nouvelle version, qui arrivera en quarantaine…"
+          : "Enregistrement…",
+    );
     try {
       const answer = (await request(path, body)) as SkillImportAnswer | null;
       if (answer && typeof answer.message === "string") setNote(answer.message);
@@ -210,6 +222,8 @@ export function UpdatePanel({
       const data = (e as ApiError).data as SkillImportAnswer | undefined;
       if (typeof data?.marche === "string") setSteps(data.marche);
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setWorking("");
     }
   };
   const repo = githubRepo(update?.depot ?? skill.source?.url);
@@ -248,9 +262,9 @@ export function UpdatePanel({
         {update?.raison && <p>{update.raison}</p>}
         {update && (update.versionLocale || update.versionDistante) && (
           <small>
-            Version en place : {update.versionLocale || "inconnue"}
+            Version en place : {version(update.versionLocale) || "inconnue"}
             {update.versionDistante
-              ? ` · disponible : ${update.versionDistante}`
+              ? ` · disponible : ${version(update.versionDistante)}`
               : ""}
             {update.verifieLe ? ` · vérifié le ${day(update.verifieLe)}` : ""}
           </small>
@@ -363,6 +377,11 @@ export function UpdatePanel({
             Revenir à la version {p.version || short(p.sha) || short(p.hash)}
           </button>
         ))}
+        {working && (
+          <p className="import-pending" role="status">
+            {working}
+          </p>
+        )}
         {note && <p role="status">{note}</p>}
         {error && (
           <p className="danger" role="alert">

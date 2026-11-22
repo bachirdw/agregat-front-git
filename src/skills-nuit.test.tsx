@@ -40,7 +40,12 @@ const base: Skill = {
     sha: "5b2b400eec1e7e1cec76245a715d0b0d4fd2a9c1",
   },
 };
-const show = (skill: Skill, request = vi.fn(async () => ({}))) => {
+const show = (
+  skill: Skill,
+  request: (path: string, body: unknown) => Promise<unknown> = vi.fn(
+    async () => ({}),
+  ),
+) => {
   const act = vi.fn(async () => {});
   render(
     <Skills
@@ -296,6 +301,42 @@ describe("mise à jour sur problème", () => {
   });
 });
 
+describe("vérification : retours de l'essai réel", () => {
+  it("versions en empreinte courte, et une ligne pendant la vérification", async () => {
+    let finish: (v: unknown) => void = () => {};
+    const request = vi.fn(() => new Promise((resolve) => (finish = resolve)));
+    show(
+      {
+        ...base,
+        miseAJour: {
+          source: "git",
+          disponible: false,
+          raison: "À jour (FICTIF).",
+          versionLocale: "5b2b400eec1e7e1cec76245a715d0b0d4fd2a9c1",
+          versionDistante: "5b2b400eec1e7e1cec76245a715d0b0d4fd2a9c1",
+          changements: [],
+        },
+      },
+      request,
+    );
+    const panel = screen.getByRole("region", {
+      name: "Mises à jour de prospecting-fictif",
+    });
+    expect(panel.textContent).toContain("Version en place : 5b2b400");
+    expect(panel.textContent).not.toContain("5b2b400eec1e7e1c");
+    fireEvent.click(within(panel).getByRole("button", { name: "Vérifier" }));
+    expect(
+      await within(panel).findByText(/Vérification auprès du dépôt d’origine/),
+    ).toBeTruthy();
+    finish({ skills: [] });
+    await waitFor(() =>
+      expect(
+        within(panel).queryByText(/Vérification auprès du dépôt d’origine/),
+      ).toBeNull(),
+    );
+  });
+});
+
 describe("import par adresse collée", () => {
   const fill = (address: string) =>
     fireEvent.change(screen.getByLabelText("Dépôt GitHub"), {
@@ -436,6 +477,94 @@ describe("import par adresse collée", () => {
         choix: restants.slice(0, 30),
       }),
     );
+  });
+});
+
+// Essai réel du 22/11 sur 4310 : clonage de 40 s à plus de 2 min, puis échec de clone au 2e appel.
+describe("import : retours de l'essai réel", () => {
+  const fill = (address: string) =>
+    fireEvent.change(screen.getByLabelText("Dépôt GitHub"), {
+      target: { value: address },
+    });
+  const refusal = () =>
+    new ApiError("Ce dépôt contient 2 Skills (FICTIF)", 400, {
+      error: "Ce dépôt contient 2 Skills (FICTIF)",
+      candidats: [
+        { id: "a-fictif", chemin: "skills/a-fictif", description: "Premier" },
+        {
+          id: "prospecting-fictif",
+          chemin: "skills/prospecting-fictif",
+          description: "Déjà là",
+        },
+      ],
+    });
+  it("pendant l'import, une ligne dit que le dépôt est en cours de téléchargement", async () => {
+    let finish: (v: unknown) => void = () => {};
+    const request = vi.fn(() => new Promise((resolve) => (finish = resolve)));
+    show(base, request);
+    fill("https://github.com/exemple/r");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Importer en quarantaine" }),
+    );
+    expect(
+      await screen.findByText(/Téléchargement du dépôt depuis GitHub/),
+    ).toBeTruthy();
+    finish({ skills: [], message: "Fini (FICTIF)" });
+    await screen.findByText("Fini (FICTIF)");
+    expect(
+      screen.queryByText(/Téléchargement du dépôt depuis GitHub/),
+    ).toBeNull();
+  });
+  it("le choix parmi les candidats n'est pas une erreur rouge ; un Skill déjà importé le dit", async () => {
+    const request = vi.fn().mockRejectedValueOnce(refusal());
+    show(base, request);
+    fill("https://github.com/exemple/r");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Importer en quarantaine" }),
+    );
+    const line = await screen.findByText("Ce dépôt contient 2 Skills (FICTIF)");
+    expect(line.className).not.toContain("danger");
+    expect(line.getAttribute("role")).not.toBe("alert");
+    expect(
+      screen.getByRole("checkbox", {
+        name: /prospecting-fictif.*déjà importé \(en quarantaine\)/,
+      }),
+    ).toBeTruthy();
+  });
+  it("un échec de clone : message simple, détail replié, et la liste des candidats reste pour réessayer", async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(refusal())
+      .mockRejectedValueOnce(
+        new ApiError(
+          "Command failed: git -c core.hooksPath=/dev/null clone --depth 1 -- https://github.com/exemple/r /var/folders/xx/T/relay-skill-FICTIF/repo Cloning into '/var/folders/xx'...",
+          400,
+          { error: "Command failed: git … clone …" },
+        ),
+      );
+    show(base, request);
+    fill("https://github.com/exemple/r");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Importer en quarantaine" }),
+    );
+    fireEvent.click(await screen.findByRole("checkbox", { name: /a-fictif/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Importer la sélection (1)" }),
+    );
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain(
+      "Le téléchargement du dépôt depuis GitHub a échoué",
+    );
+    expect(alert.textContent).not.toContain("/var/folders");
+    expect(screen.getByText("Détail technique")).toBeTruthy();
+    // La sélection reste, prête à être renvoyée.
+    expect(
+      (screen.getByRole("checkbox", { name: /a-fictif/ }) as HTMLInputElement)
+        .checked,
+    ).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Importer la sélection (1)" }),
+    ).toBeTruthy();
   });
 });
 
