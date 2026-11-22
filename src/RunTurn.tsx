@@ -48,6 +48,7 @@ import {
   OwnerRequests,
   type Act,
 } from "./OwnerRequests";
+import { MemberRequests } from "./MemberRequests";
 import { SkillSteps } from "./SkillSteps";
 import {
   dureeMission,
@@ -1205,6 +1206,15 @@ export function RunTurn({
       <div className="reponse">
         {team ? (
           <>
+            {/* cartes-membres-22-11 : la carte qu'un membre attend se répond ici, en premier. */}
+            {requests && (
+              <MemberRequests
+                run={run}
+                busy={busy}
+                act={act}
+                onOpenMember={onOpenMember}
+              />
+            )}
             <TeamAnswer
               run={run}
               events={events}

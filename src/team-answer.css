@@ -223,3 +223,18 @@
 .fil-precedents:hover {
   color: var(--label);
 }
+/* cartes-membres-22-11 : carte qu'un membre de l'équipe attend, sur la page de la mère. */
+.membres-attente {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.membre-attente {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.membre-attente-titre {
+  margin: 0;
+  font-size: 14px;
+}

@@ -436,7 +436,10 @@ export function TeamAnswer({
   return (
     <div className="equipe-reponse">
       <section className="equipe-resultat" aria-label="Résultat">
-        <p className="equipe-etat">{ligneEtat(run, erreur)}</p>
+        <p className="equipe-etat">
+          {/* La cause seule : une citation de l'agent (« … ») reste dans le fil, pas dans la carte. */}
+          {ligneEtat(run, (erreur ?? "").split(" : « ")[0])}
+        </p>
         {duree && <p>Durée : {duree}</p>}
         {cout && (
           <p>

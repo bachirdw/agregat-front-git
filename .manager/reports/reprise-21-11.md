@@ -22,6 +22,10 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 16:20 — lot `cartes-membres-22-11`** (rapport du même nom) : la carte qu'un membre attend (envoi,
+> accord, question) se répond depuis la page de la mère, en tête et dans le panneau Équipe. 595/595, E2E 18/18.
+> Commité sur `main` local, non poussé au moment de l'écrire.
+
 > **22/11, 16:00 — lot `sans-demo-22-11`** (rapport du même nom), décision du propriétaire qui remplace E204 : plus
 > aucune démonstration (en mode propriétaire, le catalogue est purgé de ce qu'il marque comme démonstration ; rien
 > de démonstratif n'est envoyé ; suggestions, avertissement et bandeau de démonstration retirés). 589/589, E2E 18/18.

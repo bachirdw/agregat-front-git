@@ -289,6 +289,23 @@ describe("calculs de la réponse en équipe", () => {
   });
 });
 
+describe("carte Résultat d'une mission en échec", () => {
+  it("la cause seule, sans la citation de l'agent", () => {
+    const echec = {
+      ...mere,
+      state: "failed",
+      error:
+        "Réponse hors contrat (simulated, summary, evidence attendus) : « All four sub-missions FICTIVES are launched »",
+    } as unknown as Run;
+    tour(echec);
+    const carte = screen.getByRole("region", { name: "Résultat" });
+    expect(carte.textContent).toContain(
+      "Réponse hors contrat (simulated, summary, evidence attendus)",
+    );
+    expect(carte.textContent).not.toContain("All four");
+  });
+});
+
 describe("affichage d'une mission en équipe finie", () => {
   it("carte Résultat : état en mots simples, durée, coût annoncé, compte des tâches", () => {
     tour(mere);

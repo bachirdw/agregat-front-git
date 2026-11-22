@@ -2,6 +2,8 @@
 // locales). Chaque section n'apparaît que si le back fournit sa donnée : jamais d'exemple ni de chiffre
 // par défaut. Le produit sert à postuler : le vocabulaire technique reste dans « Détails techniques ».
 import { useId, useState, type ReactNode } from "react";
+import { MemberRequests } from "./MemberRequests";
+import type { Act } from "./OwnerRequests";
 import { activity, describeTool, shortToolName } from "./Career";
 import { activityRows, type ActivityRow } from "./ConnectionsPanel";
 import { Icon } from "./Icon";
@@ -356,6 +358,7 @@ export function ActivityPanel({
   onCancelRun,
   onOpenSide,
   busy,
+  act,
 }: {
   catalog: Catalog | null;
   run: Run | null;
@@ -372,6 +375,8 @@ export function ActivityPanel({
   // Vue scindée : un membre de l'équipe ouvert à côté du fil.
   onOpenSide?: (id: string) => void;
   busy?: boolean;
+  // cartes-membres-22-11 : répondre ici à la carte qu'un membre attend (absent : rien n'est ajouté).
+  act?: Act;
 }) {
   const [connectors, setConnectors] = useState(false);
   const [ownDetails, setOwnDetails] = useState(false);
@@ -535,6 +540,14 @@ export function ActivityPanel({
         {/* reponse-04 : l'équipe (logique swarm, Team.tsx) vit dans le panneau, plus dans le fil. */}
         {run && family.length > 0 && (
           <section className="activity-section activity-team">
+            {act && (
+              <MemberRequests
+                run={run}
+                busy={!!busy}
+                act={act}
+                onOpenMember={onOpenSide}
+              />
+            )}
             <TeamBlock
               run={run}
               openRun={onOpenRun}

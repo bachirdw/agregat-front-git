@@ -1369,6 +1369,7 @@ export default function App() {
           details={stepDetails}
           setDetails={setStepDetails}
           onOpenRun={(id) => void openRun(id)}
+          act={action}
           onCancelRun={(id) => void action(`/runs/${id}/cancel`, {})}
           onOpenSide={openSide}
           busy={busy}
