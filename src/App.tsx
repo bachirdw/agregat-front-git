@@ -1280,6 +1280,7 @@ export default function App() {
               (page === "mission" && composerCompact)
             }
             onOpen={() => setComposerCompact(false)}
+            onManageSkills={() => go("skills")}
             sessionSettings={
               page === "mission" && run
                 ? {

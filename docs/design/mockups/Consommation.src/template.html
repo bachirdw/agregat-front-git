@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="0c4e50e2-dbc2-4954-8cf6-c5b895050113"></script>
+
+</head>
+<body>
+<x-dc>
+<helmet><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+html,body{margin:0;height:100%;background:#0e0e10}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;letter-spacing:-0.008em;color:#f5f5f7}
+a{color:#0a84ff;text-decoration:none}a:hover{text-decoration:underline}
+:focus{outline:none}:focus-visible{outline:3px solid rgba(10,132,255,.55);outline-offset:2px;border-radius:8px}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style></helmet>
+<div data-screen-label="Consommation" style="min-height:100vh;background:#0e0e10">
+  <div style="max-width:880px;margin:0 auto;padding:48px 32px 120px;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-0.022em">Consommation</h1>
+      <p style="margin:0;color:#a1a1a6;font-size:15px;text-wrap:pretty">Tokens et coûts mesurés par mission. Votre consommation fournisseur BYOA n’est jamais refacturée.</p>
+    </div>
+
+    <div style="display:flex;gap:4px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+        <button sc-camel-on-click="{{ t.go }}" style="height:30px;padding:0 12px;border:0;border-radius:15px;background:{{ t.bg }};color:{{ t.color }};font:inherit;font-size:13.5px;cursor:pointer" style-hover="color:#f5f5f7">{{ t.label }}</button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ onOverview }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:36px;animation:rise .2s ease-out">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px 32px">
+          <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:2px;padding-top:12px;box-shadow:inset 0 .5px 0 rgba(255,255,255,.14)">
+              <span style="font-size:13px;color:#a1a1a6">{{ k.label }}</span>
+              <span style="font-size:24px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ k.value }}</span>
+              <span style="font-size:12.5px;color:#7c7c82;text-wrap:pretty">{{ k.sub }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <section style="display:flex;flex-direction:column;gap:4px">
+          <h2 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.015em">Comptes fournisseurs</h2>
+          <span style="font-size:13px;color:#7c7c82;padding-bottom:10px">Limites lues chez chaque fournisseur quand il les expose.</span>
+          <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:6px 24px;align-items:center;padding:12px 0;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.06)">
+              <span style="display:flex;flex-direction:column;line-height:1.35;min-width:0"><span style="font-size:14.5px">{{ a.name }}</span><span style="font-size:12.5px;color:#7c7c82">{{ a.plan }}</span></span>
+              <span style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <sc-for list="{{ a.bars }}" as="b" hint-placeholder-count="2">
+                  <span style="display:grid;grid-template-columns:96px minmax(0,1fr) 52px;align-items:center;gap:10px;font-size:12.5px">
+                    <span style="color:#a1a1a6">{{ b.label }}</span>
+                    <span style="height:6px;border-radius:3px;background:rgba(120,120,128,.2);overflow:hidden"><span style="display:block;height:100%;width:{{ b.w }};background:{{ b.color }};border-radius:3px"></span></span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;color:{{ b.tColor }}">{{ b.v }}</span>
+                  </span>
+                </sc-for>
+                <sc-if value="{{ a.unknown }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:#7c7c82">Limites non exposées par le fournisseur</span></sc-if>
+              </span>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onStats }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:40px;animation:rise .2s ease-out">
+        <section style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <h2 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.015em">Historique</h2>
+            <span style="font-size:13px;color:#7c7c82;text-wrap:pretty">Tokens consommés par jour, toutes missions confondues.</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:12px;box-shadow:inset 0 .5px 0 rgba(255,255,255,.1)">
+            <div style="display:flex;padding:2px;border-radius:15px;background:rgba(120,120,128,.13)">
+              <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="2">
+                <button sc-camel-on-click="{{ r.go }}" style="height:26px;padding:0 11px;border:0;border-radius:13px;background:{{ r.bg }};color:{{ r.color }};font:inherit;font-size:12.5px;cursor:pointer">{{ r.label }}</button>
+              </sc-for>
+            </div>
+            <span style="flex:1"></span>
+            <div style="display:flex;padding:2px;border-radius:15px;background:rgba(120,120,128,.13)">
+              <sc-for list="{{ groupBys }}" as="r" hint-placeholder-count="3">
+                <button sc-camel-on-click="{{ r.go }}" style="height:26px;padding:0 11px;border:0;border-radius:13px;background:{{ r.bg }};color:{{ r.color }};font:inherit;font-size:12.5px;cursor:pointer">{{ r.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:16px 18px;border-radius:14px;background:#1c1c1e;box-shadow:0 0 0 .5px rgba(255,255,255,.1)">
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#a1a1a6"><span>{{ periodLabel }}</span><span style="font-variant-numeric:tabular-nums">{{ periodTotal }}</span></div>
+            <div style="display:flex;align-items:flex-end;gap:{{ barGap }};height:160px;padding-top:8px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.12)">
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+                <div title="{{ d.tip }}" style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end">
+                  <sc-for list="{{ d.segs }}" as="sg" hint-placeholder-count="3">
+                    <div style="height:{{ sg.h }};background:{{ sg.c }};box-shadow:inset 0 -1px 0 #1c1c1e"></div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#7c7c82;font-variant-numeric:tabular-nums"><sc-for list="{{ ticks }}" as="x" hint-placeholder-count="3"><span>{{ x }}</span></sc-for></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px 24px;padding-top:4px">
+            <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+              <div style="display:flex;gap:10px"><span style="flex:none;width:3px;border-radius:2px;background:{{ l.c }}"></span><span style="display:flex;flex-direction:column;line-height:1.3"><span style="font-size:13px;color:#a1a1a6">{{ l.label }}</span><span style="font-size:18px;font-weight:500;font-variant-numeric:tabular-nums">{{ l.pct }}</span><span style="font-size:12px;color:#7c7c82;font-variant-numeric:tabular-nums">{{ l.tok }}</span></span></div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <h2 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.015em">Principales missions</h2>
+            <span style="font-size:13px;color:#7c7c82">Ouvrez une mission pour voir le détail par sous-agent.</span>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:560px;display:flex;flex-direction:column;font-size:14px">
+              <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 90px 90px 80px 70px;gap:12px;padding:8px 4px;color:#a1a1a6;font-size:13px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.14)">
+                <span></span><span>Mission</span><span style="text-align:right">Tokens</span><span style="text-align:right">{{ shareLabel }}</span><span style="text-align:right">Plateforme</span><span style="text-align:right">Durée</span>
+              </div>
+              <sc-for list="{{ missions }}" as="m" hint-placeholder-count="5">
+                <div style="display:flex;flex-direction:column;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.06)">
+                  <button sc-camel-on-click="{{ m.toggle }}" style="display:grid;grid-template-columns:22px minmax(0,1fr) 90px 90px 80px 70px;gap:12px;align-items:center;padding:10px 4px;border:0;background:transparent;color:#f5f5f7;font:inherit;text-align:left;cursor:pointer" style-hover="background:rgba(120,120,128,.08)">
+                    <svg width="9" height="9" sc-camel-view-box="0 0 10 10" style="color:#7c7c82;transform:{{ m.chev }};transition:transform .2s"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+                    <span style="display:flex;flex-direction:column;min-width:0;line-height:1.35"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.title }}</span><span style="font-size:12px;color:{{ m.stColor }}">{{ m.st }}</span></span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums">{{ m.tok }}</span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;color:#a1a1a6">{{ m.share }}</span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;color:#a1a1a6">{{ m.cost }}</span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;color:#a1a1a6">{{ m.dur }}</span>
+                  </button>
+                  <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;margin:0 0 12px 38px;padding-left:14px;box-shadow:inset 1.5px 0 0 rgba(255,255,255,.08);font-size:13px;animation:rise .18s ease-out">
+                      <div style="display:grid;grid-template-columns:minmax(0,1fr) 70px 70px 70px 60px;gap:10px;padding:4px 0 6px;color:#7c7c82;font-size:12px"><span>Sous-agent</span><span style="text-align:right">Entrée</span><span style="text-align:right">Sortie</span><span style="text-align:right">Cache</span><span style="text-align:right">Outils</span></div>
+                      <sc-for list="{{ m.subs }}" as="s" hint-placeholder-count="3">
+                        <div style="display:grid;grid-template-columns:minmax(0,1fr) 70px 70px 70px 60px;gap:10px;padding:4px 0;font-variant-numeric:tabular-nums;color:#a1a1a6">
+                          <span style="display:flex;gap:8px;min-width:0"><span style="flex:none;color:#7c7c82">{{ s.phase }}</span><span style="color:#f5f5f7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</span><span style="flex:none;color:#7c7c82">{{ s.agent }}</span></span>
+                          <span style="text-align:right">{{ s.in }}</span><span style="text-align:right">{{ s.out }}</span><span style="text-align:right">{{ s.cache }}</span><span style="text-align:right">{{ s.tools }}</span>
+                        </div>
+                      </sc-for>
+                      <sc-if value="{{ m.hasNote }}" hint-placeholder-val="{{ false }}"><span style="padding-top:6px;color:#7c7c82;font-size:12.5px;text-wrap:pretty">{{ m.note }}</span></sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ canMore }}" hint-placeholder-val="{{ true }}">
+            <button sc-camel-on-click="{{ more }}" style="align-self:flex-start;height:30px;padding:0 14px;border:0;border-radius:15px;background:rgba(120,120,128,.18);color:#f5f5f7;font:inherit;font-size:13px;cursor:pointer" style-hover="background:rgba(120,120,128,.28)">Afficher plus</button>
+          </sc-if>
+        </section>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;tab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overview&quot;,&quot;stats&quot;],&quot;default&quot;:&quot;stats&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { tab: this.props.tab || 'stats', range: 7, by: 'fn', open: 0, all: false };
+  renderVals() {
+    const s = this.state, set = o => this.setState(o);
+    const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(2).replace('.', ',') + ' M' : n >= 1e3 ? Math.round(n / 1e3) + ' k' : String(n);
+    const SERIES = {
+      fn: [['Agent principal', '#0a84ff'], ['Sous-agents', '#ff9f0a'], ['Vérification', '#30d158'], ['Titres et résumés', '#bf5af2']],
+      agent: [['claude', '#0a84ff'], ['codex', '#ff9f0a'], ['gemini', '#30d158']],
+      model: [['Opus', '#0a84ff'], ['Sonnet', '#ff9f0a'], ['Haiku', '#30d158'], ['Inconnu', '#7c7c82']]
+    };
+    const ser = SERIES[s.by];
+    const WEIGHTS = { fn: [.45, .4, .14, .01], agent: [.62, .28, .10], model: [.38, .44, .12, .06] };
+    const seed = i => { const x = Math.sin(i * 12.9898 + ser.length) * 43758.5453; return x - Math.floor(x); };
+    const n = s.range;
+    const raw = Array.from({ length: n }, (_, i) => {
+      const active = seed(i + 1) > (n === 7 ? 0.25 : 0.4);
+      const base = active ? 80000 + seed(i + 7) * 320000 : (seed(i) > .8 ? 6000 : 0);
+      const w = WEIGHTS[s.by].map((x, j) => x * (0.85 + 0.3 * seed(i * 3 + j)));
+      const sw = w.reduce((a, b) => a + b, 0);
+      return w.map(x => Math.round(base * x / sw));
+    });
+    const TARGET = n === 7 ? 1078000 : 3940000;
+    const rawSum = raw.reduce((a, d) => a + d.reduce((x, y) => x + y, 0), 0) || 1;
+    raw.forEach(d => d.forEach((v, j) => { d[j] = Math.round(v * TARGET / rawSum); }));
+    const max = Math.max(...raw.map(d => d.reduce((a, b) => a + b, 0)), 1);
+    const endDay = 22, startDay = endDay - n + 1;
+    const lab = d => { const dd = d < 1 ? 31 + d : d; return dd + (d < 1 ? ' oct.' : ' nov.'); };
+    const days = raw.map((d, i) => ({ tip: lab(startDay + i) + ' · ' + fmt(d.reduce((a, b) => a + b, 0)) + ' tokens', segs: d.map((v, j) => ({ h: (v / max * 100).toFixed(1) + '%', c: ser[j][1] })).reverse() }));
+    const tot = ser.map((_, j) => raw.reduce((a, d) => a + d[j], 0));
+    const all = tot.reduce((a, b) => a + b, 0) || 1;
+    const legend = ser.map(([label, c], j) => { const p = tot[j] / all * 100; return { label, c, pct: p < 0.1 ? '< 0,1 %' : p.toFixed(1).replace('.', ',') + ' %', tok: fmt(tot[j]) + ' tokens' }; });
+    const opt = (cur, k, label, key) => ({ label, go: () => set({ [key]: k }), bg: cur === k ? '#3a3a3c' : 'transparent', color: cur === k ? '#f5f5f7' : '#a1a1a6' });
+
+    const M = [
+      ['Recherche marché — outils IA candidature (Australie)', 'Terminée', '#7c7c82', 412000, '0,00 €', '4 min', [['1', 'Collecte des prix', 'claude', 98000, 14000, 61000, 18], ['1', 'Données marché', 'claude', 121000, 17000, 74000, 14], ['2', 'Vérification des sources', 'codex', 52000, 6000, 0, 9], ['3', 'Synthèse', 'claude', 31000, 9000, 22000, 2]], 'Une sous-tâche relancée : 38 k tokens comptés deux fois.'],
+      ['CV et lettres pour deux offres', 'Terminée', '#7c7c82', 238000, '0,00 €', '6 min', [['1', 'Analyse des offres', 'claude', 64000, 8000, 30000, 4], ['2', 'CV adapté', 'claude', 71000, 22000, 41000, 3], ['2', 'Lettres', 'gemini', 48000, 19000, 0, 2]], ''],
+      ['Rechercher et classer les offres Senior Data Engineer', 'Échec', '#ff6961', 187000, '0,00 €', '3 min', [['1', 'Scan des portails', 'codex', 140000, 9000, 0, 31], ['2', 'Classement', 'claude', 0, 0, 0, 0]], 'Arrêtée à la phase 2 : quota 5 h atteint chez codex.'],
+      ['Offres développeur à Sydney et Melbourne', 'Attend votre réponse', '#ff9f0a', 96000, '0,00 €', '2 min', [['1', 'Recherche', 'claude', 71000, 9000, 40000, 12]], ''],
+      ['Scanner les portails et postuler à Paris', 'Terminée', '#7c7c82', 91000, '0,00 €', '5 min', [['1', 'Scan', 'claude', 60000, 7000, 31000, 22], ['2', 'Candidatures', 'claude', 19000, 5000, 9000, 6]], 'Tokens de codex estimés : ACP ne renvoie pas le détail.'],
+      ['Vérifier les sponsors visa à Berlin', 'Terminée', '#7c7c82', 54000, '0,00 €', '1 min', [['1', 'sponsor-check', 'claude', 41000, 6000, 18000, 7]], '']
+    ];
+    const sum = M.reduce((a, m) => a + m[3], 0);
+    const missions = M.slice(0, s.all ? M.length : 5).map(([title, st, stColor, tok, cost, dur, subs, note], i) => ({
+      title, st, stColor, tok: fmt(tok), share: (tok / sum * 100).toFixed(1).replace('.', ',') + ' %', cost, dur,
+      open: s.open === i, chev: s.open === i ? 'rotate(90deg)' : 'none', toggle: () => set({ open: s.open === i ? -1 : i }),
+      subs: subs.map(([phase, name, agent, a, b, c, t]) => ({ phase, name, agent, in: fmt(a), out: fmt(b), cache: c ? fmt(c) : '—', tools: String(t) })),
+      note, hasNote: !!note
+    }));
+    const bar = (label, p, warn) => ({ label, w: Math.min(p, 100) + '%', v: p + ' %', color: p >= 100 ? '#ff6961' : p >= 80 ? '#ff9f0a' : '#0a84ff', tColor: p >= 100 ? '#ff6961' : p >= 80 ? '#ff9f0a' : '#a1a1a6' });
+    return {
+      tabs: [['overview', 'Aperçu'], ['stats', 'Statistiques']].map(([k, label]) => ({ label, go: () => set({ tab: k }), bg: s.tab === k ? 'rgba(120,120,128,.24)' : 'transparent', color: s.tab === k ? '#f5f5f7' : '#a1a1a6' })),
+      onOverview: s.tab === 'overview', onStats: s.tab === 'stats',
+      kpis: [
+        { label: 'Tokens · 7 jours', value: '1,08 M', sub: '62 % en cache · 10 missions, 4 sous-missions' },
+        { label: 'Coût plateforme', value: '0,00 €', sub: 'Outils et navigateur facturés par agre agent' },
+        { label: 'Plafond mensuel', value: 'Non défini', sub: 'Aucune mission n’est bloquée par un plafond' }
+      ],
+      accounts: [
+        { name: 'claude', plan: 'Abonnement Max · BYOA', bars: [bar('Limite 5 h', 45), bar('Hebdomadaire', 55)], unknown: false },
+        { name: 'codex', plan: 'ChatGPT Plus · BYOA', bars: [bar('Limite 5 h', 100), bar('Hebdomadaire', 41)], unknown: false },
+        { name: 'gemini', plan: 'Clé API · BYOA', bars: [], unknown: true }
+      ],
+      ranges: [opt(s.range, 7, '7 j', 'range'), opt(s.range, 30, '30 j', 'range')],
+      groupBys: [opt(s.by, 'fn', 'Fonction', 'by'), opt(s.by, 'agent', 'Agent', 'by'), opt(s.by, 'model', 'Modèle', 'by')],
+      periodLabel: lab(startDay) + ' – ' + lab(endDay) + ' 2026', periodTotal: fmt(all) + ' tokens',
+      barGap: n === 7 ? '18px' : '4px', days,
+      ticks: [lab(startDay), lab(startDay + Math.floor(n / 2)), lab(endDay)],
+      legend, missions, shareLabel: 'Part ' + n + ' j', canMore: !s.all && M.length > 5, more: () => set({ all: true })
+    };
+  }
+}
+</script>
+
+
+</body></html>

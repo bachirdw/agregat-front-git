@@ -190,6 +190,8 @@ export function Composer({
     skills: string[];
   };
   agentWarning?: string | null;
+  // orchestre-22-11 : « Gérer les Skills » du menu « + » ouvre la page Skills (branché par App).
+  onManageSkills?: () => void;
 }) {
   const teamHelp = useId();
   const promptRef = useRef<HTMLTextAreaElement>(null);

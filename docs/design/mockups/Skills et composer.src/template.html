@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="352e3eac-707c-42a0-9318-61f3ce26b7fb"></script>
+
+</head>
+<body>
+<x-dc>
+<helmet><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+html,body{margin:0;height:100%;background:#0e0e10}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;letter-spacing:-0.008em;color:#f5f5f7}
+a{color:#0a84ff;text-decoration:none}a:hover{text-decoration:underline}
+:focus{outline:none}:focus-visible{outline:3px solid rgba(10,132,255,.55);outline-offset:2px;border-radius:8px}
+input::placeholder,textarea::placeholder{color:#7c7c82}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style></helmet>
+<div style="height:100vh;display:flex;flex-direction:column;background:#0e0e10">
+  <header style="flex:none;display:flex;align-items:center;gap:4px;height:52px;padding:0 20px;box-shadow:inset 0 -.5px 0 rgba(255,255,255,.08)">
+    <sc-for list="{{ screens }}" as="s" hint-placeholder-count="2">
+      <button sc-camel-on-click="{{ s.go }}" style="height:28px;padding:0 12px;border:0;border-radius:14px;background:{{ s.bg }};color:{{ s.color }};font:inherit;font-size:13px;cursor:pointer" style-hover="color:#f5f5f7">{{ s.label }}</button>
+    </sc-for>
+  </header>
+
+  <sc-if value="{{ onSkills }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Skills" style="flex:1;overflow-y:auto">
+      <div style="max-width:880px;margin:0 auto;padding:48px 32px 120px;display:flex;flex-direction:column;gap:28px">
+
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px 24px">
+          <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-0.022em">Skills</h1>
+            <p style="margin:0;color:#a1a1a6;font-size:15px;text-wrap:pretty">Méthodes métier portables. Un Skill tiers reste en quarantaine jusqu’à votre revue ; l’installation n’exécute aucun script.</p>
+          </div>
+          <div style="flex:none;display:flex;align-items:center;gap:8px;position:relative">
+            <label style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:17px;background:rgba(120,120,128,.13);width:220px;max-width:100%">
+              <svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#7c7c82" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+              <input value="{{ q }}" sc-camel-on-input="{{ onSearch }}" placeholder="Rechercher des Skills" style="flex:1;min-width:0;border:0;background:none;color:#f5f5f7;font:inherit;font-size:13.5px">
+            </label>
+            <button sc-camel-on-click="{{ toggleAdd }}" style="display:flex;align-items:center;gap:6px;height:34px;padding:0 12px 0 14px;border:0;border-radius:17px;background:#f5f5f7;color:#0e0e10;font:inherit;font-size:13.5px;font-weight:500;cursor:pointer" style-hover="background:#ffffff">Ajouter<svg width="10" height="10" sc-camel-view-box="0 0 10 10"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg></button>
+            <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:42px;right:0;z-index:5;width:300px;padding:6px;border-radius:14px;background:#242427;box-shadow:0 0 0 .5px rgba(255,255,255,.1),0 18px 44px -10px rgba(0,0,0,.8);animation:rise .16s ease-out">
+                <sc-for list="{{ addItems }}" as="a" hint-placeholder-count="3">
+                  <button sc-camel-on-click="{{ a.go }}" style="width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 10px;border:0;border-radius:9px;background:transparent;color:#f5f5f7;font:inherit;font-size:13.5px;text-align:left;cursor:pointer" style-hover="background:rgba(120,120,128,.18)"><span>{{ a.label }}</span><span style="font-size:12px;color:#7c7c82">{{ a.hint }}</span></button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <sc-if value="{{ importOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px;padding:16px 18px;border-radius:14px;background:#1c1c1e;box-shadow:0 0 0 .5px rgba(255,255,255,.1);animation:rise .2s ease-out">
+            <div style="display:flex;align-items:baseline;gap:12px"><span style="font-weight:600;font-size:14.5px">Importer depuis GitHub</span><span style="flex:1"></span><button sc-camel-on-click="{{ closeImport }}" style="border:0;background:none;color:#7c7c82;font:inherit;font-size:13px;cursor:pointer" style-hover="color:#f5f5f7">Annuler</button></div>
+            <input placeholder="https://github.com/owner/repo/tree/main/skills/nom" style="height:36px;padding:0 12px;border:0;border-radius:9px;background:rgba(120,120,128,.13);color:#f5f5f7;font:inherit;font-size:13.5px">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px">
+              <span style="flex:1 1 280px;font-size:12.5px;color:#7c7c82;text-wrap:pretty">Dépôt, dossier, fichier SKILL.md ou lien figé sur un commit. Le Skill arrive en quarantaine.</span>
+              <button style="height:30px;padding:0 14px;border:0;border-radius:15px;background:#0a84ff;color:#fff;font:inherit;font-size:13px;font-weight:500;cursor:pointer">Importer</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+            <button sc-camel-on-click="{{ t.go }}" style="display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:15px;background:{{ t.bg }};color:{{ t.color }};font:inherit;font-size:13px;cursor:pointer" style-hover="color:#f5f5f7">{{ t.label }}<span style="color:#7c7c82;font-size:12px;font-variant-numeric:tabular-nums">{{ t.n }}</span></button>
+          </sc-for>
+        </div>
+
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+          <section style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:6px">
+              <h2 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.015em">{{ g.title }}</h2>
+              <span style="font-size:13px;color:#7c7c82;text-wrap:pretty">{{ g.sub }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:2px 24px">
+              <sc-for list="{{ g.items }}" as="k" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;min-width:0">
+                  <div style="display:flex;align-items:center;gap:12px;padding:10px 6px;margin:0 -6px;border-radius:10px;cursor:pointer" style-hover="background:rgba(120,120,128,.08)" sc-camel-on-click="{{ k.toggle }}">
+                    <span style="flex:none;width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:{{ k.tileBg }};color:{{ k.tileFg }};font-size:14px;font-weight:600;box-shadow:0 0 0 .5px rgba(255,255,255,.08)">{{ k.mono }}</span>
+                    <span style="flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.35">
+                      <span style="display:flex;align-items:baseline;gap:8px;min-width:0"><span style="font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ k.name }}</span><span style="flex:none;font-size:12px;color:{{ k.stColor }}">{{ k.st }}</span></span>
+                      <span style="font-size:13px;color:#a1a1a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ k.desc }}</span>
+                    </span>
+                    <sc-if value="{{ k.canAdd }}" hint-placeholder-val="{{ true }}">
+                      <button sc-camel-on-click="{{ k.install }}" aria-label="Installer" style="flex:none;width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:#f5f5f7;display:grid;place-items:center;cursor:pointer" style-hover="background:rgba(120,120,128,.2)"><svg width="15" height="15" sc-camel-view-box="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2.5v11M2.5 8h11"></path></svg></button>
+                    </sc-if>
+                    <sc-if value="{{ k.isOn }}" hint-placeholder-val="{{ false }}">
+                      <span style="flex:none;width:30px;height:30px;display:grid;place-items:center;color:#30d158"><svg width="15" height="15" sc-camel-view-box="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"></path></svg></span>
+                    </sc-if>
+                    <sc-if value="{{ k.isQ }}" hint-placeholder-val="{{ false }}">
+                      <button sc-camel-on-click="{{ k.examine }}" style="flex:none;height:28px;padding:0 11px;border:0;border-radius:14px;background:rgba(255,159,10,.14);color:#ff9f0a;font:inherit;font-size:12.5px;cursor:pointer" style-hover="background:rgba(255,159,10,.22)">Examiner</button>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ k.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:10px;margin:2px 0 10px 54px;padding-left:14px;box-shadow:inset 1.5px 0 0 rgba(255,255,255,.08);animation:rise .18s ease-out">
+                      <div style="display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 16px;font-size:13px">
+                        <sc-for list="{{ k.meta }}" as="m" hint-placeholder-count="4">
+                          <span style="color:#7c7c82">{{ m.k }}</span><span style="color:{{ m.c }};overflow-wrap:anywhere">{{ m.v }}</span>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <sc-for list="{{ k.actions }}" as="b" hint-placeholder-count="2">
+                          <button sc-camel-on-click="{{ b.go }}" style="height:28px;padding:0 12px;border:0;border-radius:14px;background:{{ b.bg }};color:{{ b.color }};font:inherit;font-size:12.5px;cursor:pointer" style-hover="opacity:.85">{{ b.label }}</button>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><p style="margin:0;color:#7c7c82">Aucun Skill ne correspond.</p></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ onComposer }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Composer" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;padding:32px 32px 48px">
+      <div style="width:100%;max-width:656px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+        <h1 style="margin:0 0 6px;font-size:24px;font-weight:600;letter-spacing:-0.02em">Que voulez-vous lancer ?</h1>
+        <div style="position:relative">
+          <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;left:0;right:0;bottom:calc(100% + 8px);z-index:5;max-height:min(440px, calc(100vh - 360px));overflow-y:auto;padding:6px;border-radius:16px;background:#242427;box-shadow:0 0 0 .5px rgba(255,255,255,.1),0 18px 44px -10px rgba(0,0,0,.8);animation:rise .16s ease-out">
+              <sc-for list="{{ menu }}" as="sec" hint-placeholder-count="2">
+                <div style="display:flex;flex-direction:column">
+                  <div style="padding:8px 10px 4px;font-size:12px;color:#7c7c82">{{ sec.title }}</div>
+                  <sc-for list="{{ sec.items }}" as="it" hint-placeholder-count="5">
+                    <button sc-camel-on-click="{{ it.go }}" style="width:100%;display:flex;align-items:center;gap:10px;min-height:36px;padding:6px 10px;border:0;border-radius:9px;background:transparent;color:#f5f5f7;font:inherit;font-size:14px;text-align:left;cursor:pointer" style-hover="background:rgba(120,120,128,.18)">
+                      <span style="flex:none;width:18px;text-align:center;color:#a1a1a6;font-size:13px">{{ it.icon }}</span>
+                      <span style="flex:none">{{ it.label }}</span>
+                      <span style="flex:1;min-width:0;color:#7c7c82;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.hint }}</span>
+                      <span style="flex:none;color:{{ it.endColor }};font-size:12.5px">{{ it.end }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px 12px 10px 16px;border-radius:20px;background:#242427;box-shadow:0 0 0 .5px rgba(255,255,255,.1),0 18px 44px -10px rgba(0,0,0,.8)">
+            <sc-if value="{{ hasChips }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;padding-top:2px">
+                <sc-for list="{{ chips }}" as="c" hint-placeholder-count="2">
+                  <span style="display:flex;align-items:center;gap:6px;height:26px;padding:0 6px 0 10px;border-radius:13px;background:rgba(120,120,128,.18);font-size:12.5px"><span style="color:#7c7c82">{{ c.kind }}</span><span>{{ c.label }}</span><button sc-camel-on-click="{{ c.remove }}" aria-label="Retirer" style="width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:#7c7c82;display:grid;place-items:center;cursor:pointer;padding:0" style-hover="color:#f5f5f7;background:rgba(120,120,128,.25)"><svg width="8" height="8" sc-camel-view-box="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg></button></span>
+                </sc-for>
+              </div>
+            </sc-if>
+            <textarea rows="2" placeholder="Décrivez votre objectif. Tapez / pour un Skill, @ pour un agent, # pour un fichier." style="border:0;background:none;color:#f5f5f7;font:inherit;font-size:15px;resize:none;padding:4px 0"></textarea>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button sc-camel-on-click="{{ toggleMenu }}" aria-label="Ajouter" style="width:30px;height:30px;border:0;border-radius:50%;background:{{ plusBg }};color:#f5f5f7;display:grid;place-items:center;cursor:pointer" style-hover="background:rgba(120,120,128,.32)"><svg width="13" height="13" sc-camel-view-box="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="transform:{{ plusRot }};transition:transform .2s"><path d="M8 3v10M3 8h10"></path></svg></button>
+              <sc-if value="{{ planOn }}" hint-placeholder-val="{{ true }}">
+                <button sc-camel-on-click="{{ togglePlan }}" style="display:flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:0;border-radius:15px;background:rgba(10,132,255,.14);color:#64b5ff;font:inherit;font-size:12.5px;cursor:pointer">Plan d’abord</button>
+              </sc-if>
+              <button style="height:30px;padding:0 10px;border:0;border-radius:15px;background:transparent;color:#7c7c82;font:inherit;font-size:12.5px;cursor:pointer" style-hover="background:rgba(120,120,128,.13);color:#a1a1a6">claude · défaut</button>
+              <span style="flex:1"></span>
+              <button aria-label="Envoyer" style="width:30px;height:30px;border:0;border-radius:50%;background:#0a84ff;color:#fff;display:grid;place-items:center;cursor:pointer"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px 16px;padding-left:4px;font-size:12px;color:#7c7c82">
+          <span><span style="color:#a1a1a6">/</span> Skills</span><span><span style="color:#a1a1a6">@</span> agents</span><span><span style="color:#a1a1a6">#</span> fichiers</span><span style="margin-left:auto">Rien n’est exécuté sans votre accord.</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;skills&quot;,&quot;composer&quot;],&quot;default&quot;:&quot;skills&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: this.props.screen || 'skills', tab: 'all', q: '', add: false, imp: false, open: null,
+    st: { 'evidence-review': 'on', 'opportunity-analysis': 'on', 'offer-evaluation': 'on', 'cv-tailoring': 'av', 'sponsor-check': 'av', 'interview-prep': 'av', 'career-ops': 'q', 'linkedin-scraper': 'rej' },
+    menu: true, plan: true, picked: ['evidence-review'], files: ['offres-berlin.csv']
+  };
+  renderVals() {
+    const s = this.state, set = o => this.setState(o);
+    const SK = [
+      ['evidence-review', 'Vérifie chaque affirmation contre ses sources', 'Embarqué'],
+      ['opportunity-analysis', 'Classe les offres selon votre profil et vos critères', 'Embarqué'],
+      ['offer-evaluation', 'Compare salaire, visa et conditions d’une offre', 'Embarqué'],
+      ['cv-tailoring', 'Adapte le CV aux mots-clés d’une offre', 'Embarqué'],
+      ['sponsor-check', 'Vérifie si l’employeur sponsorise les visas', 'Embarqué'],
+      ['interview-prep', 'Prépare les questions probables d’un entretien', 'Embarqué'],
+      ['career-ops', 'Suivi de candidatures multi-sites', 'github.com/santifer/career-ops'],
+      ['linkedin-scraper', 'Extraction de profils LinkedIn', 'github.com/anon/li-tools']
+    ];
+    const TILE = { on: ['rgba(48,209,88,.14)', '#30d158'], av: ['rgba(120,120,128,.18)', '#f5f5f7'], q: ['rgba(255,159,10,.14)', '#ff9f0a'], rej: ['rgba(255,105,97,.12)', '#ff6961'] };
+    const ST = { on: ['Installé', '#7c7c82'], av: ['', '#7c7c82'], q: ['Quarantaine', '#ff9f0a'], rej: ['Rejeté', '#ff6961'] };
+    const setSt = (n, v) => set({ st: { ...s.st, [n]: v }, open: null });
+    const q = s.q.trim().toLowerCase();
+    const rows = SK.filter(([n, d]) => !q || (n + d).toLowerCase().includes(q)).map(([name, desc, src]) => {
+      const st = s.st[name], open = s.open === name, third = src.startsWith('github');
+      const meta = [
+        { k: 'Version', v: 'v0.1.0', c: '#a1a1a6' },
+        { k: 'Source', v: src, c: '#a1a1a6' },
+        { k: 'Licence', v: third ? 'MIT' : 'non annoncée', c: '#a1a1a6' },
+        { k: 'Intégrité', v: st === 'rej' ? 'non vérifiée' : 'vérifiée', c: st === 'rej' ? '#ff6961' : '#30d158' },
+        { k: 'Scripts', v: third ? '2 fichiers .py · jamais exécutés à l’installation' : 'aucun', c: '#a1a1a6' }
+      ];
+      const btn = (label, go, primary, danger) => ({ label, go, bg: primary ? '#0a84ff' : 'rgba(120,120,128,.18)', color: primary ? '#fff' : danger ? '#ff6961' : '#f5f5f7' });
+      const actions = st === 'on' ? [btn('Désinstaller', () => setSt(name, 'av'), false, true)]
+        : st === 'av' ? [btn('Installer', () => setSt(name, 'on'), true)]
+        : st === 'q' ? [btn('Approuver et installer', () => setSt(name, 'on'), true), btn('Lire SKILL.md', () => {}), btn('Rejeter', () => setSt(name, 'rej'), false, true)]
+        : [btn('Remettre en quarantaine', () => setSt(name, 'q'))];
+      return { name, desc, st: ST[st][0], stColor: ST[st][1], mono: name[0].toUpperCase(), tileBg: TILE[st][0], tileFg: TILE[st][1],
+        canAdd: st === 'av', isOn: st === 'on', isQ: st === 'q', open, meta, actions, status: st,
+        toggle: () => set({ open: open ? null : name }),
+        examine: e => { e.stopPropagation(); set({ open: open ? null : name }); },
+        install: e => { e.stopPropagation(); setSt(name, 'on'); } };
+    });
+    const by = k => rows.filter(r => r.status === k);
+    const G = {
+      on: { title: 'Installés', sub: 'Disponibles dans le composer avec /' },
+      av: { title: 'Embarqués', sub: 'Fournis avec agre agent, intégrité vérifiée' },
+      q: { title: 'En quarantaine', sub: 'Importés, en attente de votre revue' },
+      rej: { title: 'Rejetés', sub: 'Jamais chargés par les agents' }
+    };
+    const keys = s.tab === 'all' ? ['on', 'av', 'q'] : [s.tab];
+    const groups = keys.map(k => ({ ...G[k], items: by(k) })).filter(g => g.items.length);
+    const count = k => Object.values(s.st).filter(v => v === k).length;
+    const tabs = [['all', 'Tous', SK.length], ['on', 'Installés', count('on')], ['q', 'Quarantaine', count('q')], ['rej', 'Rejetés', count('rej')]]
+      .map(([k, label, n]) => ({ label, n, go: () => set({ tab: k }), bg: s.tab === k ? 'rgba(120,120,128,.24)' : 'transparent', color: s.tab === k ? '#f5f5f7' : '#a1a1a6' }));
+
+    const installed = SK.map(x => x[0]).filter(n => s.st[n] === 'on');
+    const togglePick = n => set({ picked: s.picked.includes(n) ? s.picked.filter(x => x !== n) : [...s.picked, n] });
+    const menu = [
+      { title: 'Ajouter', items: [
+        { icon: '⌘', label: 'Fichiers et dossiers', hint: '', end: '#', endColor: '#7c7c82', go: () => set({ files: [...new Set([...s.files, 'profil.pdf'])] }) },
+        { icon: '◇', label: 'Domain Pack', hint: 'Najah AI', end: '', endColor: '#7c7c82', go: () => {} },
+        { icon: '☼', label: 'Mode plan', hint: 'Valider un plan avant toute action', end: s.plan ? 'Activé' : 'Désactivé', endColor: s.plan ? '#64b5ff' : '#7c7c82', go: () => set({ plan: !s.plan }) },
+        { icon: '€', label: 'Budget max', hint: 'Plafond de la mission', end: '0,00 €', endColor: '#7c7c82', go: () => {} }
+      ]},
+      { title: 'Skills', items: [
+        ...installed.map(n => ({ icon: s.picked.includes(n) ? '✓' : '', label: n, hint: SK.find(x => x[0] === n)[1], end: '', endColor: '#7c7c82', go: () => togglePick(n) })),
+        { icon: '+', label: 'Gérer les Skills', hint: `${count('q')} en quarantaine`, end: '', endColor: '#7c7c82', go: () => set({ screen: 'skills' }) }
+      ]}
+    ];
+    const chips = [
+      ...s.picked.filter(n => installed.includes(n)).map(n => ({ kind: 'Skill', label: n, remove: () => togglePick(n) })),
+      ...s.files.map(f => ({ kind: 'Fichier', label: f, remove: () => set({ files: s.files.filter(x => x !== f) }) }))
+    ];
+    return {
+      screens: [['skills', 'Écran Skills'], ['composer', 'Composer · menu +']].map(([k, label]) => ({ label, go: () => set({ screen: k }), bg: s.screen === k ? 'rgba(120,120,128,.24)' : 'transparent', color: s.screen === k ? '#f5f5f7' : '#a1a1a6' })),
+      onSkills: s.screen === 'skills', onComposer: s.screen === 'composer',
+      q: s.q, onSearch: e => set({ q: e.target.value }),
+      addOpen: s.add, toggleAdd: () => set({ add: !s.add }),
+      addItems: [
+        { label: 'Importer depuis GitHub', hint: 'Arrive en quarantaine', go: () => set({ add: false, imp: true }) },
+        { label: 'Importer un dossier local', hint: 'Dossier contenant un SKILL.md', go: () => set({ add: false }) },
+        { label: 'Créer un Skill', hint: 'À partir d’une mission réussie', go: () => set({ add: false }) }
+      ],
+      importOpen: s.imp, closeImport: () => set({ imp: false }),
+      tabs, groups, empty: !groups.length,
+      menuOpen: s.menu, toggleMenu: () => set({ menu: !s.menu }), plusBg: s.menu ? 'rgba(120,120,128,.32)' : 'rgba(120,120,128,.18)', plusRot: s.menu ? 'rotate(45deg)' : 'none',
+      menu, chips, hasChips: chips.length > 0, planOn: s.plan, togglePlan: () => set({ plan: false })
+    };
+  }
+}
+</script>
+
+
+</body></html>
