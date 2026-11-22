@@ -1058,9 +1058,6 @@ export function RunTurn({
       (privateResult.failed ? run.result?.summary || "" : null))
     : (run.result?.summary ?? null);
   const silent = activeSilence(events, run.state);
-  const browserFallback = events.some(
-    (event) => event.type === "browser_fallback",
-  );
   const renderEntry = (entry: Entry, index: number, list: Entry[]) => {
     if (entry.kind === "owner")
       return echoed.has(entry.id) ? null : (
@@ -1126,9 +1123,6 @@ export function RunTurn({
           text={`Agent silencieux depuis ${Math.max(1, Math.ceil(Number(silent.data?.elapsedMs || 60000) / 60000))} min. Vous pouvez arrêter la mission.`}
         />
       )}
-      {browserFallback && (
-        <Incident text="Navigateur : Chrome isolé, non connecté à vos comptes (extension Playwriter indisponible)." />
-      )}
     </div>
   );
   // equipe-lisible-22-11 : messages d'attente consécutifs du chef regroupés ; le dernier reste visible,
@@ -1193,9 +1187,6 @@ export function RunTurn({
         <p className="muted answer-source">
           Résultat privé illisible : réponse enregistrée sur la mission.
         </p>
-      )}
-      {run.result.simulated && (
-        <small className="fictif">Données fictives</small>
       )}
       <Offers run={run} />
     </section>

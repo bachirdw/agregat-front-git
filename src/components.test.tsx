@@ -616,7 +616,7 @@ describe("rendu fiable", () => {
     );
     expect(act).toHaveBeenCalledWith("/runs/r/resume", {});
   });
-  it("quarantaine : lecture explicite et hash réel pour la revue", () => {
+  it("quarantaine : approbation en un clic (plus de case obligatoire) et hash réel pour la revue", () => {
     const act = vi.fn();
     render(
       <Skills
@@ -645,8 +645,8 @@ describe("rendu fiable", () => {
     const approve = screen.getByRole("button", {
       name: "Approuver après lecture",
     }) as HTMLButtonElement;
-    expect(approve.disabled).toBe(true);
-    fireEvent.click(screen.getByRole("checkbox"));
+    expect(approve.disabled).toBe(false);
+    expect(screen.queryByRole("checkbox")).toBeNull();
     fireEvent.click(approve);
     expect(act).toHaveBeenCalledWith("/skills/third/review", {
       approved: true,

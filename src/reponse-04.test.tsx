@@ -422,9 +422,10 @@ describe("réponse de l'agent : texte d'abord", () => {
     );
     expect(text).not.toMatch(/failed|skipped|review \(/);
   });
-  it("« Données fictives » reste visible sous une réponse simulée", () => {
+  // sans-restriction-22-11 : plus d'étiquette « fictif » (décision du propriétaire).
+  it("plus d'étiquette « Données fictives » sous une réponse simulée", () => {
     turn();
-    expect(screen.getByText("Données fictives")).toBeTruthy();
+    expect(screen.queryByText("Données fictives")).toBeNull();
   });
   it("un incident passé en prop s'affiche en ligne sous l'activité, avec « ! »", () => {
     const { container } = turn({ incident: "Une sous-tâche a échoué." });

@@ -568,12 +568,7 @@ export function ActivityPanel({
           </section>
         )}
         {run && cells.length > 0 && (
-          <Section
-            title="Candidatures"
-            summary={
-              run.simulated || run.result?.simulated ? "fictif" : undefined
-            }
-          >
+          <Section title="Candidatures">
             <div className="funnel">
               {cells.map(([label, count]) => (
                 <div className="funnel-cell" key={label}>

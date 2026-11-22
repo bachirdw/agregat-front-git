@@ -218,7 +218,8 @@ test(
       name: "Résultats",
       exact: true,
     });
-    assert.match(await results.innerText(), /Données fictives/);
+    // sans-restriction-22-11 : plus d'étiquette « Données fictives » (décision du propriétaire).
+    assert.doesNotMatch(await results.innerText(), /Données fictives/);
     // Les offres : un tableau replié sous le texte (plus de cartes).
     await results.getByText(/Voir les 3 offres/).click();
     assert.equal(await results.locator(".offers tbody tr").count(), 3);
@@ -650,8 +651,9 @@ test(
     const approve = card.getByRole("button", {
       name: "Approuver et installer",
     });
-    assert.equal(await approve.isEnabled(), false);
-    await card.getByRole("checkbox").check();
+    // sans-restriction-22-11 : plus de case obligatoire avant d'approuver (décision du propriétaire).
+    assert.equal(await approve.isEnabled(), true);
+    assert.equal(await card.getByRole("checkbox").count(), 0);
     await shot(page, "04-skills-quarantaine");
     await approve.click();
     await card

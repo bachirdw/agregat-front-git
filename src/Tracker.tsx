@@ -102,7 +102,7 @@ export function trackerDetails(run: Run, events: RunEvent[]) {
     ]);
   rows.push([
     "Coût",
-    `${run.usage ? money(run.usage.platformCents, run.usage.currency) : "Non mesuré"} · ${run.simulated ? "fictif" : "BYOA"}`,
+    `${run.usage ? money(run.usage.platformCents, run.usage.currency) : "Non mesuré"} ${run.simulated ? "" : " · BYOA"}`,
   ]);
   if (run.ledger)
     rows.push([

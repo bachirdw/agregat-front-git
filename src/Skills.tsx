@@ -97,7 +97,6 @@ function SkillCard({
   open: boolean;
   toggle: () => void;
 }) {
-  const [reviewed, setReviewed] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -271,18 +270,11 @@ function SkillCard({
                 dépôt et sa révision exacte avant d’approuver.
               </p>
               <p className="mono">Empreinte : {skill.hash}</p>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={reviewed}
-                  onChange={(e) => setReviewed(e.target.checked)}
-                />
-                J’ai lu les fichiers à cette révision et vérifié les alertes.
-              </label>
+              {/* sans-restriction-22-11 : plus de case obligatoire avant d'approuver (décision du propriétaire). */}
               <div className="sk-actions">
                 <button
                   className="sk-action sk-primary"
-                  disabled={disabled || !reviewed || !skill.integrity}
+                  disabled={disabled || !skill.integrity}
                   onClick={() => void approve()}
                 >
                   {canChain

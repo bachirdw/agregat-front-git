@@ -949,7 +949,6 @@ export default function App() {
                     </>
                   )}
                   {turns > 1 && <small className="turns">{turns} tours</small>}
-                  {r.simulated && <small>fictif</small>}
                   {r.famille && (
                     // Icône des sous-agents (comme la ligne du fil) : le titre garde la place.
                     <small

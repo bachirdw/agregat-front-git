@@ -165,14 +165,14 @@ describe("Skills — Ajouter et quarantaine", () => {
     fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
     expect(screen.queryByLabelText("Dépôt GitHub")).toBeNull();
   });
-  it("approuve l’empreinte puis installe seulement après lecture explicite", async () => {
+  it("approuve l’empreinte puis installe, sans case obligatoire", async () => {
     const { request } = show([entries[4]]);
     expand("tiers-fictif");
     const approve = screen.getByRole("button", {
       name: "Approuver et installer",
     }) as HTMLButtonElement;
-    expect(approve.disabled).toBe(true);
-    fireEvent.click(screen.getByRole("checkbox"));
+    expect(approve.disabled).toBe(false);
+    expect(screen.queryByRole("checkbox")).toBeNull();
     fireEvent.click(approve);
     await waitFor(() =>
       expect(request).toHaveBeenNthCalledWith(
@@ -212,7 +212,6 @@ describe("Skills — Ajouter et quarantaine", () => {
       .mockRejectedValue(new Error("Revue FICTIVE refusée"));
     const { act } = show([entries[4]], request);
     expand("tiers-fictif");
-    fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(
       screen.getByRole("button", { name: "Approuver et installer" }),
     );

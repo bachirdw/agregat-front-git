@@ -265,8 +265,8 @@ describe("mise à jour sur problème", () => {
     const approve = within(panel).getByRole("button", {
       name: "Approuver la nouvelle version",
     }) as HTMLButtonElement;
-    expect(approve.disabled).toBe(true);
-    fireEvent.click(within(panel).getByRole("checkbox"));
+    expect(approve.disabled).toBe(false);
+    expect(within(panel).queryByRole("checkbox")).toBeNull();
     fireEvent.click(approve);
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(

@@ -328,7 +328,8 @@ describe("Étapes de la mission", () => {
     const tech = container.querySelector<HTMLElement>(
       ".activity-steps .activity-tech",
     )!;
-    expect(within(tech).getByText(/1,25.*fictif/)).toBeTruthy();
+    expect(within(tech).getByText(/1,25/)).toBeTruthy();
+    expect(tech.textContent).not.toContain("fictif");
     expect(within(tech).getByText("Registre altéré")).toBeTruthy();
     cleanup();
     panel({ run: { ...running, usage: undefined } as Run, details: true });
@@ -368,7 +369,7 @@ describe("Candidatures", () => {
     expect(within(section).getByText("Offres trouvées")).toBeTruthy();
     expect(section.textContent).not.toMatch(/Retenues|Lettres prêtes|Envoyées/);
   });
-  it("compteurs du back : quatre cellules, zéro compris ; les données fictives sont signalées", () => {
+  it("compteurs du back : quatre cellules, zéro compris ; plus d’étiquette « fictif »", () => {
     panel({
       run: {
         ...running,
@@ -392,7 +393,8 @@ describe("Candidatures", () => {
       "2Lettres prêtes",
       "0Envoyées",
     ]);
-    expect(section.textContent).toContain("fictif");
+    // sans-restriction-22-11 : plus d'étiquette « fictif ».
+    expect(section.textContent).not.toContain("fictif");
   });
 });
 

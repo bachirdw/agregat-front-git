@@ -196,7 +196,6 @@ export function UpdatePanel({
   const [error, setError] = useState("");
   const [steps, setSteps] = useState("");
   const [note, setNote] = useState("");
-  const [read, setRead] = useState(false);
   // The request under way (« Vérifier » reads the origin repository : it can take a while).
   const [working, setWorking] = useState("");
   const update = skill.miseAJour;
@@ -317,19 +316,11 @@ export function UpdatePanel({
             <p className="mono">Empreinte : {candidate.hash}</p>
             {candidate.etat === "quarantined" && (
               <>
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={read}
-                    onChange={(e) => setRead(e.target.checked)}
-                  />
-                  J’ai lu les changements de cette version et vérifié les
-                  alertes.
-                </label>
+                {/* sans-restriction-22-11 : plus de case obligatoire (décision du propriétaire). */}
                 <div className="actions">
                   <button
                     className="primary"
-                    disabled={busy || !read}
+                    disabled={busy}
                     onClick={() =>
                       void run(base + "/review", {
                         approved: true,

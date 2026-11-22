@@ -22,6 +22,11 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 16:45 — lot `sans-restriction-22-11`** (rapport du même nom) : décision du propriétaire sur la liste des
+> mises en garde : retirer ce qui restreint (cases obligatoires des Skills) et les étiquettes « fictif » / la ligne
+> navigateur ; garder questions et messages. Restrictions de navigation transmises au manager (côté serveur).
+> 595/595, E2E 18/18. Commité sur `main` local, non poussé au moment de l'écrire.
+
 > **22/11, 16:20 — lot `cartes-membres-22-11`** (rapport du même nom) : la carte qu'un membre attend (envoi,
 > accord, question) se répond depuis la page de la mère, en tête et dans le panneau Équipe. 595/595, E2E 18/18.
 > Commité sur `main` local, non poussé au moment de l'écrire.

@@ -1080,7 +1080,6 @@ export function CareerResults({ run }: { run: Run }) {
                     <strong>{o.title}</strong>
                     <small>
                       {o.company} · {o.source}
-                      {o.simulated ? " · FICTIF" : ""}
                     </small>
                   </span>
                   <a href={o.url} target="_blank" rel="noopener noreferrer">
@@ -1554,7 +1553,7 @@ export function CareerOffers({ done }: { done: boolean }) {
         {offers.map((o) => (
           <li key={o.id} className="offer">
             <strong>{o.score ?? "–"}/5</strong> {o.title} — {o.company} ·{" "}
-            {o.source} {o.simulated ? "· FICTIF " : ""}
+            {o.source}{" "}
             <a href={o.url} target="_blank" rel="noopener noreferrer">
               ↗
             </a>
