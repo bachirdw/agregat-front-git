@@ -5,63 +5,12 @@ import { ATTACHMENT_MAX_COUNT, uploadFile } from "./api";
 import { money } from "./types";
 import { Icon } from "./Icon";
 import { agentStateLabel, agentsInOrder } from "./agentStatus";
+import { ComposerMenu } from "./skills-composer/ComposerMenu";
+import type { ComposerGroup } from "./skills-composer/ComposerMenu";
 function size(bytes: number) {
   return bytes < 1024 * 1024
     ? `${Math.max(1, Math.round(bytes / 1024))} Ko`
     : `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
-}
-// "+" menu next to the prompt: attach a file (CV…), uploaded at once to POST /api/files.
-function AttachMenu({
-  disabled,
-  onPick,
-}: {
-  disabled: boolean;
-  onPick: () => void;
-}) {
-  const ref = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
-    const close = (e: Event) => {
-      if (!ref.current?.contains(e.target as Node))
-        ref.current?.removeAttribute("open");
-    };
-    const escape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && ref.current?.open) {
-        ref.current.open = false;
-        ref.current.querySelector("summary")?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", escape);
-    };
-  }, []);
-  return (
-    <details className="filter attach-menu" ref={ref}>
-      <summary
-        aria-label="Ajouter"
-        onClick={(e) => disabled && e.preventDefault()}
-        aria-disabled={disabled}
-      >
-        <Icon name="plus" />
-      </summary>
-      <div className="popover" role="menu">
-        <button
-          type="button"
-          role="menuitem"
-          disabled={disabled}
-          onClick={() => {
-            ref.current?.removeAttribute("open");
-            onPick();
-          }}
-        >
-          Ajouter un fichier
-        </button>
-        <small>PDF, DOCX, Markdown ou texte · 10 Mo max.</small>
-      </div>
-    </details>
-  );
 }
 // Le menu « agent · modèle » se ferme comme ses fenêtres : Échap (après la fenêtre ouverte dedans,
 // s'il y en a une) ou un clic ailleurs.
@@ -171,6 +120,7 @@ export function Composer({
   onOpen,
   sessionSettings,
   agentWarning,
+  onManageSkills,
 }: {
   catalog: Catalog | null;
   input: MissionInput;
@@ -194,6 +144,9 @@ export function Composer({
   onManageSkills?: () => void;
 }) {
   const teamHelp = useId();
+  const [plusOpen, setPlusOpen] = useState(false);
+  const [shortcutGroup, setShortcutGroup] = useState<ComposerGroup>();
+  const [menuKeyboard, setMenuKeyboard] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const measureRef = useRef<() => void>(() => {});
   measureRef.current = () => {
@@ -335,6 +288,46 @@ export function Composer({
     (id && catalog?.packs.find((p) => p.skills.some((k) => k.id === id))?.id) ||
     "";
   const chosenSkill = catalog?.skills.find((s) => s.id === input.skills[0]);
+  const selectSkill = (id: string) => {
+    const before = packOfSkill(input.skills[0]);
+    const after = packOfSkill(id);
+    set({
+      skills: id ? [id] : [],
+      // Le pack suit le Skill ; celui qu'un Skill avait mis s'en va avec lui.
+      pack: after || (before && input.pack === before ? "auto" : input.pack),
+      workflow: "auto",
+    });
+  };
+  const removeSkill = (id: string) => {
+    const remaining = input.skills.filter((skillId) => skillId !== id);
+    const removedPack = packOfSkill(id);
+    const remainingPack = packOfSkill(remaining[0]);
+    set({
+      skills: remaining,
+      pack:
+        remainingPack ||
+        (removedPack && input.pack === removedPack ? "auto" : input.pack),
+      workflow: "auto",
+    });
+  };
+  const closeSettings = () => {
+    promptRef.current?.form
+      ?.querySelectorAll<HTMLDetailsElement>("details[open]")
+      .forEach((details) => {
+        details.open = false;
+      });
+  };
+  const openSetting = (label: string) => {
+    const field = promptRef.current?.form?.querySelector<HTMLElement>(
+      `[aria-label="${label}"]`,
+    );
+    let parent = field?.parentElement;
+    while (parent) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+      parent = parent.parentElement;
+    }
+    field?.focus();
+  };
   const workflows = pack?.dags || catalog?.packs.flatMap((p) => p.dags) || [];
   // Les réglages de la mission (une pastille par réglage).
   const filtersRow = (
@@ -464,51 +457,6 @@ export function Composer({
         <small>
           Vide en mode propriétaire : tous les domaines publics. Le plan affiche
           le périmètre retenu.
-        </small>
-      </Filter>
-      {/* skill-explicite (décision du propriétaire, 21/11) : un Skill ne s'active jamais tout seul ;
-          on le choisit ici, comme le modèle. Un Skill d'un pack envoie aussi ce pack. */}
-      <Filter name="Skill" value={chosenSkill?.name || "Aucun"}>
-        <label>
-          Skill de la mission
-          <select
-            aria-label="Skill"
-            value={chosenSkill?.id ?? ""}
-            disabled={disabled || !catalog}
-            onChange={(e) => {
-              const id = e.target.value;
-              const before = packOfSkill(input.skills[0]);
-              const after = packOfSkill(id);
-              set({
-                skills: id ? [id] : [],
-                // Le pack suit le Skill ; celui qu'un Skill avait mis s'en va avec lui.
-                pack:
-                  after ||
-                  (before && input.pack === before ? "auto" : input.pack),
-                workflow: "auto",
-              });
-            }}
-          >
-            <option value="">Aucun Skill</option>
-            {catalog?.skills.map((s) => {
-              const ready = s.active && s.integrity;
-              const owner = catalog.packs.find(
-                (p) => p.id === packOfSkill(s.id),
-              );
-              return (
-                <option key={s.id} value={s.id} disabled={!ready}>
-                  {s.name}
-                  {owner ? ` · ${owner.name}` : ""}
-                  {ready ? "" : " · à activer dans Skills"}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-        <small>
-          {catalog?.skills.length
-            ? "Aucun Skill ne s’active tout seul : choisis-le ici si la mission en a besoin."
-            : "Aucun Skill disponible."}
         </small>
       </Filter>
       <Filter name="Équipe" value={input.team ? "Allumée" : "Éteinte"}>
@@ -697,7 +645,7 @@ export function Composer({
   return (
     <div className="composer-dock">
       <form
-        className={"composer" + (dragging ? " dragging" : "")}
+        className={"composer cp-composer" + (dragging ? " dragging" : "")}
         data-compact={compact}
         noValidate
         onSubmit={submit}
@@ -719,42 +667,6 @@ export function Composer({
             e.target.value = "";
           }}
         />
-        {(attachments.length > 0 || uploading > 0 || fileError) && (
-          <div className="attachments" aria-live="polite">
-            {attachments.map((a) => (
-              <span className="chip" key={a.id}>
-                <span>{a.name}</span>
-                <small>{size(a.size)}</small>
-                <button
-                  type="button"
-                  aria-label={`Retirer ${a.name}`}
-                  onClick={() =>
-                    set({
-                      attachments: attachments.filter((x) => x.id !== a.id),
-                    })
-                  }
-                >
-                  <Icon name="close" />
-                </button>
-              </span>
-            ))}
-            {uploading > 0 && (
-              <span className="chip pending">Envoi du fichier…</span>
-            )}
-            {fileError && (
-              <span className="chip error" role="alert">
-                <span>{fileError}</span>
-                <button
-                  type="button"
-                  aria-label="Fermer le message"
-                  onClick={() => setFileError("")}
-                >
-                  <Icon name="close" />
-                </button>
-              </span>
-            )}
-          </div>
-        )}
         <textarea
           id="prompt"
           ref={promptRef}
@@ -775,9 +687,56 @@ export function Composer({
           onFocus={onOpen}
           onChange={(e) => {
             onOpen?.();
-            set({ prompt: e.target.value });
+            const value = e.target.value;
+            set({ prompt: value });
+            const match = value
+              .slice(0, e.target.selectionStart)
+              .match(/(?:^|\s)([/@#])[^\s/@#]*$/);
+            if (match) {
+              closeSettings();
+              setShortcutGroup(
+                match[1] === "/"
+                  ? "Skills"
+                  : match[1] === "@"
+                    ? "Plugins"
+                    : "Ajouter",
+              );
+              setMenuKeyboard(false);
+              setPlusOpen(true);
+            } else if (shortcutGroup) {
+              setPlusOpen(false);
+              setShortcutGroup(undefined);
+            }
           }}
           onKeyDown={(e) => {
+            if (
+              plusOpen &&
+              !e.nativeEvent.isComposing &&
+              ["ArrowDown", "ArrowUp"].includes(e.key)
+            ) {
+              const group = shortcutGroup
+                ? `[data-group="${shortcutGroup}"] `
+                : "";
+              let items = [
+                ...(e.currentTarget.form?.querySelectorAll<HTMLButtonElement>(
+                  `.cp-menu ${group}button[role^="menuitem"]:not(:disabled)`,
+                ) || []),
+              ];
+              if (!items.length && group) {
+                items = [
+                  ...(e.currentTarget.form?.querySelectorAll<HTMLButtonElement>(
+                    '.cp-menu button[role^="menuitem"]:not(:disabled)',
+                  ) || []),
+                ];
+              }
+              const target = e.key === "ArrowUp" ? items.at(-1) : items[0];
+              if (target) {
+                e.preventDefault();
+                target.focus();
+                return;
+              }
+            }
+            if (plusOpen && e.key === "Enter") return;
             if (
               e.key === "Enter" &&
               !e.shiftKey &&
@@ -788,6 +747,67 @@ export function Composer({
             }
           }}
         />
+        {((!sessionSettings && !reply && input.skills.length > 0) ||
+          attachments.length > 0 ||
+          uploading > 0 ||
+          fileError) && (
+          <div className="cp-chips" aria-live="polite">
+            {!sessionSettings &&
+              !reply &&
+              input.skills.map((id) => {
+                const skill = catalog?.skills.find((item) => item.id === id);
+                return (
+                  <span className="cp-chip" key={id}>
+                    <span className="cp-chip-kind">Skill</span>
+                    <span className="cp-chip-label">{skill?.name || id}</span>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      aria-label={`Retirer le Skill ${skill?.name || id}`}
+                      onClick={() => removeSkill(id)}
+                    >
+                      <Icon name="close" />
+                    </button>
+                  </span>
+                );
+              })}
+            {attachments.map((attachment) => (
+              <span className="cp-chip" key={attachment.id}>
+                <span className="cp-chip-kind">Fichier</span>
+                <span className="cp-chip-label">{attachment.name}</span>
+                <small>{size(attachment.size)}</small>
+                <button
+                  type="button"
+                  aria-label={`Retirer ${attachment.name}`}
+                  onClick={() =>
+                    set({
+                      attachments: attachments.filter(
+                        (item) => item.id !== attachment.id,
+                      ),
+                    })
+                  }
+                >
+                  <Icon name="close" />
+                </button>
+              </span>
+            ))}
+            {uploading > 0 && (
+              <span className="cp-chip cp-chip-pending">Envoi du fichier…</span>
+            )}
+            {fileError && (
+              <span className="cp-chip cp-chip-error" role="alert">
+                <span>{fileError}</span>
+                <button
+                  type="button"
+                  aria-label="Fermer le message"
+                  onClick={() => setFileError("")}
+                >
+                  <Icon name="close" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
         {compact && disabled && (
           <button className="compact-expand" type="button" onClick={onOpen}>
             Afficher les réglages
@@ -820,9 +840,30 @@ export function Composer({
             </p>
           )}
         <div className="composer-bottom">
-          <AttachMenu
-            disabled={disabled || uploading > 0}
-            onPick={() => fileRef.current?.click()}
+          <ComposerMenu
+            open={plusOpen}
+            group={shortcutGroup}
+            focusOnOpen={menuKeyboard}
+            disabled={disabled}
+            filesDisabled={disabled || uploading > 0}
+            skills={catalog?.skills || []}
+            selected={sessionSettings?.skills || input.skills}
+            budget={money(input.budgetCents, catalog?.pricing.currency)}
+            fixedSettings={!!sessionSettings || reply}
+            onToggle={(keyboard = false) => {
+              if (!plusOpen) closeSettings();
+              setShortcutGroup(undefined);
+              setMenuKeyboard(keyboard);
+              setPlusOpen((value) => !value);
+            }}
+            onClose={() => {
+              setPlusOpen(false);
+              setShortcutGroup(undefined);
+            }}
+            onPickFile={() => fileRef.current?.click()}
+            onPickSkill={selectSkill}
+            onManageSkills={onManageSkills}
+            onSetting={openSetting}
           />
           {sessionSettings && !compact ? (
             // reponse-04 : dans une mission, les réglages de la session derrière un seul bouton

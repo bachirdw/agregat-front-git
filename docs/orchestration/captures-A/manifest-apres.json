@@ -1,0 +1,24 @@
+{
+  "phase": "apres",
+  "createdAt": "2026-11-22T01:39:10.411Z",
+  "backend": "/Users/diaw/Downloads/agregat-back",
+  "fixture": "FICTIF — vrai registre et vraies routes API, aucun agent ni réseau",
+  "widths": [
+    1440,
+    1024,
+    768
+  ],
+  "shots": [
+    "apres-skills-liste-1440.png",
+    "apres-skills-ligne-depliee-1440.png",
+    "apres-skills-menu-ajouter-1440.png",
+    "apres-skills-quarantaine-1440.png",
+    "apres-composer-menu-plus-1440.png"
+  ],
+  "unavailable": [],
+  "pageErrors": [],
+  "port": 59262,
+  "status": "error",
+  "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Retirer FICTIF-compte-rendu.md', exact: true }) to be visible\n\n    at /Users/diaw/Downloads/agregat-wt-a/scripts/orchestre-A-captures.mjs:252:8",
+  "cleanedUp": true
+}

@@ -368,8 +368,11 @@ describe("rendu fiable", () => {
       />,
     );
     expect(screen.getByLabelText("Ajouter")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ajouter" }),
+    );
     expect(
-      screen.getByRole("menuitem", { name: "Ajouter un fichier" }),
+      screen.getByRole("menuitem", { name: "Fichiers et dossiers" }),
     ).toBeTruthy();
     const picker = container.querySelector(
       'input[type="file"]',
@@ -640,6 +643,7 @@ describe("rendu fiable", () => {
         act={act}
       />,
     );
+    fireEvent.click(screen.getByRole("button", { name: "Détails de Tiers" }));
     const approve = screen.getByRole("button", {
       name: "Approuver après lecture",
     }) as HTMLButtonElement;

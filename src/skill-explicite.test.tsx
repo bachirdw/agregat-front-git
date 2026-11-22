@@ -2,7 +2,13 @@
 // s'active jamais tout seul. L'utilisateur le choisit dans la zone de saisie, comme le modèle ; par défaut,
 // « Aucun Skill ». Données FICTIVES.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { Composer } from "./Composer";
 import type { Catalog, MissionInput } from "./types";
 
@@ -67,13 +73,31 @@ const composer = (patch: Partial<MissionInput> = {}) => {
   );
   return onChange;
 };
-const select = () => screen.getByLabelText("Skill") as HTMLSelectElement;
+const skillMenu = () => {
+  if (!screen.queryByLabelText("Ajouter à la mission"))
+    fireEvent.click(screen.getByLabelText("Ajouter"));
+  return within(screen.getByRole("menu")).getAllByRole(
+    "menuitemcheckbox",
+  ) as HTMLButtonElement[];
+};
+const choose = (name: string) =>
+  fireEvent.click(
+    skillMenu().find((button) => button.getAttribute("aria-label") === name)!,
+  );
 
 describe("Skill choisi explicitement", () => {
-  it("un seul sélecteur « Skill », « Aucun Skill » par défaut ; plus de cases à cocher", () => {
+  it("un seul groupe « Skills », aucun Skill coché par défaut ; plus de cases à cocher", () => {
     composer();
-    expect(select().value).toBe("");
-    expect(select().options[0].textContent).toBe("Aucun Skill");
+    expect(
+      skillMenu().every(
+        (button) => button.getAttribute("aria-checked") === "false",
+      ),
+    ).toBe(true);
+    expect(
+      within(screen.getByRole("menu")).getAllByRole("group", {
+        name: "Skills",
+      }),
+    ).toHaveLength(1);
     expect(screen.queryByRole("checkbox", { name: /FICTI/ })).toBeNull();
   });
 
@@ -91,7 +115,7 @@ describe("Skill choisi explicitement", () => {
 
   it("choisir un Skill d'un pack : le Skill dans `skills` et son pack", () => {
     const onChange = composer();
-    fireEvent.change(select(), { target: { value: "offer-evaluation" } });
+    choose("Évaluation d’offre FICTIVE");
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({
         skills: ["offer-evaluation"],
@@ -103,7 +127,7 @@ describe("Skill choisi explicitement", () => {
 
   it("un Skill sans pack : le pack choisi ne change pas", () => {
     const onChange = composer();
-    fireEvent.change(select(), { target: { value: "libre" } });
+    choose("Skill libre FICTIF");
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ skills: ["libre"], pack: "auto" }),
     );
@@ -111,7 +135,7 @@ describe("Skill choisi explicitement", () => {
 
   it("revenir à « Aucun Skill » : `skills` vide et le pack que le Skill avait mis est retiré", () => {
     const onChange = composer({ skills: ["offer-evaluation"], pack: "najah" });
-    fireEvent.change(select(), { target: { value: "" } });
+    choose("Évaluation d’offre FICTIVE");
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ skills: [], pack: "auto" }),
     );
@@ -119,9 +143,11 @@ describe("Skill choisi explicitement", () => {
 
   it("un Skill inactif est proposé mais pas choisissable, avec la marche à suivre", () => {
     composer();
-    const visa = [...select().options].find((o) => o.value === "visa-check")!;
+    const visa = skillMenu().find(
+      (button) => button.getAttribute("aria-label") === "Visa FICTIF",
+    )!;
     expect(visa.disabled).toBe(true);
-    expect(visa.textContent).toContain("à activer dans Skills");
+    expect(visa.textContent).toContain("À activer dans Skills");
   });
 
   it("le réglage Pack est rangé dans le pli « Avancé », en dernier : le pack suit le Skill", () => {

@@ -55,6 +55,9 @@ const show = (
       request={request}
     />,
   );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Détails de " + skill.name }),
+  );
   return { act, request };
 };
 
@@ -338,12 +341,21 @@ describe("vérification : retours de l'essai réel", () => {
 });
 
 describe("import par adresse collée", () => {
-  const fill = (address: string) =>
+  const fill = (address: string) => {
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter" }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /Importer depuis GitHub/ }),
+    );
     fireEvent.change(screen.getByLabelText("Dépôt GitHub"), {
       target: { value: address },
     });
+  };
   it("aide : l'adresse se colle telle quelle", () => {
     show(base);
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter" }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /Importer depuis GitHub/ }),
+    );
     expect(screen.getByText(/Collez l’adresse telle quelle/)).toBeTruthy();
   });
   it("dépôt à plusieurs Skills : une case par candidat, « Importer la sélection », puis le compte rendu", async () => {
@@ -401,9 +413,7 @@ describe("import par adresse collée", () => {
       });
     show(base, request);
     fill("https://github.com/exemple/r");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Importer en quarantaine" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Importer" }));
     await screen.findByText("Ce dépôt contient 3 Skills (FICTIF)");
     expect(
       (screen.getByRole("checkbox", { name: /casse/ }) as HTMLInputElement)
@@ -452,9 +462,7 @@ describe("import par adresse collée", () => {
       });
     show(base, request);
     fill("https://github.com/exemple/plugin");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Importer en quarantaine" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Importer" }));
     await screen.findByText(/relecteur-fictif/);
     expect(screen.getByText(/serveur-fictif.*non lancé/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Importer le plugin" }));
@@ -482,10 +490,15 @@ describe("import par adresse collée", () => {
 
 // Essai réel du 22/11 sur 4310 : clonage de 40 s à plus de 2 min, puis échec de clone au 2e appel.
 describe("import : retours de l'essai réel", () => {
-  const fill = (address: string) =>
+  const fill = (address: string) => {
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter" }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /Importer depuis GitHub/ }),
+    );
     fireEvent.change(screen.getByLabelText("Dépôt GitHub"), {
       target: { value: address },
     });
+  };
   const refusal = () =>
     new ApiError("Ce dépôt contient 2 Skills (FICTIF)", 400, {
       error: "Ce dépôt contient 2 Skills (FICTIF)",
@@ -503,9 +516,7 @@ describe("import : retours de l'essai réel", () => {
     const request = vi.fn(() => new Promise((resolve) => (finish = resolve)));
     show(base, request);
     fill("https://github.com/exemple/r");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Importer en quarantaine" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Importer" }));
     expect(
       await screen.findByText(/Téléchargement du dépôt depuis GitHub/),
     ).toBeTruthy();
@@ -519,9 +530,7 @@ describe("import : retours de l'essai réel", () => {
     const request = vi.fn().mockRejectedValueOnce(refusal());
     show(base, request);
     fill("https://github.com/exemple/r");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Importer en quarantaine" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Importer" }));
     const line = await screen.findByText("Ce dépôt contient 2 Skills (FICTIF)");
     expect(line.className).not.toContain("danger");
     expect(line.getAttribute("role")).not.toBe("alert");
@@ -544,9 +553,7 @@ describe("import : retours de l'essai réel", () => {
       );
     show(base, request);
     fill("https://github.com/exemple/r");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Importer en quarantaine" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Importer" }));
     fireEvent.click(await screen.findByRole("checkbox", { name: /a-fictif/ }));
     fireEvent.click(
       screen.getByRole("button", { name: "Importer la sélection (1)" }),
