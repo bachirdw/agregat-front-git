@@ -1027,12 +1027,12 @@ export function RunTurn({
   const incomplete = run.error?.match(
     /^Mission incomplète\s*:\s*([\s\S]+)/,
   )?.[1];
-  // After a stop or a failure only: on a completed mission the back would replay the last message
-  // (a new agent turn, a duplicate bubble); the follow-up goes through the composer. A sub-mission
-  // is relaunched by its chief (the back refuses its resume, 409).
+  // A workflow stopped or failed only (22/11, owner: « Le retirer ») : an agent session resumes when
+  // the owner sends a message in « Répondre à l'agent… » ; the old « Reprendre la session » button
+  // relaunched the agent without saying so. A sub-mission is relaunched by its chief (409).
   const resumable =
     ["failed", "cancelled", "interrupted"].includes(run.state) &&
-    (run.mode === "workflow" || !!run.resumable) &&
+    run.mode === "workflow" &&
     !run.famille;
   const expired = expiredPermissions(events);
   const shown = entries;
@@ -1266,9 +1266,7 @@ export function RunTurn({
               disabled={busy}
               onClick={() => void act(`/runs/${run.id}/resume`, {})}
             >
-              {run.mode === "workflow"
-                ? "Reprendre le workflow"
-                : "Reprendre la session"}
+              Reprendre le workflow
             </button>
           )}
         </div>

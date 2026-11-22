@@ -320,23 +320,24 @@ describe("réponse de l'agent : texte d'abord", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
   });
-  // 21/11 : sur une mission terminée, « Reprendre la session » renvoyait le même message (nouveau tour
-  // d'agent, bulle en double). La suite passe par le composer ; « Reprendre » sert après un arrêt.
-  it("« Reprendre la session » : pas sur une mission terminée, oui après un échec ou un arrêt", () => {
-    const { unmount } = turn({ run: { ...run, resumable: true } as Run });
-    expect(
-      screen.queryByRole("button", { name: "Reprendre la session" }),
-    ).toBeNull();
-    unmount();
-    for (const state of ["failed", "cancelled", "interrupted"]) {
-      const { unmount: off } = turn({
+  // 22/11 (propriétaire, « Le retirer ») : « Reprendre la session » relançait l'agent sans prévenir, en
+  // double du champ « Répondre à l'agent… » qui poursuit la même session. Plus de bouton pour un agent ;
+  // un workflow arrêté ou en échec garde « Reprendre le workflow » (pas de champ de réponse pour lui).
+  it("plus de « Reprendre la session » pour un agent, terminé, en échec ou arrêté ; « Reprendre le workflow » reste", () => {
+    for (const state of ["completed", "failed", "cancelled", "interrupted"]) {
+      const { unmount } = turn({
         run: { ...run, state, resumable: true } as Run,
       });
-      expect(
-        screen.getByRole("button", { name: "Reprendre la session" }),
-      ).toBeTruthy();
-      off();
+      expect(screen.queryByRole("button", { name: /Reprendre/ })).toBeNull();
+      unmount();
     }
+    const { unmount } = turn({
+      run: { ...run, state: "failed", mode: "workflow" } as Run,
+    });
+    expect(
+      screen.getByRole("button", { name: "Reprendre le workflow" }),
+    ).toBeTruthy();
+    unmount();
   });
   // 21/11 (test complet) : une pensée de l'agent effaçait « Réflexion… » et RunTurn ne montre pas les
   // pensées : la mission semblait bloquée.
