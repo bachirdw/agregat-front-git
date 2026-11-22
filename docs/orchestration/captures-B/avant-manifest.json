@@ -1,0 +1,49 @@
+{
+  "label": "avant",
+  "fictif": true,
+  "backend": "API réelle en fixture isolée, aucun agent lancé",
+  "expectedSourceRevision": "b9cbe19",
+  "baselineNote": "Les captures AVANT exigent un dist reconstruit à b9cbe19 ; le script ne reconstruit pas cette révision.",
+  "createdAt": "2026-11-22T01:46:19.348Z",
+  "shots": [
+    "avant-consommation-1440-sombre.png",
+    "avant-detail-existant-1440-sombre.png",
+    "avant-consommation-1024-sombre.png",
+    "avant-detail-existant-1024-sombre.png",
+    "avant-consommation-768-sombre.png",
+    "avant-detail-existant-768-sombre.png",
+    "avant-liste-vide-1440-sombre.png",
+    "avant-liste-vide-1024-sombre.png",
+    "avant-liste-vide-768-sombre.png"
+  ],
+  "unavailable": [
+    {
+      "width": 1440,
+      "states": [
+        "apercu",
+        "statistiques",
+        "mission-depliee"
+      ],
+      "reason": "État AVANT : onglets et missions dépliables absents"
+    },
+    {
+      "width": 1024,
+      "states": [
+        "apercu",
+        "statistiques",
+        "mission-depliee"
+      ],
+      "reason": "État AVANT : onglets et missions dépliables absents"
+    },
+    {
+      "width": 768,
+      "states": [
+        "apercu",
+        "statistiques",
+        "mission-depliee"
+      ],
+      "reason": "État AVANT : onglets et missions dépliables absents"
+    }
+  ],
+  "pageErrors": []
+}

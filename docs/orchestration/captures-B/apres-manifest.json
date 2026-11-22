@@ -1,0 +1,24 @@
+{
+  "label": "apres",
+  "fictif": true,
+  "backend": "API réelle en fixture isolée, aucun agent lancé",
+  "expectedSourceRevision": null,
+  "baselineNote": "Les captures AVANT exigent un dist reconstruit à b9cbe19 ; le script ne reconstruit pas cette révision.",
+  "createdAt": "2026-11-22T01:47:20.326Z",
+  "shots": [
+    "apres-apercu-1440-sombre.png",
+    "apres-statistiques-1440-sombre.png",
+    "apres-mission-depliee-1440-sombre.png",
+    "apres-apercu-1024-sombre.png",
+    "apres-statistiques-1024-sombre.png",
+    "apres-mission-depliee-1024-sombre.png",
+    "apres-apercu-768-sombre.png",
+    "apres-statistiques-768-sombre.png",
+    "apres-mission-depliee-768-sombre.png",
+    "apres-liste-vide-1440-sombre.png",
+    "apres-liste-vide-1024-sombre.png",
+    "apres-liste-vide-768-sombre.png"
+  ],
+  "unavailable": [],
+  "pageErrors": []
+}

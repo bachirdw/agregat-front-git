@@ -1521,8 +1521,11 @@ describe("page Consommation", () => {
         onSelect={vi.fn()}
       />,
     );
+    fireEvent.click(screen.getByRole("tab", { name: "Aperçu" }));
     expect(screen.getByText("1 mission · 1 sous-mission")).toBeTruthy();
-    expect(screen.getByText("Sous-mission : Portail FICTIF")).toBeTruthy();
     expect(screen.getAllByText("Workflows")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("tab", { name: "Statistiques" }));
+    fireEvent.click(screen.getByRole("button", { name: /Mission FICTIVE/ }));
+    expect(screen.getByText("Portail FICTIF")).toBeTruthy();
   });
 });
