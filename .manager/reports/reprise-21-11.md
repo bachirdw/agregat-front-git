@@ -22,6 +22,12 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 14:15 — lot `equipe-lisible-22-11`** (rapport du même nom), demande du propriétaire via le manager de
+> l'arrière : réponse d'une mission en équipe lisible (carte Résultat, trouvailles par membre, tableau des tâches avec
+> reprises, sites non lus, détails techniques repliés ligne à ligne, fil replié). **`main` local = `c4e48d9`, non
+> poussé** (`origin/main` = `d147d28`). 579/579, E2E 18/18 (back reponse-04). Captures avant/après (vraies données)
+> hors du dépôt : `~/Downloads/agregat-orchestre-06-journaux/captures-equipe-lisible/`.
+
 > **22/11, 13:25 — lot `orchestre-22-11`** (rapport du même nom, journal `docs/orchestration/log.md`) : deux Codex en
 > parallèle, fusionnés par rebase sur **`main` = `7c6ac1a`, poussé sur `origin` le 22/11 vers 13:45** à la demande du
 > propriétaire (avance rapide depuis `6d7d562`, plus le suivi des textes d'import E194/E195) depuis le worktree
