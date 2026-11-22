@@ -15,8 +15,14 @@ import {
 // step, not an error) and `detail` (the raw text of a technical failure, folded).
 type ImportView = SkillImportAnswer & { notice?: string; detail?: string };
 // Essai réel du 22/11 : un clone qui échoue rend la commande git brute (chemins temporaires locaux).
+// Filet pour un back ancien : depuis import-textes-01 (E195), le serveur envoie une phrase prête à afficher,
+// qui peut contenir « clone » ou une adresse « …/git-… » : seule une commande git brute est réécrite.
 function plainImportError(message: string) {
-  if (/^Command failed: git\b|\bgit\b[^\n]*\bclone\b/.test(message))
+  if (
+    /^Command failed: git\b|\bgit(?: -c \S+)* (?:clone|fetch|checkout)\b|^Cloning into\b/.test(
+      message,
+    )
+  )
     return {
       error:
         "Le téléchargement du dépôt depuis GitHub a échoué (réseau lent ou coupé, ou délai dépassé) : réessayez dans un moment.",

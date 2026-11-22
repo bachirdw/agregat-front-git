@@ -21,3 +21,4 @@ Une ligne par intervention : heure · chantier · décision · raison.
 | 13:03 | B | Rebase sur main+A sans conflit ; build + 559/559 ; main avancé (b68e82f) | Tests relancés après fusion |
 | 13:05 | A+B | E2E : 13/18 → sélecteurs alignés par le chef de chantier (Skills, menu +, filtres, Consommation) → 17/18 ; main = 7b605ab | Demande du propriétaire : « si Codex n'arrive pas, continue ce qui rate » |
 | 13:20 | — | « question de l'agent » : échouait déjà avant (référence b9cbe19 : 16/18). Cause : fixture fake-acp de `~/Downloads/agregat-back` sans `askQuestion`. Avec `agregat-back-reponse-04` : **E2E 18/18** | Back = arbre du manager, lecture seule ; pas de changement |
+| 13:40 | — | Textes d'import E194/E195 du back (import-textes-01) : filet git restreint, 4 tests ; 563/563 | Message du manager de l'arrière, via la session « Analyse passation 22-11-midi » |

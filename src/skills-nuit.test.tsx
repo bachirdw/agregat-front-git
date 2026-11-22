@@ -540,6 +540,27 @@ describe("import : retours de l'essai réel", () => {
       }),
     ).toBeTruthy();
   });
+  // Lot back import-textes-01 (E195) : le serveur envoie une phrase prête à afficher, sans commande git ni
+  // chemin local. Le filet de l'ancien texte ne doit pas la remplacer.
+  it.each([
+    "Dépôt introuvable ou privé : https://github.com/exemple/git-clone-tools. Vérifiez l'adresse ; Relay lit seulement les dépôts publics, sans identifiants.",
+    "Délai dépassé : le clone du dépôt https://github.com/exemple/r n'a pas abouti en 120 s ; le dépôt est peut-être très gros ou le réseau lent : réessayez plus tard.",
+    "git est introuvable sur cette machine : installez git pour lire un dépôt GitHub.",
+    "Le clone du dépôt https://github.com/exemple/r a échoué (cause non reconnue) ; le détail technique est dans le journal du serveur.",
+  ])(
+    "un échec git du nouveau serveur s'affiche tel quel : %s",
+    async (text) => {
+      const request = vi
+        .fn()
+        .mockRejectedValueOnce(new ApiError(text, 400, { error: text }));
+      show(base, request);
+      fill("https://github.com/exemple/r");
+      fireEvent.click(screen.getByRole("button", { name: "Importer" }));
+      const alert = await screen.findByRole("alert");
+      expect(alert.textContent).toContain(text);
+      expect(screen.queryByText("Détail technique")).toBeNull();
+    },
+  );
   it("un échec de clone : message simple, détail replié, et la liste des candidats reste pour réessayer", async () => {
     const request = vi
       .fn()

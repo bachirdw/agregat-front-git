@@ -61,3 +61,12 @@ Chef de chantier : Claude Code (worktree `new-session-1f8da9`). Plan : `docs/orc
 
 - A : 12:07–12:37 (30 min) + aller-retour 12:51–12:58 (7 min) = **37 min**.
 - B : 12:07–12:39 (32 min) + aller-retour 12:51–12:57 (6 min) = **38 min**.
+
+## Suite : textes d'import du back (lot import-textes-01, message du manager de l'arrière, 22/11)
+
+- E194 (refus d'un plugin entier) et `raison` des vérifications : déjà affichés tels quels, rien à changer.
+- E195 (échec git) : le filet `plainImportError` (`src/Skills.tsx`) réécrivait aussi une phrase du nouveau serveur
+  dont l'adresse contient « git-…clone… » (vrai défaut trouvé par le test). Filet restreint aux commandes git brutes
+  (`Command failed: git`, `git [-c …] clone|fetch|checkout`, `Cloning into`), gardé pour un back ancien.
+  Quatre phrases E195 testées telles quelles dans `skills-nuit.test.tsx`. Suite 563/563, build vert.
+- Pas encore servi par 4310 (encore a669962) : non vérifié contre le vrai serveur.
