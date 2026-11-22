@@ -98,6 +98,7 @@ export function ComposerMenu(props: Props) {
     if (next >= 0) {
       event.preventDefault();
       items[next]?.focus();
+      items[next]?.scrollIntoView?.({ block: "nearest" });
     } else if (event.key === "Tab") props.onClose();
   };
   const closeThen = (action: () => void) => {
@@ -286,9 +287,7 @@ export function ComposerMenu(props: Props) {
                 +
               </span>
               <span className="cp-menu-label">Gérer les Skills</span>
-              <span className="cp-menu-hint">
-                {quarantined > 0 ? `${quarantined} en quarantaine` : ""}
-              </span>
+              <span className="cp-menu-hint">{quarantined} en quarantaine</span>
               <span className="cp-menu-end">/</span>
             </button>
           </div>

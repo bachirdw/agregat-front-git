@@ -144,6 +144,7 @@ export function Composer({
   onManageSkills?: () => void;
 }) {
   const teamHelp = useId();
+  const shortcutsHelp = useId();
   const [plusOpen, setPlusOpen] = useState(false);
   const [shortcutGroup, setShortcutGroup] = useState<ComposerGroup>();
   const [menuKeyboard, setMenuKeyboard] = useState(false);
@@ -667,86 +668,6 @@ export function Composer({
             e.target.value = "";
           }}
         />
-        <textarea
-          id="prompt"
-          ref={promptRef}
-          aria-label="Objectif de la mission"
-          placeholder={
-            reply
-              ? "Répondre à l’agent…"
-              : disabled
-                ? working
-                  ? "L’agent travaille…"
-                  : "Créez une nouvelle mission pour poursuivre"
-                : "Décrivez votre objectif…"
-          }
-          value={disabled ? "" : input.prompt}
-          rows={reply || compact || sessionSettings ? 1 : 3}
-          disabled={disabled}
-          maxLength={PROMPT_MAX}
-          onFocus={onOpen}
-          onChange={(e) => {
-            onOpen?.();
-            const value = e.target.value;
-            set({ prompt: value });
-            const match = value
-              .slice(0, e.target.selectionStart)
-              .match(/(?:^|\s)([/@#])[^\s/@#]*$/);
-            if (match) {
-              closeSettings();
-              setShortcutGroup(
-                match[1] === "/"
-                  ? "Skills"
-                  : match[1] === "@"
-                    ? "Plugins"
-                    : "Ajouter",
-              );
-              setMenuKeyboard(false);
-              setPlusOpen(true);
-            } else if (shortcutGroup) {
-              setPlusOpen(false);
-              setShortcutGroup(undefined);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (
-              plusOpen &&
-              !e.nativeEvent.isComposing &&
-              ["ArrowDown", "ArrowUp"].includes(e.key)
-            ) {
-              const group = shortcutGroup
-                ? `[data-group="${shortcutGroup}"] `
-                : "";
-              let items = [
-                ...(e.currentTarget.form?.querySelectorAll<HTMLButtonElement>(
-                  `.cp-menu ${group}button[role^="menuitem"]:not(:disabled)`,
-                ) || []),
-              ];
-              if (!items.length && group) {
-                items = [
-                  ...(e.currentTarget.form?.querySelectorAll<HTMLButtonElement>(
-                    '.cp-menu button[role^="menuitem"]:not(:disabled)',
-                  ) || []),
-                ];
-              }
-              const target = e.key === "ArrowUp" ? items.at(-1) : items[0];
-              if (target) {
-                e.preventDefault();
-                target.focus();
-                return;
-              }
-            }
-            if (plusOpen && e.key === "Enter") return;
-            if (
-              e.key === "Enter" &&
-              !e.shiftKey &&
-              !e.nativeEvent.isComposing
-            ) {
-              e.preventDefault();
-              e.currentTarget.form?.requestSubmit();
-            }
-          }}
-        />
         {((!sessionSettings && !reply && input.skills.length > 0) ||
           attachments.length > 0 ||
           uploading > 0 ||
@@ -808,6 +729,88 @@ export function Composer({
             )}
           </div>
         )}
+        <textarea
+          id="prompt"
+          ref={promptRef}
+          aria-label="Objectif de la mission"
+          aria-describedby={shortcutsHelp}
+          placeholder={
+            reply
+              ? "Répondre à l’agent…"
+              : disabled
+                ? working
+                  ? "L’agent travaille…"
+                  : "Créez une nouvelle mission pour poursuivre"
+                : "Décrivez votre objectif. Tapez / pour un Skill, @ pour un agent, # pour un fichier."
+          }
+          value={disabled ? "" : input.prompt}
+          rows={reply || compact || sessionSettings ? 1 : 3}
+          disabled={disabled}
+          maxLength={PROMPT_MAX}
+          onFocus={onOpen}
+          onChange={(e) => {
+            onOpen?.();
+            const value = e.target.value;
+            set({ prompt: value });
+            const match = value
+              .slice(0, e.target.selectionStart)
+              .match(/(?:^|\s)([/@#])[^\s/@#]*$/);
+            if (match) {
+              closeSettings();
+              if (match[1] === "@") {
+                // Reuse the actual agent picker; fixed sessions keep their agent.
+                setPlusOpen(false);
+                setShortcutGroup(undefined);
+                if (!sessionSettings && !reply) openSetting("Agent");
+              } else {
+                setShortcutGroup(match[1] === "/" ? "Skills" : "Ajouter");
+                setMenuKeyboard(false);
+                setPlusOpen(true);
+              }
+            } else if (shortcutGroup) {
+              setPlusOpen(false);
+              setShortcutGroup(undefined);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (
+              plusOpen &&
+              !e.nativeEvent.isComposing &&
+              ["ArrowDown", "ArrowUp"].includes(e.key)
+            ) {
+              const group = shortcutGroup
+                ? `[data-group="${shortcutGroup}"] `
+                : "";
+              let items = [
+                ...(e.currentTarget.form?.querySelectorAll<HTMLButtonElement>(
+                  `.cp-menu ${group}button[role^="menuitem"]:not(:disabled)`,
+                ) || []),
+              ];
+              if (!items.length && group) {
+                items = [
+                  ...(e.currentTarget.form?.querySelectorAll<HTMLButtonElement>(
+                    '.cp-menu button[role^="menuitem"]:not(:disabled)',
+                  ) || []),
+                ];
+              }
+              const target = e.key === "ArrowUp" ? items.at(-1) : items[0];
+              if (target) {
+                e.preventDefault();
+                target.focus();
+                return;
+              }
+            }
+            if (plusOpen && e.key === "Enter") return;
+            if (
+              e.key === "Enter" &&
+              !e.shiftKey &&
+              !e.nativeEvent.isComposing
+            ) {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
+        />
         {compact && disabled && (
           <button className="compact-expand" type="button" onClick={onOpen}>
             Afficher les réglages
@@ -928,6 +931,22 @@ export function Composer({
           </button>
         </div>
       </form>
+      <div
+        className="cp-help"
+        id={shortcutsHelp}
+        role="note"
+        aria-label="Raccourcis du composer"
+      >
+        <span>
+          <span>/</span> Skills
+        </span>
+        <span>
+          <span>@</span> agents
+        </span>
+        <span>
+          <span>#</span> fichiers
+        </span>
+      </div>
     </div>
   );
 }

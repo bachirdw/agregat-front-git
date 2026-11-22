@@ -1,6 +1,6 @@
 {
   "phase": "avant",
-  "createdAt": "2026-11-22T01:38:11.349Z",
+  "createdAt": "2026-11-22T01:59:11.795Z",
   "backend": "/Users/diaw/Downloads/agregat-back",
   "fixture": "FICTIF — vrai registre et vraies routes API, aucun agent ni réseau",
   "widths": [
@@ -12,16 +12,102 @@
     "avant-skills-liste-1440.png",
     "avant-skills-ligne-depliee-1440.png",
     "avant-skills-quarantaine-1440.png",
-    "avant-composer-menu-plus-1440.png"
+    "avant-composer-menu-plus-1440.png",
+    "avant-composer-pastilles-1440.png",
+    "avant-skills-liste-1024.png",
+    "avant-skills-ligne-depliee-1024.png",
+    "avant-skills-quarantaine-1024.png",
+    "avant-composer-menu-plus-1024.png",
+    "avant-composer-pastilles-1024.png",
+    "avant-skills-liste-768.png",
+    "avant-skills-ligne-depliee-768.png",
+    "avant-skills-quarantaine-768.png",
+    "avant-composer-menu-plus-768.png",
+    "avant-composer-pastilles-768.png"
   ],
   "unavailable": [
     "fictif-redaction : détail déjà affiché dans la version avant",
     "1440 : menu Ajouter absent dans la version avant",
-    "fictif-import-a-relire : détail déjà affiché dans la version avant"
+    "fictif-import-a-relire : détail déjà affiché dans la version avant",
+    "1440 : pastille de Skill absente dans la version avant ; sélection réelle vérifiée",
+    "fictif-redaction : détail déjà affiché dans la version avant",
+    "1024 : menu Ajouter absent dans la version avant",
+    "fictif-import-a-relire : détail déjà affiché dans la version avant",
+    "1024 : pastille de Skill absente dans la version avant ; sélection réelle vérifiée",
+    "fictif-redaction : détail déjà affiché dans la version avant",
+    "768 : menu Ajouter absent dans la version avant",
+    "fictif-import-a-relire : détail déjà affiché dans la version avant",
+    "768 : pastille de Skill absente dans la version avant ; sélection réelle vérifiée"
   ],
   "pageErrors": [],
-  "port": 59179,
-  "status": "error",
-  "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Retirer FICTIF-compte-rendu.md', exact: true }) to be visible\n\n    at /Users/diaw/Downloads/agregat-wt-a/scripts/orchestre-A-captures.mjs:252:8",
+  "selectedSkills": [
+    {
+      "width": 1440,
+      "id": "fictif-recherche-web",
+      "chipVisible": false
+    },
+    {
+      "width": 1024,
+      "id": "fictif-recherche-web",
+      "chipVisible": false
+    },
+    {
+      "width": 768,
+      "id": "fictif-recherche-web",
+      "chipVisible": false
+    }
+  ],
+  "attachments": [
+    {
+      "width": 1440,
+      "file": "FICTIF-compte-rendu.md",
+      "status": "unavailable",
+      "http": [
+        {
+          "status": 400,
+          "statusText": "Bad Request"
+        }
+      ],
+      "networkErrors": [],
+      "error": "FICTIF-compte-rendu.md : Espace hors des racines autorisées",
+      "uiErrors": [
+        "FICTIF-compte-rendu.md : Espace hors des racines autorisées"
+      ]
+    },
+    {
+      "width": 1024,
+      "file": "FICTIF-compte-rendu.md",
+      "status": "unavailable",
+      "http": [
+        {
+          "status": 400,
+          "statusText": "Bad Request"
+        }
+      ],
+      "networkErrors": [],
+      "error": "FICTIF-compte-rendu.md : Espace hors des racines autorisées",
+      "uiErrors": [
+        "FICTIF-compte-rendu.md : Espace hors des racines autorisées"
+      ]
+    },
+    {
+      "width": 768,
+      "file": "FICTIF-compte-rendu.md",
+      "status": "unavailable",
+      "http": [
+        {
+          "status": 400,
+          "statusText": "Bad Request"
+        }
+      ],
+      "networkErrors": [],
+      "error": "FICTIF-compte-rendu.md : Espace hors des racines autorisées",
+      "uiErrors": [
+        "FICTIF-compte-rendu.md : Espace hors des racines autorisées"
+      ]
+    }
+  ],
+  "port": 61997,
+  "status": "ok",
   "cleanedUp": true
 }

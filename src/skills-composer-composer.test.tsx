@@ -25,7 +25,15 @@ const skill = (id: string, active = true) => ({
 });
 const catalog = {
   live: false,
-  agents: [],
+  agents: [
+    {
+      id: "agent-fictif",
+      name: "Agent FICTIF",
+      installed: true,
+      compatible: true,
+      simulated: true,
+    },
+  ],
   packs: [
     {
       id: "pack-fictif",
@@ -139,16 +147,14 @@ describe("Menu + du composer", () => {
       screen.getByLabelText("Retirer le Skill analyse FICTIF"),
     ).toBeTruthy();
   });
-  it("un groupe sans action disponible rejoint les entrées actives du menu au clavier et Entrée n'envoie pas le prompt", () => {
+  it("les flèches du raccourci / rejoignent les Skills et Entrée n'envoie pas le prompt", () => {
     const { planned } = setup();
     const area = screen.getByLabelText("Objectif de la mission");
-    fireEvent.change(area, { target: { value: "Objectif @" } });
+    fireEvent.change(area, { target: { value: "Objectif /" } });
     fireEvent.keyDown(area, { key: "Enter" });
     expect(planned).not.toHaveBeenCalled();
     fireEvent.keyDown(area, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(
-      screen.getByRole("menuitem", { name: "Fichiers et dossiers" }),
-    );
+    expect(document.activeElement).toBe(item("analyse FICTIF"));
     fireEvent.keyDown(area, { key: "ArrowUp" });
     expect(document.activeElement).toBe(
       screen.getByRole("menuitem", { name: /Gérer les Skills/ }),
@@ -170,9 +176,17 @@ describe("Menu + du composer", () => {
     open();
     const button = screen.getByRole("menuitem", { name: /Gérer les Skills/ });
     expect(button.textContent).toContain("1 en quarantaine");
+    expect(within(button).getByText("/").className).toBe("cp-menu-end");
     fireEvent.click(button);
     expect(manage).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+  it("Gérer les Skills indique aussi zéro en quarantaine", () => {
+    setup({}, { ...catalog, skills: [skill("analyse")] });
+    open();
+    expect(
+      screen.getByRole("menuitem", { name: /Gérer les Skills/ }).textContent,
+    ).toContain("0 en quarantaine");
   });
   it("les flèches, Début et Fin déplacent le focus entre les entrées actives", () => {
     setup();
@@ -195,7 +209,6 @@ describe("Menu + du composer", () => {
   });
   it.each([
     ["/", "Skills"],
-    ["@", "Plugins"],
     ["#", "Ajouter"],
   ])(
     "le raccourci %s dans le champ ouvre le groupe %s sans activer de Skill",
@@ -215,6 +228,112 @@ describe("Menu + du composer", () => {
       ).toBeNull();
     },
   );
+  it("@ ouvre le choix d’agent existant, sans ouvrir Plugins ni sélectionner de Skill", () => {
+    const { changed, planned } = setup({ model: "ancien-modèle" });
+    fireEvent.change(screen.getByLabelText("Objectif de la mission"), {
+      target: { value: "Objectif @" },
+    });
+    expect(screen.queryByRole("menu")).toBeNull();
+    const agent = screen.getByRole("combobox", { name: "Agent" });
+    expect(document.activeElement).toBe(agent);
+    expect(agent.closest("details")?.open).toBe(true);
+    expect(agent.closest(".session-menu")?.hasAttribute("open")).toBe(true);
+    fireEvent.change(agent, { target: { value: "agent-fictif" } });
+    expect(changed).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        agent: "agent-fictif",
+        model: "",
+        prompt: "Objectif @",
+        skills: [],
+      }),
+    );
+    expect(planned).not.toHaveBeenCalled();
+    fireEvent.keyDown(agent, { key: "Escape" });
+    expect(agent.closest("details")?.open).toBe(false);
+    open();
+    expect(screen.getByRole("group", { name: "Plugins" })).toBeTruthy();
+  });
+  it("les pastilles Skill et Fichier sont dans la boîte, avant le champ de texte", () => {
+    setup({
+      skills: ["analyse"],
+      attachments: [
+        {
+          id: "file-fictif",
+          name: "FICTIF.md",
+          size: 10,
+          type: "text/markdown",
+        },
+      ],
+    });
+    const area = screen.getByLabelText("Objectif de la mission");
+    const chips = screen
+      .getByLabelText("Retirer FICTIF.md")
+      .closest(".cp-chips")!;
+    expect(chips.closest("form")).toBe(area.closest("form"));
+    expect(
+      chips.compareDocumentPosition(area) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      within(chips as HTMLElement).getByLabelText(
+        "Retirer le Skill analyse FICTIF",
+      ),
+    ).toBeTruthy();
+  });
+  it("affiche le placeholder et l’aide de la maquette sous la boîte, sans promesse de validation préalable", () => {
+    setup();
+    expect(
+      screen.getByPlaceholderText(
+        "Décrivez votre objectif. Tapez / pour un Skill, @ pour un agent, # pour un fichier.",
+      ),
+    ).toBeTruthy();
+    const help = screen.getByLabelText("Raccourcis du composer");
+    expect(help.textContent).toBe("/ Skills@ agents# fichiers");
+    const form = screen.getByRole("form", { name: "Préparer une mission" });
+    expect(form.contains(help)).toBe(false);
+    expect(
+      form.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(/Rien n.est exécuté sans votre accord/),
+    ).toBeNull();
+  });
+  it("Gérer les Skills reste atteignable au clavier après une longue liste et défile jusqu’au focus", () => {
+    const scroll = vi.fn();
+    const old = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollIntoView",
+    );
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scroll,
+    });
+    try {
+      const { manage } = setup(
+        {},
+        {
+          ...catalog,
+          skills: [
+            ...Array.from({ length: 40 }, (_, i) => skill("long-" + i)),
+            skill("quarantaine", false),
+          ],
+        },
+      );
+      fireEvent.keyDown(screen.getByLabelText("Ajouter"), { key: "ArrowDown" });
+      fireEvent.keyDown(document.activeElement!, { key: "End" });
+      const manageButton = screen.getByRole("menuitem", {
+        name: /Gérer les Skills/,
+      });
+      expect(document.activeElement).toBe(manageButton);
+      expect(scroll).toHaveBeenLastCalledWith({ block: "nearest" });
+      expect(scroll.mock.instances.at(-1)).toBe(manageButton);
+      fireEvent.click(manageButton);
+      expect(manage).toHaveBeenCalledTimes(1);
+    } finally {
+      if (old)
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", old);
+      else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+    }
+  });
   it("les fonctionnalités absentes du backend sont désactivées et marquées Bientôt", () => {
     setup();
     open();

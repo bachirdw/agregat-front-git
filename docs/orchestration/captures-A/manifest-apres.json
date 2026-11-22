@@ -1,6 +1,6 @@
 {
   "phase": "apres",
-  "createdAt": "2026-11-22T01:39:10.411Z",
+  "createdAt": "2026-11-22T01:58:51.643Z",
   "backend": "/Users/diaw/Downloads/agregat-back",
   "fixture": "FICTIF — vrai registre et vraies routes API, aucun agent ni réseau",
   "widths": [
@@ -13,12 +13,91 @@
     "apres-skills-ligne-depliee-1440.png",
     "apres-skills-menu-ajouter-1440.png",
     "apres-skills-quarantaine-1440.png",
-    "apres-composer-menu-plus-1440.png"
+    "apres-composer-menu-plus-1440.png",
+    "apres-composer-pastilles-1440.png",
+    "apres-skills-liste-1024.png",
+    "apres-skills-ligne-depliee-1024.png",
+    "apres-skills-menu-ajouter-1024.png",
+    "apres-skills-quarantaine-1024.png",
+    "apres-composer-menu-plus-1024.png",
+    "apres-composer-pastilles-1024.png",
+    "apres-skills-liste-768.png",
+    "apres-skills-ligne-depliee-768.png",
+    "apres-skills-menu-ajouter-768.png",
+    "apres-skills-quarantaine-768.png",
+    "apres-composer-menu-plus-768.png",
+    "apres-composer-pastilles-768.png"
   ],
   "unavailable": [],
   "pageErrors": [],
-  "port": 59262,
-  "status": "error",
-  "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Retirer FICTIF-compte-rendu.md', exact: true }) to be visible\n\n    at /Users/diaw/Downloads/agregat-wt-a/scripts/orchestre-A-captures.mjs:252:8",
+  "selectedSkills": [
+    {
+      "width": 1440,
+      "id": "fictif-recherche-web",
+      "chipVisible": true
+    },
+    {
+      "width": 1024,
+      "id": "fictif-recherche-web",
+      "chipVisible": true
+    },
+    {
+      "width": 768,
+      "id": "fictif-recherche-web",
+      "chipVisible": true
+    }
+  ],
+  "attachments": [
+    {
+      "width": 1440,
+      "file": "FICTIF-compte-rendu.md",
+      "status": "unavailable",
+      "http": [
+        {
+          "status": 400,
+          "statusText": "Bad Request"
+        }
+      ],
+      "networkErrors": [],
+      "error": "FICTIF-compte-rendu.md : Espace hors des racines autorisées",
+      "uiErrors": [
+        "FICTIF-compte-rendu.md : Espace hors des racines autorisées"
+      ]
+    },
+    {
+      "width": 1024,
+      "file": "FICTIF-compte-rendu.md",
+      "status": "unavailable",
+      "http": [
+        {
+          "status": 400,
+          "statusText": "Bad Request"
+        }
+      ],
+      "networkErrors": [],
+      "error": "FICTIF-compte-rendu.md : Espace hors des racines autorisées",
+      "uiErrors": [
+        "FICTIF-compte-rendu.md : Espace hors des racines autorisées"
+      ]
+    },
+    {
+      "width": 768,
+      "file": "FICTIF-compte-rendu.md",
+      "status": "unavailable",
+      "http": [
+        {
+          "status": 400,
+          "statusText": "Bad Request"
+        }
+      ],
+      "networkErrors": [],
+      "error": "FICTIF-compte-rendu.md : Espace hors des racines autorisées",
+      "uiErrors": [
+        "FICTIF-compte-rendu.md : Espace hors des racines autorisées"
+      ]
+    }
+  ],
+  "port": 61961,
+  "status": "ok",
   "cleanedUp": true
 }

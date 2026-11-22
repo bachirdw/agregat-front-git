@@ -41,6 +41,8 @@ const manifest = {
   shots: [],
   unavailable: [],
   pageErrors: [],
+  selectedSkills: [],
+  attachments: [],
 };
 let app;
 let browser;
@@ -145,6 +147,69 @@ async function openSkillDetails(page, id) {
   await row.scrollIntoViewIfNeeded();
 }
 
+async function attachFixture(page, width) {
+  const result = {
+    width,
+    file: "FICTIF-compte-rendu.md",
+    status: "pending",
+    http: [],
+    networkErrors: [],
+  };
+  manifest.attachments.push(result);
+  const isUpload = (request) =>
+    request.method() === "POST" &&
+    new URL(request.url()).pathname === "/api/files";
+  const response = (answer) => {
+    if (isUpload(answer.request()))
+      result.http.push({
+        status: answer.status(),
+        statusText: answer.statusText(),
+      });
+  };
+  const requestFailed = (request) => {
+    if (isUpload(request))
+      result.networkErrors.push(request.failure()?.errorText || "Échec réseau");
+  };
+  page.on("response", response);
+  page.on("requestfailed", requestFailed);
+  try {
+    await page.locator('.composer input[type="file"]').setInputFiles({
+      name: result.file,
+      mimeType: "text/markdown",
+      buffer: Buffer.from(
+        "# FICTIF\nPièce jointe locale pour capture, sans donnée personnelle.\n",
+      ),
+    });
+    const attached = page.getByRole("button", {
+      name: `Retirer ${result.file}`,
+      exact: true,
+    });
+    const uiError = page.locator(".composer").getByRole("alert").first();
+    const uploaded = await Promise.race([
+      attached.waitFor({ timeout: 10000 }).then(() => true),
+      uiError.waitFor({ timeout: 10000 }).then(() => false),
+    ]);
+    if (!uploaded)
+      throw new Error(
+        (await uiError.textContent()) || "Échec dans l’interface",
+      );
+    result.status = "uploaded";
+  } catch (error) {
+    // La pièce jointe est optionnelle pour la capture : conserver la pastille du
+    // Skill réel et les diagnostics, puis passer aux autres largeurs.
+    result.status = "unavailable";
+    result.error = error instanceof Error ? error.message : String(error);
+    result.uiErrors = await page
+      .locator(".composer")
+      .getByRole("alert")
+      .allTextContents();
+    console.error(`${width}px — pièce jointe indisponible : ${result.error}`);
+  } finally {
+    page.off("response", response);
+    page.off("requestfailed", requestFailed);
+  }
+}
+
 try {
   if (!existsSync(join(backend, "apps/api/server.js")))
     throw new Error(`Back introuvable : ${backend}`);
@@ -224,6 +289,17 @@ try {
     if (await skillItem.count()) {
       await skillItem.click();
       await page.keyboard.press("Escape");
+      await page
+        .getByRole("button", {
+          name: "Retirer le Skill fictif-recherche-web",
+          exact: true,
+        })
+        .waitFor();
+      manifest.selectedSkills.push({
+        width,
+        id: "fictif-recherche-web",
+        chipVisible: true,
+      });
     } else {
       await page.keyboard.press("Escape");
       const session = page.locator(".composer details.session-menu");
@@ -234,22 +310,20 @@ try {
       if ((await filter.getAttribute("open")) === null)
         await filter.locator(":scope > summary").click();
       await select.selectOption("fictif-recherche-web");
+      if ((await select.inputValue()) !== "fictif-recherche-web")
+        throw new Error("La sélection explicite du Skill FICTIF a échoué");
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
+      manifest.selectedSkills.push({
+        width,
+        id: "fictif-recherche-web",
+        chipVisible: false,
+      });
+      manifest.unavailable.push(
+        `${width} : pastille de Skill absente dans la version avant ; sélection réelle vérifiée`,
+      );
     }
-    await page.locator('.composer input[type="file"]').setInputFiles({
-      name: "FICTIF-compte-rendu.md",
-      mimeType: "text/markdown",
-      buffer: Buffer.from(
-        "# FICTIF\nPièce jointe locale pour capture, sans donnée personnelle.\n",
-      ),
-    });
-    await page
-      .getByRole("button", {
-        name: "Retirer FICTIF-compte-rendu.md",
-        exact: true,
-      })
-      .waitFor();
+    await attachFixture(page, width);
     await shot(page, `composer-pastilles-${width}`);
     await context.close();
   }

@@ -5,10 +5,10 @@
 - Lecture de `AGENTS.md`, `docs/orchestration/plan.md`, des deux templates et des skills de design Apple / Emil. Branche `feat/skills-composer`, état initial propre.
 - Périmètre strict du brief ; aucun fichier du chantier B, backend ou dépendance modifié. Le rapport demandé ici remplace le chemin générique `.manager/reports/…`, hors liste autorisée.
 
-- Commits : aucun (blocage de permissions documenté aux §2 et §8).
+- Version initiale commise par le chef de chantier : `d30337b`. Corrections de l’aller-retour 1 laissées sans commit, à sa demande.
 - Écran Skills : en-tête, recherche, Ajouter et import GitHub/local, filtres, sections, monogrammes et détails ; compatibilité/imports complexes/mises à jour réels conservés.
 - Composer : menu trois groupes, coche explicite, pastilles retirables, raccourcis et clavier. Fonctions API absentes marquées Bientôt.
-- 21 nouveaux tests d’interaction (9 Skills, 12 composer), plus tous les tests existants : 531 / 531 verts à la validation complète.
+- Validation initiale : 531 / 531 tests verts. Après aller-retour 1 : **535 / 535 tests verts**, build vert ; 9 nouveaux tests Skills et 16 nouveaux tests composer au total. Détails et commandes exactes dans « Aller-retour 1 ».
 
 ### Correspondance des états réels
 
@@ -23,8 +23,8 @@
 
 ## 2. Non fait
 
-- Captures et validation visuelle réelle bloquées par le bac à sable (voir §6). Script de reprise prêt, non commité.
-- **Aucun commit créé** : `git add` est bloqué par le refus d’écriture de `index.lock` dans le dépôt commun. Les modifications sont toutes conservées dans ce worktree ; pas de push, pas de réécriture d’historique. La livraison ne peut donc pas être déclarée terminée selon le brief.
+- Nouvelles captures et validation visuelle dans ce sandbox impossibles (voir §6). Le chef relancera le script corrigé ; aucune écoute réseau ni tentative de lancement de Chrome à cet aller-retour.
+- Aucun commit de l’aller-retour 1 par l’agent, conformément à la consigne ; le chef prend en charge les commits. Le blocage Git de la première livraison reste consigné dans l’historique §8.
 - Fonctions sans contrat serveur : voir §4, affichées Bientôt et désactivées. Aucun résultat factice présenté comme réel.
 
 ## 3. Fichiers touchés
@@ -34,12 +34,12 @@
 - `src/skills-composer/missing.ts` : frontière unique des champs/capacités absents.
 - `src/skills-composer-skills.test.tsx` : 9 cas écrits avant leur implémentation.
 - `src/Composer.tsx`, `src/skills-composer/ComposerMenu.tsx` : menu, raccourcis, pastilles et intégration aux réglages/upload existants.
-- `src/skills-composer-composer.test.tsx` : 12 cas (dont les trois raccourcis).
+- `src/skills-composer-composer.test.tsx` : 16 cas après l’aller-retour 1, dont les trois raccourcis (désormais @ → Agent), l’ordre des pastilles, l’aide et l’accès clavier à Gérer les Skills après une longue liste.
 - `src/skill-explicite.test.tsx` : adaptation du sélecteur au menu, détail ci-dessous.
 - `src/SkillDetails.tsx` : non modifié, panneaux réutilisés tels quels.
 - `src/skills-nuit.test.tsx` : ouverture explicite de la ligne dans `show`, ouverture du menu Ajouter et du panneau GitHub avant saisie ; bouton renommé « Importer ». Aucune assertion métier retirée.
 - `src/components.test.tsx` : ouverture explicite de la ligne « Tiers » avant la revue ; assertion empreinte et case obligatoire conservées.
-- `scripts/orchestre-A-captures.mjs` et `docs/orchestration/captures-A/manifest-avant.json` : banc et preuve du blocage.
+- `scripts/orchestre-A-captures.mjs` : banc isolé ; captures et manifestes avant/après ajoutés par le chef en `d30337b` (non modifiés ici).
 
 ## 4. Champs backend manquants
 
@@ -68,21 +68,21 @@ Licence et intégrité existent : `Skill.license` / `Skill.integrity`, lus réel
 - Sous-dossier et explication détaillée conservés dans le panneau GitHub (plus fournis que la maquette). Panneau local ajouté pour la route existante, chemin serveur saisi explicitement.
 - Sous-titres de groupes ajustés pour ne pas annoncer intègre un contenu modifié, ni non revu un Skill déjà `reviewed`. Rejetés accessible au filtre dédié, comme la maquette.
 - Composer : sélection unique conservée depuis l’ancien sélecteur et association Skill/pack préservée. Le retrait d’une sélection multiple déjà fournie retire uniquement la pastille visée. Les caractères de raccourci saisis restent dans le texte de l’utilisateur, sans suppression implicite.
-- Menu compact de Conversation agent v5 prioritaire (lignes 118–152 : rayon 14, padding 4, lignes 24 px / texte 13 px, hauteur max 300 px), plutôt que la variante plus grande de Skills et composer. Pastilles sous le champ, conformément au brief.
+- Menu compact de Conversation agent v5 prioritaire (lignes 118–152 : rayon 14, padding 4, lignes 24 px / texte 13 px, hauteur max 300 px), plutôt que la variante plus grande de Skills et composer. Pastilles dans la boîte, au-dessus du champ (corrigé à l’aller-retour 1 selon les deux maquettes ; la première version suivait la formulation erronée du brief).
 - Valeurs des maquettes dans `screen-skills.css` avec préfixes sk-/cp-. Les dimensions dynamiques de la textarea sont conservées ; pas de nouveau style inline JSX.
 - Vérification visuelle réelle impossible ici (serveur bloqué). Aucun niveau de fidélité pixel à pixel n’est revendiqué sans captures.
 
 ## 6. Captures avant/après
 
 - `node scripts/orchestre-A-captures.mjs avant` : échec réel `listen EPERM: operation not permitted 127.0.0.1` à 12:10. Aucun Chrome lancé ; aucun contournement tenté ; ressources temporaires nettoyées (`cleanedUp: true` dans le manifeste).
-- Captures 1440 / 1024 / 768 px absentes pour cette raison. Après non lancé, le verrou est identique. Le chef peut exécuter le script hors de cette restriction, avec `avant|apres`.
+- Le chef a ensuite produit et commité des captures avant/après à 1440 px : quatre images avant et cinq après sont présentes, sans les pastilles. Son exécution s’est arrêtée sur l’upload du fichier (manifestes avant/après en erreur). Les largeurs 1024 / 768 px restent à produire par lui avec le script corrigé. Aucun de ces fichiers de capture existants n’est modifié à cet aller-retour.
 - Banc : backend réel `~/Downloads/agregat-back`, réseau désactivé (`AGENT_PLATFORM_NETWORK=0`), registre/data/career temporaires et données FICTIF, écoute sur port éphémère 127.0.0.1 vérifié hors 4310/5173/4316/4317 ; six vues prévues par largeur.
 
 ## 7. Demandes au chef de chantier
 
 - Aucune modification de `App`, `types` ou `api` nécessaire : la prop `onManageSkills` prévue est consommée.
 - Pour les fonctions « Bientôt », fournir les contrats décrits au §4 avant activation (désinstallation, remise en quarantaine, création, Plugins, objectif et mode plan).
-- Faire les commits locaux après revue depuis un environnement autorisant l’écriture de `.git/worktrees/agregat-wt-a/index.lock` ; le profil actuel refuse cette écriture malgré la racine `.git` annoncée comme autorisée.
+- Le chef a pris en charge les commits (`d30337b` pour la version initiale) ; modifications de l’aller-retour 1 laissées dans le worktree pour sa revue.
 - Exécuter le banc de captures hors de ce sandbox, puis comparer visuellement aux trois largeurs. Pour les captures avant, construire le commit parent de l’implémentation en gardant le script de capture disponible séparément.
 
 ## 8. Commandes et résultats
@@ -117,4 +117,46 @@ Licence et intégrité existent : `Skill.license` / `Skill.integrity`, lus réel
 
 - 12:36 — Constat du blocage de la tentative de commit atomique après build et 531 tests verts : `git diff --check && git add [fichiers autorisés] && git commit -m '[orchestre-A] Reproduire Skills et le menu du composer'`. **Échec de `git add`**, code 128 : `fatal: Unable to create '/Users/diaw/Downloads/agregat-front/.git/worktrees/agregat-wt-a/index.lock': Operation not permitted`. La commande `git commit` n’a donc pas été exécutée ; **aucun commit créé**. Aucun contournement du sandbox ni réécriture d’historique tenté. Tous les changements sont dans le worktree, aucun fichier n’est perdu.
 
-ÉTAT : BLOQUÉ — code prêt, build et 531 tests verts ; commits et captures empêchés par les permissions du bac à sable.
+État historique de la première livraison : commits et captures bloqués dans ce sandbox ; travail ensuite commité par le chef en `d30337b`.
+
+## Aller-retour 1
+
+- 12:52 — Retour du chef lu ; état initial propre sur `d30337b`. Aucun commit ne sera tenté, conformément à la nouvelle consigne.
+- Corrections en cours : pastilles au-dessus du texte dans la boîte ; `@` vers le choix d’agent réel ; placeholder et aide de la maquette ; accès Gérer les Skills ; banc tolérant à l’échec d’upload.
+- Les builds et tests finaux, ainsi que les échecs intermédiaires, seront consignés ci-dessous. Aucun serveur ou Chrome ne sera lancé.
+
+### Corrections réalisées
+
+1. **Pastilles** : la rangée `.cp-chips` (Skill, fichier réel, état d’upload ou erreur) est dans le formulaire `.cp-composer`, avant la textarea. Test de l’ordre DOM et du parent commun, retraits existants conservés.
+2. **`@` → agents** : ouvre les plis existants du composer puis donne le focus au sélecteur Agent réel. Sa sélection conserve le texte, réinitialise le modèle comme avant, ne choisit aucun Skill et ne lance pas de mission. Les réglages des sessions existantes restent fixes. Les Plugins restent uniquement dans le menu + ; `/` et `#` conservent leurs groupes.
+3. **Placeholder et aide** : texte exact de Skills et composer, ligne 146, sur le brouillon. La hauteur initiale actuelle de trois lignes à l’accueil reste conservée (voir l’échec et la correction dans le journal). Aide à gauche sous la boîte : `/ Skills`, `@ agents`, `# fichiers`, styles des lignes 158–159 (gap 4px 16px, retrait 4px, texte 12px #7c7c82, symboles #a1a1a6), espacement de 14px du conteneur de référence. Aide reliée à la textarea par `aria-describedby`. Les états répondre / travailler / session close gardent leurs libellés contextuels existants.
+4. **Gérer les Skills** : entrée présente à la fin du groupe Skills, nombre réel « N en quarantaine » (y compris 0), `/` à droite, callback `onManageSkills` conservé. Le menu garde sa hauteur maximale 300px et son défilement vertical ; les flèches/Début/Fin déplacent le focus et font défiler l’entrée. Test avec 40 Skills et activation du callback.
+5. **Captures tolérantes** : le script vérifie la vraie pastille du Skill sélectionné avant l’upload. L’upload optionnel est isolé dans `attachFixture` ; `manifest.attachments` consigne la largeur, le fichier, les statuts HTTP, erreurs réseau et message/timeout UI. Un échec d’upload conserve la pastille Skill, prend la capture et laisse la boucle continuer aux trois largeurs. `selectedSkills` atteste aussi la sélection réelle ; ancien sélecteur pris en charge pour les captures avant. Aucun état de fichier simulé. Syntaxe seule vérifiée ici : le fonctionnement effectif des 18 captures après reste à observer lors de l’exécution du chef.
+
+### Écart assumé : accord avant exécution
+
+La phrase de droite « Rien n’est exécuté sans votre accord. » est **omise**. Vérification en lecture seule : `src/App.tsx:1272` relie `onPlan` à `launch`, `src/App.tsx:561–576` envoie directement `POST /runs`, sans étape de confirmation du plan. Le backend (`packages/orchestrator/index.js:609,679–681`) calcule son plan puis programme l’exécution ; en mode propriétaire, les permissions hors `send` peuvent être automatiques (`:1238–1248`). Le clic d’envoi lance donc déjà la mission ; une promesse générale de confirmation de toute exécution serait trompeuse. Aucun backend ni fichier partagé modifié.
+
+### Fichiers de cet aller-retour
+
+- `src/Composer.tsx`, `src/skills-composer/ComposerMenu.tsx`, `src/screen-skills.css`.
+- `src/skills-composer-composer.test.tsx` : nouveaux tests et adaptation de ses cas @ (aucun test existant hors de ce fichier modifié à cet aller-retour).
+- `scripts/orchestre-A-captures.mjs`, `docs/orchestration/report-A.md`.
+- Aucun type/API partagé, backend, dépendance ou fichier du chantier B touché.
+
+### Journal des commandes et résultats
+
+- 12:53 — Tests d’abord : ciblé composer **4 échoués / 15**, 11 réussis, 4,25 s : les nouveaux cas détectent @ vers Plugins, pastilles après la textarea, aide/placeholder absents, absence de défilement explicite vers le focus.
+- 12:54 — Après correction, ciblé composer : **15 / 15 verts**, 6,13 s.
+- 12:55 — Test d’abord du compteur zéro, filtré via `-t` (aucun `skip` dans le code) : 1 échec attendu, 15 cas non exécutés par le filtre ; affichage de « 0 en quarantaine » ensuite corrigé.
+- 12:55 — `node --check scripts/orchestre-A-captures.mjs` et `git diff --check` : verts. Aucun appel du script de captures, aucun serveur ni Chrome lancé.
+- 12:55 — Build et suite complète lancés ; résultats finaux à consigner ci-dessous.
+
+- 12:56 — Premier build final : **vert**, 2401 modules, Vite 0,708 s ; avertissement préexistant de chunks >500 kB.
+- 12:56 — Première suite complète : **534 réussis / 535, 1 échec** dans `front-anim.test.tsx` : j’avais aussi passé l’accueil à deux lignes, comme l’attribut `rows` de la maquette, alors que le comportement réel testé est trois lignes. Cette modification non nécessaire au retour a été annulée ; **aucune assertion existante modifiée ou affaiblie**. Placeholder, aide et pastilles restent corrigés. Écart de hauteur initiale déjà existant conservé : accueil trois lignes, conversation une ligne ; redimensionnement dynamique inchangé.
+
+- 12:57 — Validation finale : `npm run build` **vert**, 2401 modules, Vite 0,823 s (avertissement de chunks volumineux déjà présent).
+- 12:57 — `npm test -- --maxWorkers=1 --testTimeout=30000` : **535 / 535 tests verts, 37 / 37 fichiers**, 28,49 s. Les assertions de comportement existantes sont inchangées.
+- 12:57 — `node --check scripts/orchestre-A-captures.mjs` et `git diff --check` : **verts**. Changements limités aux six fichiers listés pour cet aller-retour ; aucun commit tenté, aucun serveur/Chrome lancé. Le chef relancera les captures et committera.
+
+ÉTAT : TERMINÉ
