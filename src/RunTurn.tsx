@@ -927,6 +927,35 @@ function echoedAnswers(entries: Entry[]) {
     }),
   );
 }
+// fil-long-22-11 (demande du propriétaire) : le fil reste visible ; quand il est long, seuls les plus
+// anciens messages se replient, en haut, derrière un bouton. Jamais de pli en bas.
+const RECENT_MESSAGES = 12;
+function OlderFolded({ nodes }: { nodes: ReactNode[] }) {
+  const [open, setOpen] = useState(false);
+  const list = nodes.filter(
+    (n) => n !== null && n !== undefined && n !== false,
+  );
+  const older = list.length - RECENT_MESSAGES;
+  if (older <= 0) return <>{list}</>;
+  return (
+    <>
+      <button
+        type="button"
+        className="fil-precedents"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open
+          ? "Masquer les messages précédents"
+          : `Afficher les ${plural(older, "message précédent", "messages précédents")}`.replace(
+              /^Afficher les 1 message précédent$/,
+              "Afficher le message précédent",
+            )}
+      </button>
+      {open ? list : list.slice(older)}
+    </>
+  );
+}
 export function RunTurn({
   run,
   events,
@@ -1150,9 +1179,6 @@ export function RunTurn({
     }
     return out;
   };
-  const messages = shown.filter(
-    (e) => !(e.kind === "owner" && echoed.has(e.id)),
-  ).length;
   const resultat = run.result && (
     <section className="reponse-resultat" aria-label="Résultats">
       {!team && summary !== null && (
@@ -1187,26 +1213,18 @@ export function RunTurn({
               onOpenMember={onOpenMember}
               technique={<SkillSteps progress={run.skillProgress} />}
             />
-            {live ? (
-              <>
-                {activite}
-                {filEquipe()}
-                {label && <Waiting label={label} />}
-              </>
-            ) : (
-              <details className="fold deroule">
-                <summary>
-                  Déroulé ({plural(messages, "message", "messages")})
-                </summary>
-                {activite}
-                {filEquipe()}
-              </details>
-            )}
+            {activite}
+            <OlderFolded nodes={filEquipe()} />
+            {label && <Waiting label={label} />}
           </>
         ) : (
           <>
             {activite}
-            {shown.map((entry, index) => renderEntry(entry, index, shown))}
+            <OlderFolded
+              nodes={shown.map((entry, index) =>
+                renderEntry(entry, index, shown),
+              )}
+            />
             {label && <Waiting label={label} />}
             <SkillSteps progress={run.skillProgress} />
           </>

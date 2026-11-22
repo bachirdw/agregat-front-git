@@ -370,23 +370,19 @@ describe("affichage d'une mission en équipe finie", () => {
     expect(details.textContent).toContain("browser_extract (lectures de page)");
     expect(details.querySelector(".tech-citation")).toBeTruthy();
   });
-  it("fil replié sous « Déroulé (N messages) », la carte Résultat d'abord ; le dernier message reste", () => {
+  // 22/11 après-midi, demande du propriétaire : plus de pli « Déroulé » en bas ; le fil reste visible,
+  // seuls les plus anciens messages se replient, en haut, quand il est long.
+  it("fil visible sous la carte Résultat, sans pli « Déroulé » ; le dernier message reste", () => {
     const { container } = tour(mere);
-    const deroule = container.querySelector(".deroule") as HTMLDetailsElement;
-    expect(deroule.open).toBe(false);
-    expect(deroule.querySelector("summary")!.textContent).toBe(
-      "Déroulé (5 messages)",
-    );
+    expect(container.querySelector(".deroule")).toBeNull();
+    expect(screen.queryByText(/^Déroulé/)).toBeNull();
+    const fin = screen.getByText("Les deux reprises FICTIVES sont lancées.");
     expect(
       container
         .querySelector(".equipe-resultat")!
-        .compareDocumentPosition(deroule) & Node.DOCUMENT_POSITION_FOLLOWING,
+        .compareDocumentPosition(fin) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    // Le Bilan ne porte aucune réponse du chef : son dernier message n'est pas retiré du fil.
-    expect(deroule.textContent).toContain(
-      "Les deux reprises FICTIVES sont lancées.",
-    );
-    expect(deroule.textContent).toContain("2 messages d’attente précédents");
+    expect(container.textContent).toContain("2 messages d’attente précédents");
   });
 });
 

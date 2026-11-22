@@ -368,9 +368,7 @@ describe("rendu fiable", () => {
       />,
     );
     expect(screen.getByLabelText("Ajouter")).toBeTruthy();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Ajouter" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter" }));
     expect(
       screen.getByRole("menuitem", { name: "Fichiers et dossiers" }),
     ).toBeTruthy();

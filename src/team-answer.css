@@ -1,5 +1,5 @@
 /* equipe-lisible-22-11 — réponse d'une mission en équipe : Résultat, Ce qui a été trouvé, Équipe,
-   Problèmes, Détails techniques, Déroulé. Couleurs et tailles des jetons du thème (style.css, v2.css). */
+   Problèmes, Détails techniques. Couleurs et tailles des jetons du thème (style.css, v2.css). */
 .equipe-reponse {
   display: flex;
   flex-direction: column;
@@ -152,12 +152,10 @@
   margin: 4px 0 0;
   padding-left: 20px;
 }
-.equipe-details,
-.deroule {
+.equipe-details {
   min-width: 0;
 }
-.equipe-details > summary,
-.deroule > summary {
+.equipe-details > summary {
   color: var(--muted);
   font-size: 14px;
 }
@@ -190,14 +188,6 @@
   border-left: 2px solid var(--sep);
   color: var(--muted);
 }
-.deroule[open] > summary {
-  margin-bottom: 12px;
-}
-.deroule {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
 .attente-groupe {
   display: flex;
   flex-direction: column;
@@ -217,4 +207,19 @@
   .equipe-table thead th.num:last-child {
     display: none;
   }
+}
+
+/* fil-long-22-11 : bouton des messages plus anciens, en haut du fil. */
+.fil-precedents {
+  align-self: flex-start;
+  border: 0;
+  border-radius: 14px;
+  padding: 4px 12px;
+  background: var(--fill);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.fil-precedents:hover {
+  color: var(--label);
 }
