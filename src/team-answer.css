@@ -223,35 +223,3 @@
 .fil-precedents:hover {
   color: var(--label);
 }
-/* demo-fictive-22-11 (E204) : pack de démonstration choisi (composer) et mission en données fictives. */
-.demo-warning {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-}
-.demo-warning button {
-  height: 26px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 13px;
-  background: rgba(120, 120, 128, 0.18);
-  color: var(--label);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.demo-warning button:hover {
-  background: rgba(120, 120, 128, 0.28);
-}
-.demo-bandeau {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: color-mix(in srgb, #ff9f0a 14%, transparent);
-  color: var(--label);
-  font-size: 14px;
-}
-.demo-bandeau strong {
-  color: #ff9f0a;
-}

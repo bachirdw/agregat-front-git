@@ -22,6 +22,12 @@
 > `claude/passation-reprise-21-11-a815c6` n'a plus rien en propre. L'aperçu 5173 sert toujours l'ancien worktree `passation-reprise`
 > (sans ce lot).
 
+> **22/11, 16:00 — lot `sans-demo-22-11`** (rapport du même nom), décision du propriétaire qui remplace E204 : plus
+> aucune démonstration (en mode propriétaire, le catalogue est purgé de ce qu'il marque comme démonstration ; rien
+> de démonstratif n'est envoyé ; suggestions, avertissement et bandeau de démonstration retirés). 589/589, E2E 18/18.
+> Liste des mises en garde du front donnée au propriétaire, en attente de sa décision. Commité sur `main` local,
+> non poussé au moment de l'écrire.
+
 > **22/11, 15:15 — lot `demo-fictive-22-11`** (E204, rapport du même nom) : le pack de démonstration d'une
 > suggestion ne reste plus choisi, avertissement avant l'envoi, bandeau sur la réponse. 586/586, E2E 18/18. Commité
 > sur `main` local, **non poussé** au moment de l'écrire. Aperçu 5173 lancé depuis ce worktree (sur 4310).

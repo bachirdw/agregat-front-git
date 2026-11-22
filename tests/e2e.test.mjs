@@ -205,7 +205,8 @@ test(
       state: "detached",
     });
     await page
-      .getByRole("button", { name: /Trouver des offres Python/ })
+      // sans-demo-22-11 : les suggestions de démonstration sont retirées ; la suggestion restante.
+      .getByRole("button", { name: /Analyser une idée/ })
       .click();
     await shot(page, "07-suggestion-remplie");
     await launch(page);

@@ -210,6 +210,8 @@ export interface Pack {
 }
 export interface Catalog {
   live: boolean;
+  // Mode propriétaire du serveur (sans-demo-22-11 : les démonstrations ne sont alors ni proposées ni envoyées).
+  ownerMode?: boolean;
   agents: Agent[];
   packs: Pack[];
   skills: Skill[];

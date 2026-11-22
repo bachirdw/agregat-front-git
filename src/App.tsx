@@ -38,6 +38,7 @@ import {
   texteResume,
 } from "./status";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
+import { aucuneDemo, catalogueSansDemo, entreeSansDemo } from "./sansDemo";
 const ENDED_NOTICE =
   "La mission est terminée : votre message sera envoyé dans une reprise";
 type Page =
@@ -123,6 +124,7 @@ export default function App() {
     text: string;
   } | null>(null);
   const current = useRef("");
+  const demo = useRef(aucuneDemo());
   const viewVersion = useRef(0);
   const scroll = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -195,7 +197,10 @@ export default function App() {
         api<Catalog>("/catalog"),
         api<Run[]>("/runs"),
       ]);
-      setCatalog(cat);
+      // sans-demo-22-11 : en mode propriétaire, rien de ce que le catalogue marque comme démonstration.
+      const sans = catalogueSansDemo(cat);
+      demo.current = sans.demo;
+      setCatalog(sans.catalog);
       setRuns(list);
       setInput((old) => ({
         ...old,
@@ -589,7 +594,9 @@ export default function App() {
     try {
       const next = await api<Run>(
         "/runs",
-        toApiInput(candidate),
+        toApiInput(
+          entreeSansDemo(candidate, demo.current, catalog?.ownerMode === true),
+        ),
         controller.signal,
       );
       if (version === viewVersion.current) {
@@ -799,23 +806,9 @@ export default function App() {
     newMission();
     setInput((old) => ({ ...old, ...patch }));
   };
+  // sans-demo-22-11 : plus de suggestion de démonstration (décision du propriétaire) ; seules restent celles
+  // qui partent pour de vrai.
   const suggestions = [
-    {
-      title: "Trouver des offres Python et SQL en Australie",
-      note: "Najah AI · Workflow",
-      prompt:
-        "Rechercher et classer des offres Python et SQL en Australie (démonstration fictive)",
-      pack: "najah",
-      workflow: "opportunity-discovery-dag",
-    },
-    {
-      title: "Rédiger un brouillon de lettre pour une offre",
-      note: "Najah AI · brouillon à relire",
-      prompt:
-        "Rédiger un brouillon de lettre pour un poste de data engineer. Profil : [À COMPLÉTER]. Offre fictive.",
-      pack: "najah",
-      workflow: "application-draft",
-    },
     {
       title: "Analyser une idée et structurer les prochaines étapes",
       note: "Général · Agent unique",
@@ -1316,9 +1309,6 @@ export default function App() {
             scope={viewVersion.current}
             catalog={catalog}
             input={input}
-            onLeaveDemo={() => {
-              if (!busy) setInput(leaveSuggestion(input));
-            }}
             onChange={change}
             onPlan={() => void (canReply ? reply() : launch())}
             agentWarning={agentWarning(input.agent, catalog, runs)}
