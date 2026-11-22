@@ -23,7 +23,8 @@
 > (sans ce lot).
 
 > **22/11, 13:25 — lot `orchestre-22-11`** (rapport du même nom, journal `docs/orchestration/log.md`) : deux Codex en
-> parallèle, fusionnés par rebase sur **`main` local = `7b605ab`** (non poussé) depuis le worktree
+> parallèle, fusionnés par rebase sur **`main` = `7c6ac1a`, poussé sur `origin` le 22/11 vers 13:45** à la demande du
+> propriétaire (avance rapide depuis `6d7d562`, plus le suivi des textes d'import E194/E195) depuis le worktree
 > `new-session-1f8da9` : écran Skills et menu « + » du composer (maquettes « Skills et composer » et « Conversation
 > agent v5 »), écran Consommation (maquette « Consommation »). 559/559, build vert, E2E 18/18 avec
 > `agregat-back-reponse-04` (17/18 avec `agregat-back` : fixture sans `askQuestion`). Les champs backend manquants
