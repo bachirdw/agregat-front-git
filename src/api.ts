@@ -201,12 +201,14 @@ export async function sendOwnerMessage(
   runId: string,
   text: string,
   request: typeof api = api,
+  // joindre-23-11 : ids de POST /api/files (contrat joindre-01) ; absent quand rien n'est joint.
+  attachments: string[] = [],
 ): Promise<OwnerSend> {
   let response: unknown;
   try {
     response = await request<unknown>(
       `/runs/${encodeURIComponent(runId)}/message`,
-      { text },
+      attachments.length ? { text, attachments } : { text },
     );
   } catch (error) {
     if (error instanceof ApiError && error.status === 409)

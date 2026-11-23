@@ -2646,3 +2646,48 @@ button.team-row-head:hover {
     display: none;
   }
 }
+/* joindre-23-11 : « + » du champ de chat, fichiers joints avant l'envoi et dans les bulles. */
+.mission-chat .mission-attach {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fill);
+}
+.mission-files,
+.bubble-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mission-files li,
+.bubble-files li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--fill2);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.bubble-files li::before {
+  content: "📎";
+}
+.mission-files button {
+  padding: 0 2px;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+}
+.bubble-files {
+  margin-top: 6px;
+}

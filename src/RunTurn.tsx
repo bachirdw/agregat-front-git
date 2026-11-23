@@ -27,6 +27,7 @@ import {
   describeTool,
   isActiveTool,
   OwnerBubble,
+  SentFiles,
   ownerWaits,
   shortToolName,
   SkillChip,
@@ -848,6 +849,7 @@ function AnswerBubble({ answer }: { answer: Entry & { kind: "answer" } }) {
         <span className="prompt-bubble-text">
           {answerText(answer, answer.question)}
         </span>
+        <SentFiles files={answer.files} />
       </div>
     </div>
   );

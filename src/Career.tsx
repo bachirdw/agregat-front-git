@@ -70,6 +70,8 @@ export type Owner = {
   via: OwnerMessage["via"];
   deliveredAt: string | null;
   text?: string;
+  // joindre-23-11 : fichiers joints au message (`owner_message.attachments`, contrat joindre-01).
+  files?: SentFile[];
 };
 // fil-21-11 : question de l'agent au propriétaire (événement `question`, docs/api-questions.md) et sa
 // fermeture (`answer`). Rendues seulement avec `activity(events, { exchanges: true })` : le fil d'une
@@ -88,8 +90,35 @@ export type OwnerAnswer = {
   questionId: string;
   action: string;
   content?: Record<string, unknown>;
+  files?: SentFile[];
   at?: string;
 };
+export type SentFile = { id: string; name: string };
+// Fichiers joints d'un événement `answer` ou `owner_message` (noms en texte brut seulement).
+function sentFiles(raw: unknown): SentFile[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const files = raw.flatMap((f) =>
+    f && typeof f === "object" && typeof (f as SentFile).id === "string"
+      ? [
+          {
+            id: (f as SentFile).id,
+            name: String((f as SentFile).name || "fichier"),
+          },
+        ]
+      : [],
+  );
+  return files.length ? files : undefined;
+}
+export function SentFiles({ files }: { files?: SentFile[] }) {
+  if (!files?.length) return null;
+  return (
+    <ul className="bubble-files" aria-label="Fichiers joints">
+      {files.map((f) => (
+        <li key={f.id}>{f.name}</li>
+      ))}
+    </ul>
+  );
+}
 export type Item =
   | Tool
   | Owner
@@ -195,6 +224,7 @@ export function activity(
         requestedSchema?: unknown;
         action?: unknown;
         content?: unknown;
+        attachments?: unknown;
       };
       if (typeof d.id !== "string" || !d.id) continue;
       const key = `${e.type}-${d.id}`;
@@ -225,6 +255,7 @@ export function activity(
             d.content && typeof d.content === "object"
               ? (d.content as Record<string, unknown>)
               : undefined,
+          files: sentFiles(d.attachments),
           at: e.at,
         });
       }
@@ -258,6 +289,8 @@ export function activity(
       owner.deliveredAt =
         typeof m.deliveredAt === "string" ? m.deliveredAt : null;
       if (typeof m.text === "string" && m.text) owner.text = m.text;
+      const files = sentFiles((m as { attachments?: unknown }).attachments);
+      if (files) owner.files = files;
       continue;
     }
     if (e.type !== "agent" || !e.data || typeof e.data !== "object") continue;
@@ -980,6 +1013,7 @@ export function OwnerBubble({ message }: { message: Owner }) {
         <span className="prompt-bubble-text">
           {text ?? "Message envoyé pendant la mission (texte non conservé)"}
         </span>
+        <SentFiles files={message.files} />
       </div>
       <small className="owner-message-state">
         {ownerStatus(message)}

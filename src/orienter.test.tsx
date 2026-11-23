@@ -113,7 +113,7 @@ describe("pastille : envoi immédiat", () => {
     const { props, field } = pill();
     fireEvent.change(field, { target: { value: " Aussi en remote " } });
     fireEvent.keyDown(field, { key: "Enter" });
-    expect(props.send).toHaveBeenCalledWith("Aussi en remote");
+    expect(props.send).toHaveBeenCalledWith("Aussi en remote", []);
     expect(props.queue).not.toHaveBeenCalled();
     await waitFor(() => expect(field.value).toBe(""));
   });

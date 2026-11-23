@@ -5,7 +5,14 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Catalog, ListedRun, MissionInput, Run, RunEvent } from "./types";
+import type {
+  Attachment,
+  Catalog,
+  ListedRun,
+  MissionInput,
+  Run,
+  RunEvent,
+} from "./types";
 import { finalStates, labels, ownerStates } from "./types";
 import {
   api,
@@ -492,6 +499,31 @@ export default function App() {
       if (version === viewVersion.current) report(e);
     }
   };
+  // joindre-23-11 : un fichier joint pendant la mission doit revenir dans l'événement `answer` ou
+  // `owner_message` (contrat joindre-01). Un serveur plus ancien ignore le champ : on le dit au lieu
+  // de laisser croire que l'agent a reçu le fichier.
+  const filesExpected = useRef(new Set<string>());
+  // Le flux peut livrer l'événement avant la réponse de POST …/message : ce qui a été vu est gardé.
+  const filesSeen = useRef(new Map<string, boolean>());
+  const warnFiles = (got: boolean) => {
+    if (!got)
+      setNotice(
+        "Fichier non transmis : ce serveur ne prend pas encore de pièce jointe pendant une mission. Le texte est parti ; envoyez le fichier avec « + » une fois la mission terminée.",
+      );
+  };
+  const expectFiles = (key: string) => {
+    const seen = filesSeen.current.get(key);
+    if (seen === undefined) filesExpected.current.add(key);
+    else warnFiles(seen);
+  };
+  const checkFiles = (event: RunEvent) => {
+    if (event.type !== "answer" && event.type !== "owner_message") return;
+    const key = `${event.type}:${String(event.data?.id)}`;
+    const got = event.data?.attachments;
+    const has = Array.isArray(got) && got.length > 0;
+    filesSeen.current.set(key, has);
+    if (filesExpected.current.delete(key)) warnFiles(has);
+  };
   useEffect(() => {
     if (!run) return;
     const id = run.id;
@@ -560,6 +592,7 @@ export default function App() {
       update: (event) => {
         if (!active) return;
         setEvents((old) => appendEvent(old, event));
+        checkFiles(event);
         if (event.type === "state")
           syncList({ id, state: String(event.data.state) });
         setRun((old) => {
@@ -1320,18 +1353,35 @@ export default function App() {
               const key = proseAnswerKey(run.pendingQuestion);
               if (!key) return undefined;
               const id = run.id;
-              return (text: string) =>
-                action(
+              const question = (run.pendingQuestion as { id?: unknown } | null)
+                ?.id;
+              return async (text: string, files: Attachment[]) => {
+                if (files.length && typeof question === "string")
+                  expectFiles(`answer:${question}`);
+                await action(
                   `/runs/${id}/answer`,
-                  { action: "accept", content: { [key]: text } },
+                  {
+                    action: "accept",
+                    content: { [key]: text },
+                    ...(files.length
+                      ? { attachments: files.map((f) => f.id) }
+                      : {}),
+                  },
                   true,
                 );
+              };
             })()}
-            send={async (text) => {
+            send={async (text, files) => {
               const id = run.id;
-              const sent = await sendOwnerMessage(id, text, api);
+              const sent = await sendOwnerMessage(
+                id,
+                text,
+                api,
+                files.map((f) => f.id),
+              );
               if (sent.outcome === "sent") {
                 rememberOwnerText(sent.id, text);
+                if (files.length) expectFiles(`owner_message:${sent.id}`);
                 return null;
               }
               // Mission over in the meantime, or older back: the text waits for a resume.
