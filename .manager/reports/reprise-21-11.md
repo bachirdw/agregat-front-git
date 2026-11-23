@@ -1,5 +1,12 @@
 # Note de reprise (21/11/2026, soir, fin de la conversation « passation-reprise-21-11 »)
 
+> **23/11, 18:40 — poussé sur `origin`** à la demande du propriétaire (« pousse le pour je vois ») : branche
+> `claude/lenteur-affichage-23-11`, un seul commit `8fc0025` sur `origin/main`, même arbre que les 7 commits locaux
+> de `claude/new-session-58f920` (lots `lenteur-23-11`, `affichage-23-11`, `streamdown-23-11`, 636/636). Regroupés sans
+> réécrire l'ancienne branche, pour ne pas publier le nom réel d'un fichier de candidature resté dans l'historique
+> de `6e1cb78` (branche locale gardée, non poussée). Pas de pull request, `main` inchangé. Essai Streamdown :
+> branche locale `claude/essai-streamdown-23-11`, non poussée.
+
 > **23/11, 16:20 — lot `lenteur-23-11`** (rapport du même nom), brief du manager de l'arrière : mesures sur la
 > mission `3c0935ae` (banc de rejeu en lecture seule). Le front n'était pas lent à ouvrir ni à afficher ; il était
 > muet pendant la rédaction d'un document et lourd sous un flux dense. Ligne d'attente « Rédige <fichier> · 23 s »,
