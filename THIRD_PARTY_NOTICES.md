@@ -323,6 +323,7 @@ DOMPurify : licence Apache-2.0 retenue parmi les options proposées. elkjs est s
 | remark-parse | 11.0.0 | MIT | Production/transitif |
 | remark-rehype | 11.1.2 | MIT | Production/transitif |
 | remark-stringify | 11.0.0 | MIT | Production/transitif |
+| remend | 1.4.0 | Apache-2.0 | Production/transitif |
 | require-from-string | 2.0.2 | MIT | Développement |
 | robust-predicates | 3.0.3 | Unlicense | Production/transitif |
 | rolldown | 1.2.15 | MIT | Développement |
@@ -11829,6 +11830,28 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
+
+</details>
+
+### remend 1.4.0
+
+<details><summary>Licence et notices</summary>
+
+```text
+Copyright 2023 Vercel, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 ```
 
 </details>

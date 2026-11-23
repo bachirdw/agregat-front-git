@@ -317,7 +317,7 @@ const openApp = async (
 ) => {
   vi.mocked(api).mockImplementation((path, body) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
-    if (path === "/runs") return Promise.resolve([run]) as never;
+    if (path === "/runs?vue=liste") return Promise.resolve([run]) as never;
     if (String(path).endsWith("/message")) return message(body) as never;
     return Promise.resolve(run) as never;
   });
@@ -384,7 +384,8 @@ describe("orienter la mission depuis l'application", () => {
     let current: Run = running;
     vi.mocked(api).mockImplementation((path) => {
       if (path === "/catalog") return Promise.resolve(catalog) as never;
-      if (path === "/runs") return Promise.resolve([current]) as never;
+      if (path === "/runs?vue=liste")
+        return Promise.resolve([current]) as never;
       if (String(path).endsWith("/message"))
         return Promise.reject(new ApiError("Mission terminée", 409)) as never;
       if (String(path).endsWith("/resume"))

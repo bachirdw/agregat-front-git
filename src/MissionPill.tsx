@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { Icon } from "./Icon";
+import { NotifyOwner } from "./NotifyOwner";
 
 // Controls while a mission runs. For an agent mission (`canQueue`): a chat field in the composer's
 // place, always visible, to write to the agent while it works, with the stop button beside the send
@@ -147,6 +148,7 @@ export function MissionPill({
                   ? "L’agent le reçoit sans arrêter la mission"
                   : "Envoyée après la tâche en cours"}
           </small>
+          <NotifyOwner />
           {stopButton}
           <button
             type="submit"

@@ -450,3 +450,26 @@ export function texteAnnonce(usage: unknown): string {
       : "";
   return [texteJetons(usage), prix].filter(Boolean).join(" · ");
 }
+
+// affichage-23-11 : un tour repris (`resumedFrom`) ne montre dans le fil que les sous-missions lancées
+// pendant ce tour. Le back rattache encore à chaque tour celles de toute la conversation (E229) : sur
+// bbf4f4a7, trois sous-missions de 05:44 s'affichaient sous un message de 06:56 et le repoussaient hors
+// de l'écran. Un membre sans `debut` (en file, en attente d'accord) appartient au tour en cours.
+export function membresDuTour<
+  R extends {
+    createdAt?: string;
+    resumedFrom?: string | null;
+    family?: ({ debut?: string | null } | null)[];
+  },
+>(run: R): R {
+  const family = Array.isArray(run.family) ? run.family : null;
+  const start = Date.parse(run.createdAt ?? "");
+  if (!run.resumedFrom || !family?.length || !Number.isFinite(start))
+    return run;
+  const kept = family.filter((m) => {
+    const debut = Date.parse(m?.debut ?? "");
+    // Une seconde de marge : l'horodatage du tour et celui du membre viennent de deux écritures.
+    return !Number.isFinite(debut) || debut >= start - 1000;
+  });
+  return kept.length === family.length ? run : { ...run, family: kept };
+}

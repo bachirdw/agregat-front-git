@@ -46,7 +46,7 @@ const width = (value: number) =>
 const serve = (run: Run) =>
   vi.mocked(api).mockImplementation((path) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
-    if (path === "/runs") return Promise.resolve([run]) as never;
+    if (path === "/runs?vue=liste") return Promise.resolve([run]) as never;
     return Promise.resolve(run) as never;
   });
 const openMission = async () => {

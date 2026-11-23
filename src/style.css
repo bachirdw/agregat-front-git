@@ -1832,6 +1832,11 @@ summary {
   color: var(--muted);
   font-size: 13px;
 }
+/* lenteur-23-11 : temps écoulé de l'action en cours, chiffres fixes pour qu'il ne danse pas. */
+.waiting-elapsed {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
 .thinking-dots {
   display: inline-flex;
   align-items: center;
@@ -2058,4 +2063,26 @@ summary {
 }
 .mission-chat .mission-queue-error {
   color: var(--red);
+}
+/* lenteur-23-11 : la façon de travailler du Skill, carte discrète en tête de conversation. */
+.skill-presentation {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--fill2);
+  font-size: 13px;
+}
+.skill-presentation > summary {
+  font-weight: 500;
+  color: var(--label);
+}
+.skill-presentation-body {
+  margin: 6px 0 0 14px;
+  color: var(--muted);
+}
+.skill-presentation-body .markdown > :first-child {
+  margin-top: 0;
+}
+.skill-presentation-body .markdown > :last-child {
+  margin-bottom: 0;
 }

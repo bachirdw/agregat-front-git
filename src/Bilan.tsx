@@ -141,6 +141,11 @@ export function splitSummary(summary: string): SplitSummary {
     }
     break;
   }
+  // affichage-23-11 : a run whose summary is only the platform's Bilan (a cancelled turn, an older back
+  // without `answer`) has lines the walk above stops on (« 1. « … » — », « > … », « Sous-missions (3) : »).
+  // A line « Bilan » alone is the platform's: all that follows is its text, never the agent's answer.
+  const bilan = lines.findIndex((l) => l.trim() === "Bilan");
+  if (bilan >= 0 && bilan < start) start = bilan;
   const lead: string[] = [];
   let first = 0;
   while (first < start && /^Avertissement — /.test(lines[first].trim()))
@@ -209,7 +214,7 @@ export function AgentAnswer({
             {details
               .filter((line) => line !== "Bilan")
               .map((line, i) => (
-                <li key={i}>{line.replace(/^- /, "")}</li>
+                <li key={i}>{line.replace(/^(?:> )?- |^> /, "")}</li>
               ))}
           </ul>
         </details>

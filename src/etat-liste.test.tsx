@@ -60,7 +60,7 @@ it("la liste des missions suit la mission ouverte : question, puis reprise, sans
   vi.mocked(api).mockImplementation((path) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs"
+      : path === "/runs?vue=liste"
         ? (Promise.resolve([run]) as never)
         : (Promise.resolve(run) as never),
   );
@@ -75,7 +75,9 @@ it("la liste des missions suit la mission ouverte : question, puis reprise, sans
   // The list is read once only: everything after comes from the open mission's refresh.
   const listReads = vi
     .mocked(api)
-    .mock.calls.filter(([path, body]) => path === "/runs" && !body).length;
+    .mock.calls.filter(
+      ([path, body]) => path === "/runs?vue=liste" && !body,
+    ).length;
 
   run = { ...run, state: "awaiting_owner" };
   act(() => handlers.update({ seq: 1, type: "question", data: { id: "q1" } }));
@@ -107,7 +109,8 @@ it("la liste des missions suit la mission ouverte : question, puis reprise, sans
   expect(
     vi
       .mocked(api)
-      .mock.calls.filter(([path, body]) => path === "/runs" && !body).length,
+      .mock.calls.filter(([path, body]) => path === "/runs?vue=liste" && !body)
+      .length,
   ).toBe(listReads);
 });
 
@@ -121,7 +124,7 @@ it("un événement d'état SSE met la liste à jour avant même la relecture de 
   vi.mocked(api).mockImplementation((path) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs"
+      : path === "/runs?vue=liste"
         ? (Promise.resolve([run]) as never)
         : path.split("?")[0] === `/runs/${run.id}`
           ? (Promise.resolve(run) as never)
@@ -135,7 +138,7 @@ it("un événement d'état SSE met la liste à jour avant même la relecture de 
   vi.mocked(api).mockImplementation((path) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs"
+      : path === "/runs?vue=liste"
         ? (Promise.resolve([run]) as never)
         : (new Promise(() => {}) as never),
   );

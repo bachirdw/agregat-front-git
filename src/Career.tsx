@@ -118,7 +118,16 @@ function pretty(text: string) {
 }
 // Tool result as sent by the agent: rawOutput, else the text of its content blocks. An MCP result
 // (`[{ type: "text", text }]`) is shown as its text, not as the JSON of its envelope.
+// lenteur-23-11 : the feed is rebuilt at each streamed event, and re-indenting every JSON result
+// cost 2,7 s of 30 s on 3c0935ae. An event's data never changes: its result is read once.
+const outputs = new WeakMap<object, string | undefined>();
 function toolOutput(u: Record<string, unknown>): string | undefined {
+  if (outputs.has(u)) return outputs.get(u);
+  const text = readToolOutput(u);
+  outputs.set(u, text);
+  return text;
+}
+function readToolOutput(u: Record<string, unknown>): string | undefined {
   if (u.rawOutput !== undefined && u.rawOutput !== null) {
     if (typeof u.rawOutput === "string") return u.rawOutput;
     if (
@@ -298,6 +307,13 @@ export function activity(
         ? (u.locations[0] as { path?: unknown } | undefined)?.path
         : undefined;
       if (typeof where === "string" && where) tool.location = where;
+      // Codex's edits (« Editing file », no rawInput): the file is in a diff block of `content`.
+      const diff = Array.isArray(u.content)
+        ? (u.content as { type?: unknown; path?: unknown }[]).find(
+            (b) => b?.type === "diff" && typeof b.path === "string" && b.path,
+          )
+        : undefined;
+      if (!tool.location && diff) tool.location = String(diff.path);
       if (u.status) tool.status = String(u.status);
       if (u.status && !active(String(u.status))) tool.endAt = e.at;
       if (u.title) tool.title = String(u.title);
@@ -338,7 +354,65 @@ export function waitingLabel(items: Item[]): string | null {
     ? null
     : "Réflexion…";
 }
-export function Waiting({ label }: { label: string }) {
+// lenteur-23-11 : the agent writes a whole document inside its tool call (CV ≈ 13 s, report 22 to
+// 40 s on 3c0935ae): « Exécution… » alone looked frozen. A running call is named instead, a file
+// being written by its name, with the time since the call started; the size once the text arrives.
+const writingTool = /write|edit|create|save|render|pdf|generate|export/i;
+const fileKeys = ["path", "file_path", "filePath", "filename", "output"];
+const textKeys = ["text", "content", "markdown", "body", "html"];
+export function runningToolWait(
+  items: Item[],
+): { label: string; since?: string } | null {
+  const last = items.at(-1);
+  if (last?.kind !== "tool" || !active(last.status) || nativeActivity(last))
+    return null;
+  const input =
+    last.input && typeof last.input === "object" && !Array.isArray(last.input)
+      ? (last.input as Record<string, unknown>)
+      : {};
+  const file =
+    fileKeys
+      .map((key) => input[key])
+      .find((v): v is string => typeof v === "string" && v.trim() !== "") ??
+    last.location;
+  const name = shortToolName(describeTool(last).name);
+  const writes =
+    last.callKind === "edit" ||
+    writingTool.test(last.toolName ?? "") ||
+    writingTool.test(name);
+  const base = file?.split(/[\\/]/).filter(Boolean).pop();
+  const text = textKeys
+    .map((key) => input[key])
+    .find((v): v is string => typeof v === "string");
+  const size =
+    text && text.length >= 200
+      ? ` · ${text.length.toLocaleString("fr-FR")} caractères`
+      : "";
+  // Same words whatever the agent: Codex's « Editing file » without a path is « Rédige un fichier ».
+  const label =
+    writes && (base || last.callKind === "edit")
+      ? `Rédige ${base ?? "un fichier"}${size}`
+      : `Exécute ${name}${base ? ` · ${base}` : ""}`;
+  return { label, since: last.at };
+}
+// Seconds since `since`, refreshed each second; nothing below 3 s (a quick call stays quiet).
+function useElapsed(since?: string) {
+  const start = since ? Date.parse(since) : NaN;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!Number.isFinite(start)) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [start]);
+  if (!Number.isFinite(start)) return "";
+  const seconds = Math.floor(Math.max(0, now - start) / 1000);
+  if (seconds < 3) return "";
+  return seconds < 60
+    ? `${seconds} s`
+    : `${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, "0")} s`;
+}
+export function Waiting({ label, since }: { label: string; since?: string }) {
+  const elapsed = useElapsed(since);
   return (
     <p className="waiting" role="status">
       <span className="thinking-dots" aria-hidden="true">
@@ -347,6 +421,7 @@ export function Waiting({ label }: { label: string }) {
         <i />
       </span>
       {label}
+      {elapsed && <span className="waiting-elapsed">{elapsed}</span>}
     </p>
   );
 }

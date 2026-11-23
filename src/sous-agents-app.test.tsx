@@ -85,7 +85,7 @@ afterEach(() => {
 const serve = (runs: Run[]) =>
   vi.mocked(api).mockImplementation((path) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
-    if (path === "/runs") return Promise.resolve(runs) as never;
+    if (path === "/runs?vue=liste") return Promise.resolve(runs) as never;
     // swarm-09 : une mission se lit avec ?equipe=1.
     const found = runs.find(
       (r) => String(path).split("?")[0] === "/runs/" + r.id,
@@ -187,7 +187,8 @@ describe("sous-agents dans l'application", () => {
     let served = waiting;
     vi.mocked(api).mockImplementation((path) => {
       if (path === "/catalog") return Promise.resolve(catalog) as never;
-      if (path === "/runs") return Promise.resolve([mother, served]) as never;
+      if (path === "/runs?vue=liste")
+        return Promise.resolve([mother, served]) as never;
       if (String(path).startsWith("/runs/c1"))
         return Promise.resolve(served) as never;
       return Promise.resolve(mother) as never;

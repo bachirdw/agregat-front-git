@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Catalog, MissionInput, Run, RunEvent } from "./types";
+import type { Catalog, ListedRun, MissionInput, Run, RunEvent } from "./types";
 import { finalStates, labels, ownerStates } from "./types";
 import {
   api,
@@ -32,6 +32,7 @@ import { SidePane } from "./SidePane";
 import {
   activiteListe,
   avecDetailsDesLignes,
+  membresDuTour,
   missionsDeLaListe,
   POINT_ACTIVITE,
   resumeListe,
@@ -39,6 +40,8 @@ import {
 } from "./status";
 import { Agents, Consumption, Packs, Skills } from "./Galleries";
 import { aucuneDemo, catalogueSansDemo, entreeSansDemo } from "./sansDemo";
+import { SkillPresentation } from "./SkillPresentation";
+import { owedMissions } from "./owed";
 const ENDED_NOTICE =
   "La mission est terminée : votre message sera envoyé dans une reprise";
 type Page =
@@ -85,7 +88,7 @@ function proseAnswerKey(question: Run["pendingQuestion"]) {
 }
 export default function App() {
   const [catalog, setCatalog] = useState<Catalog | null>(null),
-    [runs, setRuns] = useState<Run[]>([]),
+    [runs, setRuns] = useState<ListedRun[]>([]),
     [run, setRun] = useState<Run | null>(null),
     [page, setPage] = useState<Page>("home");
   const [input, setInput] = useState(initial),
@@ -175,7 +178,7 @@ export default function App() {
     </span>
   );
   const history = useCallback(
-    async () => setRuns(await api<Run[]>("/runs")),
+    async () => setRuns(await api<ListedRun[]>("/runs?vue=liste")),
     [],
   );
   // The list shows the state of the open mission as its refresh (SSE then re-read) learns it,
@@ -195,7 +198,7 @@ export default function App() {
     try {
       const [cat, list] = await Promise.all([
         api<Catalog>("/catalog"),
-        api<Run[]>("/runs"),
+        api<ListedRun[]>("/runs?vue=liste"),
       ]);
       // sans-demo-22-11 : en mode propriétaire, rien de ce que le catalogue marque comme démonstration.
       const sans = catalogueSansDemo(cat);
@@ -235,8 +238,38 @@ export default function App() {
     lastScrollTop.current = scroll.current?.scrollTop ?? 0;
     lastScrollSize.current = "";
     setComposerCompact(false);
-    document.title = `agre agent · ${titles[page]}`;
   }, [page, run?.id, starting]);
+  // lenteur-23-11 : l'onglet dit quand l'agent attend le propriétaire (16 min d'attente sur
+  // 3c0935ae, dont 9 min 22 pour une seule question, sans autre signe hors de la page).
+  const owed = owedMissions(runs, run);
+  useEffect(() => {
+    const base = `agre agent · ${titles[page]}`;
+    document.title = owed ? `(${owed}) À vous de répondre · ${base}` : base;
+  }, [page, owed]);
+  // Onglet caché ou fenêtre derrière une autre : une notification du navigateur, seulement si le
+  // propriétaire l'a permise (bouton « Me prévenir »). Rien avant la première liste : une attente déjà
+  // là au chargement n'est pas nouvelle.
+  const owedBefore = useRef<number | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    const before = owedBefore.current;
+    owedBefore.current = owed;
+    if (
+      before !== null &&
+      owed > before &&
+      (document.hidden || !document.hasFocus()) &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "granted"
+    )
+      try {
+        new Notification("agre agent", {
+          body: "L’agent attend votre réponse.",
+          tag: "agre-agent-owner",
+        });
+      } catch {
+        // Chrome Android refuses the constructor (service worker only): the tab title still says it.
+      }
+  }, [owed, loading]);
   useLayoutEffect(() => {
     const main = mainRef.current;
     const feed = scroll.current;
@@ -555,7 +588,10 @@ export default function App() {
             String(event.data.reason || "Budget dépassé") +
               " : exécution arrêtée",
           );
-        if (!timer)
+        // lenteur-23-11 : the agent's own stream (text, tool calls, usage) changes nothing the
+        // run re-read brings at once: the 2 s heartbeat covers it. On 3c0935ae it caused 157 re-reads
+        // of 106 Ko in 30 s, each one re-rendering the whole mission.
+        if (event.type !== "agent" && !timer)
           timer = setTimeout(() => {
             timer = undefined;
             void refresh();
@@ -1157,6 +1193,12 @@ export default function App() {
             <div className="thread">
               {/* meme-affichage-21-11 : une seule façon d'afficher une mission, career-ops compris
                   (consigne et résultat privés lus par leurs routes, offres enregistrées dans la réponse). */}
+              {/* lenteur-23-11 : la façon de travailler du Skill, une fois en tête de conversation. */}
+              <SkillPresentation
+                key={"presentation-" + run.id}
+                run={run}
+                catalog={catalog}
+              />
               <SessionHistory run={run} runs={runs} />
               <MissionPrompt
                 key={run.id}
@@ -1171,7 +1213,7 @@ export default function App() {
               <RunTurn
                 // Une mission = une réponse : lignes repliées à chaque mission ouverte.
                 key={"reponse-" + run.id}
-                run={avecDetailsDesLignes(run, runs)}
+                run={membresDuTour(avecDetailsDesLignes(run, runs))}
                 events={events}
                 busy={busy}
                 act={action}
@@ -1184,7 +1226,7 @@ export default function App() {
               )}
               {/* sous-agents-19-11 : seulement si le back fournit la famille ; ouvre le panneau. */}
               <SubagentsLine
-                family={run.family}
+                family={membresDuTour(run).family}
                 onOpen={() => {
                   showPanel(true);
                   // Panel already open: the line still leads to the team.

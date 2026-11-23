@@ -76,7 +76,7 @@ function serve(rows: Run[], open?: Run) {
   vi.mocked(api).mockImplementation((path, body) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs" && !body
+      : path === "/runs?vue=liste" && !body
         ? (Promise.resolve(rows) as never)
         : open && path.split("?")[0] === `/runs/${open.id}`
           ? (Promise.resolve(open) as never)

@@ -248,7 +248,7 @@ it("signale une perte du backend pendant une mission puis retente la lecture", a
   vi.mocked(api).mockImplementation((path) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs"
+      : path === "/runs?vue=liste"
         ? (Promise.resolve([run]) as never)
         : path.split("?")[0] === `/runs/${run.id}`
           ? ++reads === 1
@@ -291,7 +291,7 @@ it("détecte une perte du backend même si le flux ne signale aucune erreur", as
   vi.mocked(api).mockImplementation((path) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs"
+      : path === "/runs?vue=liste"
         ? (Promise.resolve([run]) as never)
         : path.split("?")[0] === `/runs/${run.id}`
           ? ++reads === 1
@@ -331,7 +331,7 @@ it("conserve le brouillon de réponse si la reprise échoue", async () => {
   vi.mocked(api).mockImplementation((path) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs"
+      : path === "/runs?vue=liste"
         ? (Promise.resolve([run]) as never)
         : path.endsWith("/resume")
           ? Promise.reject(new Error("Reprise impossible"))
@@ -363,7 +363,11 @@ it("transmet un CV joint lors d'une réponse et vide la pièce après la reprise
   vi.mocked(api).mockImplementation(
     (path) =>
       Promise.resolve(
-        path === "/catalog" ? catalog : path === "/runs" ? [run] : run,
+        path === "/catalog"
+          ? catalog
+          : path === "/runs?vue=liste"
+            ? [run]
+            : run,
       ) as never,
   );
   vi.stubGlobal(
@@ -437,7 +441,7 @@ it("vide l'objectif initial après le lancement pour ne pas le proposer comme r�
           ? catalog
           : path === "/plan"
             ? plan
-            : path === "/runs"
+            : path === "/runs?vue=liste"
               ? body
                 ? run
                 : [run]
@@ -487,7 +491,11 @@ it("en conversation, le défilement vers le haut compacte le composeur, le focus
   vi.mocked(api).mockImplementation(
     (path) =>
       Promise.resolve(
-        path === "/catalog" ? catalog : path === "/runs" ? [run] : run,
+        path === "/catalog"
+          ? catalog
+          : path === "/runs?vue=liste"
+            ? [run]
+            : run,
       ) as never,
   );
   const { container } = render(<App />);
@@ -636,7 +644,8 @@ describe("instruction mise en file pendant une mission (repli : back sans la rou
     let current: Run = running;
     vi.mocked(api).mockImplementation((path) => {
       if (path === "/catalog") return Promise.resolve(catalog) as never;
-      if (path === "/runs") return Promise.resolve([current]) as never;
+      if (path === "/runs?vue=liste")
+        return Promise.resolve([current]) as never;
       // Older back: the route does not exist.
       if (String(path).endsWith("/message"))
         return Promise.reject(new ApiError("Not found", 404)) as never;
@@ -705,7 +714,7 @@ it("message pendant une mission, back conforme (202) : envoyé tout de suite, ri
   let current: Run = running;
   vi.mocked(api).mockImplementation((path) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
-    if (path === "/runs") return Promise.resolve([current]) as never;
+    if (path === "/runs?vue=liste") return Promise.resolve([current]) as never;
     if (String(path).endsWith("/message"))
       return Promise.resolve({ id: "m1", state: "pending" }) as never;
     if (String(path).endsWith("/resume"))
@@ -778,7 +787,7 @@ it("après une réponse, le tour précédent reste dans le fil même si le back 
   let resumed = false;
   vi.mocked(api).mockImplementation((path) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
-    if (path === "/runs")
+    if (path === "/runs?vue=liste")
       return Promise.resolve(resumed ? [child, parent] : [parent]) as never;
     if (path === `/runs/${parent.id}/resume`) {
       resumed = true;
@@ -823,7 +832,7 @@ it("l'envoi lance la mission directement, sans plan à confirmer", async () => {
   vi.mocked(api).mockImplementation((path, body) =>
     path === "/catalog"
       ? (Promise.resolve(catalog) as never)
-      : path === "/runs"
+      : path === "/runs?vue=liste"
         ? (Promise.resolve(body ? run : []) as never)
         : (Promise.resolve(run) as never),
   );

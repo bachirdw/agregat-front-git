@@ -67,7 +67,8 @@ const child = (n: string, mere: string, state: string, famille = {}) =>
 function serve(rows: Run[], opened: Run[] = []) {
   vi.mocked(api).mockImplementation((path, body) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
-    if (path === "/runs" && !body) return Promise.resolve(rows) as never;
+    if (path === "/runs?vue=liste" && !body)
+      return Promise.resolve(rows) as never;
     const hit = opened.find((r) => path.split("?")[0] === `/runs/${r.id}`);
     return (hit ? Promise.resolve(hit) : new Promise(() => {})) as never;
   });

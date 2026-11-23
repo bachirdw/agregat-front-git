@@ -32,6 +32,7 @@ import {
   SkillChip,
   Waiting,
   waitingLabel,
+  runningToolWait,
   type AskedQuestion,
   type Item,
   type Owner,
@@ -1040,9 +1041,12 @@ export function RunTurn({
     entries.flatMap((e) => (e.kind === "answer" ? [e.questionId] : [])),
   );
   // RunTurn shows no thoughts: a trailing thought keeps « Réflexion… » (else the turn looks stuck).
+  // lenteur-23-11 : a running call is named (« Rédige cv-….md · 23 s »), never a bare « Exécution… ».
+  const toolWait = live && !ownerTurn ? runningToolWait(shownItems) : null;
   const label =
     live && !ownerTurn
-      ? (waitingLabel(shownItems) ??
+      ? (toolWait?.label ??
+        waitingLabel(shownItems) ??
         (items.at(-1)?.kind === "thought" ? "Réflexion…" : null))
       : null;
   const failedMembers = (Array.isArray(run.family) ? run.family : []).filter(
@@ -1084,7 +1088,10 @@ export function RunTurn({
     }
     return (
       <div key={entry.id} className="reponse-texte">
-        <Markdown text={entry.text} />
+        <Markdown
+          text={entry.text}
+          streaming={index === list.length - 1 && live && !ownerTurn}
+        />
         {index === list.length - 1 && live && !ownerTurn && (
           <span className="stream-caret" aria-hidden="true" />
         )}
@@ -1216,7 +1223,7 @@ export function RunTurn({
             />
             {activite}
             <OlderFolded nodes={filEquipe()} />
-            {label && <Waiting label={label} />}
+            {label && <Waiting label={label} since={toolWait?.since} />}
           </>
         ) : (
           <>
@@ -1226,7 +1233,7 @@ export function RunTurn({
                 renderEntry(entry, index, shown),
               )}
             />
-            {label && <Waiting label={label} />}
+            {label && <Waiting label={label} since={toolWait?.since} />}
             <SkillSteps progress={run.skillProgress} />
           </>
         )}

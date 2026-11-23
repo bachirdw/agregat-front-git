@@ -152,7 +152,8 @@ describe("POST et SSE qui se croisent (le back attend jusqu'à 1,5 s un steering
   const open = async (message: () => Promise<unknown>) => {
     vi.mocked(api).mockImplementation((path) => {
       if (path === "/catalog") return Promise.resolve(catalog) as never;
-      if (path === "/runs") return Promise.resolve([running]) as never;
+      if (path === "/runs?vue=liste")
+        return Promise.resolve([running]) as never;
       if (String(path).endsWith("/message")) return message() as never;
       return Promise.resolve(running) as never;
     });

@@ -1,5 +1,13 @@
 # Note de reprise (21/11/2026, soir, fin de la conversation « passation-reprise-21-11 »)
 
+> **23/11, 16:20 — lot `lenteur-23-11`** (rapport du même nom), brief du manager de l'arrière : mesures sur la
+> mission `3c0935ae` (banc de rejeu en lecture seule). Le front n'était pas lent à ouvrir ni à afficher ; il était
+> muet pendant la rédaction d'un document et lourd sous un flux dense. Ligne d'attente « Rédige <fichier> · 23 s »,
+> titre d'onglet « (n) À vous de répondre », relectures de la mission seulement sur un événement non `agent`,
+> résultats d'outils et Markdown mis en cache (CPU 21,6 s → 9,0 s sur 30 s denses), carte « Comment fonctionne
+> <Skill> » qui attend le champ `presentation` du catalogue (proposé au back). 613/613, build vert, E2E non relancés.
+> Branche `claude/new-session-58f920`, commit local non poussé.
+
 > **Mise à jour du 21/11, 21:30 (session « reprise-chantier-1229be »)** : le code le plus récent est maintenant
 > dans le worktree `~/Downloads/agregat-front/.claude/worktrees/reprise-chantier-1229be`, branche
 > `claude/reprise-chantier-1229be` (**poussée sur `origin`** le 21/11 vers 21:30 à la demande du propriétaire,

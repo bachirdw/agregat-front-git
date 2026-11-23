@@ -882,7 +882,7 @@ describe("swarm-09 : lecture d'une mission avec la vue d'équipe", () => {
     vi.mocked(api).mockImplementation((path) =>
       path === "/catalog"
         ? (Promise.resolve(catalog) as never)
-        : path === "/runs"
+        : path === "/runs?vue=liste"
           ? (Promise.resolve([mother]) as never)
           : path.split("?")[0] === `/runs/${mother.id}`
             ? (Promise.resolve(mother) as never)

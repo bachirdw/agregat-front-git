@@ -32,6 +32,9 @@ export interface Skill {
   id: string;
   name: string;
   version: string;
+  // lenteur-23-11 (proposé au back) : sa façon de travailler, en quelques phrases (Markdown), affichée
+  // une fois en tête de conversation. Vient du pack côté plateforme, jamais du front.
+  presentation?: string;
   origin: string;
   state: string;
   active: boolean;
@@ -198,6 +201,9 @@ export interface Pack {
   id: string;
   name: string;
   description: string;
+  // lenteur-23-11 (proposé au back) : même texte que `Skill.presentation`, pour une mission lancée sur
+  // un pack sans Skill choisi.
+  presentation?: string;
   // demo-fictive-22-11 (E204) : « fixture » = pack de démonstration (navigateur et données fictifs).
   dataMode?: string;
   skills: { id: string }[];
@@ -486,9 +492,10 @@ export interface Run {
     answer?: string;
     platformNotes?: string[];
     provenance?: { data: string; analysis: string };
-    evidence: unknown[];
+    // Absent from a row of `GET /api/runs?vue=liste` (lenteur-23-11) and from older runs.
+    evidence?: unknown[];
     opportunities?: Opportunity[];
-  };
+  } | null;
   usage?: {
     platformCents: number;
     currency: string;
@@ -670,3 +677,13 @@ export interface CareerResult {
     source?: string;
   }[];
 }
+// lenteur-23-11 (back api-front-01) : une ligne de `GET /api/runs?vue=liste`. Mêmes champs qu'une mission,
+// sauf `missionProof` (retiré) et `result` réduit à son texte (elle se passe partout où une mission est attendue : ces champs y sont facultatifs) ; `usage`, `steps` et `family` ne viennent
+// que de `GET /api/runs/:id`.
+export type ListedRun = Omit<Run, "result" | "missionProof"> & {
+  result?: Pick<
+    NonNullable<Run["result"]>,
+    "simulated" | "summary" | "answer" | "platformNotes"
+  > | null;
+  missionProof?: undefined;
+};

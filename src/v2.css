@@ -1608,8 +1608,10 @@ fieldset.question-field label {
    colonnes égales, des en-têtes superposés et des mots coupés au milieu. Colonnes à leur contenu,
    bornées, et défilement horizontal du conteneur quand le tableau est plus large que le fil. */
 .md-table table {
-  width: max-content;
-  min-width: 100%;
+  /* affichage-23-11 : à la largeur du fil, le texte des cellules passe à la ligne (la colonne de droite
+     était coupée hors de vue, sans barre de défilement visible sur macOS) ; un tableau à nombreuses colonnes
+     défile encore, chaque cellule gardant 6em au moins. */
+  width: 100%;
   table-layout: auto;
   overflow-wrap: normal;
   border: 0;
@@ -2622,4 +2624,25 @@ button.team-row-head:hover {
 }
 .answer-message {
   margin-block: 4px;
+}
+/* lenteur-23-11 : « Me prévenir quand l'agent m'attend », discret, à côté de l'arrêt. */
+.mission-chat-bottom .notify-owner {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.mission-chat-bottom button.notify-owner {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--fill2);
+  color: var(--accentText);
+}
+.mission-chat-bottom button.notify-owner:hover {
+  background: var(--fill);
+}
+@media (max-width: 760px) {
+  .mission-chat-bottom .notify-owner {
+    display: none;
+  }
 }

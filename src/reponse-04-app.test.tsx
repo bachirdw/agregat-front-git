@@ -40,7 +40,7 @@ const base = {
 const serve = (run: Run) =>
   vi.mocked(api).mockImplementation((path) => {
     if (path === "/catalog") return Promise.resolve(catalog) as never;
-    if (path === "/runs") return Promise.resolve([run]) as never;
+    if (path === "/runs?vue=liste") return Promise.resolve([run]) as never;
     if (String(path).endsWith("/cancel"))
       return Promise.reject(
         new ApiError("Exécution déjà terminée (FICTIF)", 409),
@@ -152,7 +152,7 @@ describe("reconnexion", () => {
     });
     vi.mocked(api).mockImplementation((path) => {
       if (path === "/catalog") return Promise.resolve(catalog) as never;
-      if (path === "/runs") return Promise.resolve([base]) as never;
+      if (path === "/runs?vue=liste") return Promise.resolve([base]) as never;
       if (String(path).endsWith("/cancel"))
         return Promise.reject(new ApiError(API_UNREACHABLE, 0)) as never;
       return Promise.resolve(base) as never;
@@ -183,7 +183,7 @@ describe("fil d'une mission hors career-ops", () => {
     const b = done("r2", "Mission FICTIVE B");
     vi.mocked(api).mockImplementation((path) => {
       if (path === "/catalog") return Promise.resolve(catalog) as never;
-      if (path === "/runs") return Promise.resolve([a, b]) as never;
+      if (path === "/runs?vue=liste") return Promise.resolve([a, b]) as never;
       return Promise.resolve(String(path).includes("r2") ? b : a) as never;
     });
     render(<App />);
