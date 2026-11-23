@@ -42,3 +42,19 @@ Contrat du back accepté par le manager (lot `joindre-01`, **pas encore servi su
   `c87b6f11` (premier échange), repliée sur `3c0935ae` (échange repris).
 - **Non vérifié** : un envoi réel de fichier (il faut une mission en cours qui pose une question) ; attend l'accord
   du propriétaire.
+
+## Essai réel (accord du propriétaire, 23/11 vers 21:42 heure locale ; horodatage API 10:42)
+
+- Mission `cb4d50bf` lancée depuis le front 5173 (Codex par défaut, sans Skill, sans équipe, sans navigateur) :
+  question posée en 30 s, fichier `essai-joindre.txt` (texte FICTIF, aucune donnée personnelle) joint par « + »
+  dans le champ de chat, réponse partie avec `attachments: ["d815bb4a…"]`, événement `answer` revenu avec
+  `attachments: [{ id, name: "essai-joindre.txt" }]`, pas d'avertissement « Fichier non transmis », l'agent a cité
+  la première ligne exacte (« JOINDRE-01 ESSAI FICTIF 2311 »). Terminée en 41 s, 0,00 €.
+- Deux défauts d'affichage vus sur l'essai et corrigés :
+  1. « 1 fichier joint » sous la consigne de départ : le back ajoute le fichier de la réponse à `run.attachments` ;
+     `MissionPrompt` ne compte plus ceux qui sont revenus dans un `answer` ou un `owner_message` (`laterFiles`).
+  2. « Je lis la première ligne du fichier joint. » affiché deux fois : la réponse du back reprend plusieurs
+     morceaux du dernier tour ; tout morceau du dernier tour qu'elle contient est retiré du fil (pas seulement le
+     dernier).
+- 2 tests de plus (essai rejoué) ; 652/652 ; vue de `cb4d50bf` revérifiée en lecture seule : une seule occurrence,
+  rien sous la consigne, citation présente.

@@ -1009,22 +1009,36 @@ export function RunTurn({
         run.result.answer,
         run.result.platformNotes,
       ).reponse);
+  // joindre-23-11 (essai cb4d50bf) : la réponse du back peut reprendre plusieurs morceaux du dernier tour
+  // (« Je lis la première ligne… », un outil, puis la citation) ; chaque morceau du dernier tour qu'elle
+  // contient déjà est retiré du fil, pas seulement le dernier. Un échange (question, réponse, message)
+  // borne toujours ce tour.
+  const finalAnswer = flat(run.result?.answer ?? "");
   const entries = useMemo(() => {
-    let last = -1;
+    const removed = new Set<number>();
     if (final)
       for (let i = items.length - 1; i >= 0; i--) {
-        const kind = items[i].kind;
-        if (kind === "text") {
-          last = i;
+        const item = items[i];
+        if (
+          item.kind === "owner" ||
+          item.kind === "question" ||
+          item.kind === "answer"
+        )
           break;
-        }
-        if (kind === "owner" || kind === "question" || kind === "answer") break;
+        if (item.kind !== "text") continue;
+        // Le dernier morceau est toujours celui qui a écrit la réponse ; les autres seulement s'ils y sont.
+        if (
+          !removed.size ||
+          (finalAnswer && finalAnswer.includes(flat(item.text)))
+        )
+          removed.add(i);
+        else break;
       }
     return conversation(
-      items.filter((_, i) => i !== last),
+      items.filter((_, i) => !removed.has(i)),
       team,
     );
-  }, [items, final, team]);
+  }, [items, final, team, finalAnswer]);
   // The mission waits for the owner: the agent is neither thinking nor writing.
   const ownerTurn = ownerStates.has(run.state);
   const incomplete = run.error?.match(

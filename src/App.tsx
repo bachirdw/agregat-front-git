@@ -1248,6 +1248,7 @@ export default function App() {
               <MissionPrompt
                 key={run.id}
                 run={run}
+                events={events}
                 immediatePrompt={
                   immediatePrompt?.id === run.id
                     ? immediatePrompt.text

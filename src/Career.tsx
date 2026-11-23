@@ -1352,20 +1352,34 @@ export function usePrivatePrompt(run: Run, immediatePrompt?: string) {
   return prompt ?? immediatePrompt ?? run.prompt;
 }
 // The mission's prompt above its answer, the same bubble for every mission (private text for career-ops).
+// joindre-23-11 : le back ajoute à `run.attachments` les fichiers joints ensuite à une réponse ou à un
+// message (essai cb4d50bf) ; ils sont montrés dans leur bulle, pas comptés sous la consigne de départ.
+export function laterFiles(events: RunEvent[]) {
+  const ids = new Set<string>();
+  for (const e of events)
+    if (
+      (e.type === "answer" || e.type === "owner_message") &&
+      Array.isArray(e.data?.attachments)
+    )
+      for (const f of e.data.attachments as { id?: unknown }[])
+        if (typeof f?.id === "string") ids.add(f.id);
+  return ids;
+}
 export function MissionPrompt({
   run,
   immediatePrompt,
+  events = [],
 }: {
   run: Run;
   immediatePrompt?: string;
+  events?: RunEvent[];
 }) {
   const text = usePrivatePrompt(run, immediatePrompt);
-  return (
-    <PromptBubble
-      text={text}
-      attachments={Array.isArray(run.attachments) ? run.attachments.length : 0}
-    />
-  );
+  const later = laterFiles(events);
+  const own = Array.isArray(run.attachments)
+    ? run.attachments.filter((id) => !later.has(String(id))).length
+    : 0;
+  return <PromptBubble text={text} attachments={own} />;
 }
 // The private answer of a finished career-ops mission; `failed` when it could not be read (the
 // mission's own summary is then shown, with a note).

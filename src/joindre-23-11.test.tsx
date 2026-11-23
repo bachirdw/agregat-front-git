@@ -12,7 +12,8 @@ import {
 import App from "./App";
 import { MissionPill } from "./MissionPill";
 import { OwnerRequests } from "./OwnerRequests";
-import { activity, OwnerBubble } from "./Career";
+import { activity, laterFiles, OwnerBubble } from "./Career";
+import { RunTurn } from "./RunTurn";
 import type { Owner } from "./Career";
 import { api, sendOwnerMessage, watchRun } from "./api";
 import type { Catalog, Run, RunEvent } from "./types";
@@ -398,5 +399,78 @@ describe("joindre-01 en service : notes de la plateforme et vrais noms", () => {
     );
     expect(screen.getByText("cv-fictif.pdf")).toBeTruthy();
     expect(screen.queryByText("fichier privé.pdf")).toBeNull();
+  });
+});
+
+// Ids distincts de ceux des tests d'envoi : les vrais noms connus sont gardés par id pour la page.
+describe("essai réel cb4d50bf rejoué (données FICTIVES)", () => {
+  const ev = (seq: number, type: string, data: Record<string, unknown>) =>
+    ({ seq, type, data, at: `2026-11-23T10:43:${10 + seq}.000Z` }) as RunEvent;
+  const say = (seq: number, text: string) =>
+    ev(seq, "agent", {
+      sessionUpdate: "agent_message_chunk",
+      content: { type: "text", text },
+    });
+  const events = [
+    ev(1, "state", { state: "running" }),
+    ev(2, "question", {
+      id: "q1",
+      kind: "prose",
+      message: "Peux-tu joindre un fichier texte ?",
+      requestedSchema: {
+        type: "object",
+        properties: { reponse: { type: "string" } },
+      },
+    }),
+    ev(3, "answer", {
+      id: "q1",
+      action: "accept",
+      content: { reponse: "Voici le fichier." },
+      attachments: [{ id: "f7", name: "essai.txt" }],
+    }),
+    say(4, "Je lis la première ligne du fichier joint."),
+    ev(5, "agent", {
+      sessionUpdate: "tool_call",
+      toolCallId: "t1",
+      title: "Read file",
+      kind: "read",
+      status: "completed",
+    }),
+    say(6, '"LIGNE FICTIVE"'),
+    ev(7, "state", { state: "completed" }),
+  ];
+  const run = {
+    id: "r1",
+    prompt: "Test FICTIF",
+    state: "completed",
+    mode: "agent",
+    agent: "codex",
+    attachments: ["f7"],
+    result: {
+      simulated: false,
+      summary: 'Je lis la première ligne du fichier joint.\n"LIGNE FICTIVE"',
+      answer: 'Je lis la première ligne du fichier joint.\n"LIGNE FICTIVE"',
+      platformNotes: [],
+    },
+  } as unknown as Run;
+  it("la réponse ne répète pas un morceau du dernier tour déjà affiché", () => {
+    const { container } = render(
+      <RunTurn
+        run={run}
+        events={events}
+        busy={false}
+        act={vi.fn(async () => {})}
+        requests={false}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(
+      text.split("Je lis la première ligne du fichier joint.").length - 1,
+    ).toBe(1);
+    expect(text).toContain('"LIGNE FICTIVE"');
+    expect(screen.getByText("essai.txt").closest(".bubble-files")).toBeTruthy();
+  });
+  it("le fichier d'une réponse n'est pas compté sous la consigne de départ", () => {
+    expect([...laterFiles(events)]).toEqual(["f7"]);
   });
 });
