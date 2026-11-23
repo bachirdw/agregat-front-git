@@ -30,3 +30,15 @@ Contrat du back accepté par le manager (lot `joindre-01`, **pas encore servi su
 - `src/joindre-23-11.test.tsx` (12 tests) ; un test d'`orienter` mis au nouvel appel `send(texte, [])` ; 648/648 ;
   build et prettier verts. Capture du champ sur le banc. Envoi réel non essayé (le banc refuse tout POST, et 4310 ne
   sert pas encore joindre-01).
+
+## 4310 sert joindre-01 (relance du manager à 19:50:19, `reponse-04-format` 80ad5a7)
+
+- Adapté aux points de la relecture du back : une note `owner_message` `de: "plateforme"` (fichiers joints à une
+  réponse de formulaire, messages au chef) s'affiche en ligne discrète, jamais en bulle « Vous » ; le vrai nom d'un
+  fichier envoyé depuis la page est gardé par son id (mission privée : `owner_message` dit « fichier privé.pdf »).
+  `attachments` n'est jamais envoyé nul ; `/message` garde toujours un texte. 2 tests de plus (14).
+- Vérifié en lecture seule (Chrome sans écran, tout POST bloqué) sur 5173 → 4310 : `GET /api/runs?vue=liste` lu
+  par le front, 0,79 Mo (14,3 Mo avant) ; carte « Comment fonctionne career-ops » avec le texte du back, ouverte sur
+  `c87b6f11` (premier échange), repliée sur `3c0935ae` (échange repris).
+- **Non vérifié** : un envoi réel de fichier (il faut une mission en cours qui pose une question) ; attend l'accord
+  du propriétaire.

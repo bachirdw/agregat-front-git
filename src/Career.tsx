@@ -10,6 +10,7 @@ export {
   withoutResultEnvelope,
 } from "./envelope";
 import { PromptBubble } from "./PromptBubble";
+import { knownFileName } from "./AttachFiles";
 import { finalStates, labels, money, ownerStates } from "./types";
 import type {
   CareerOffer,
@@ -72,6 +73,8 @@ export type Owner = {
   text?: string;
   // joindre-23-11 : fichiers joints au message (`owner_message.attachments`, contrat joindre-01).
   files?: SentFile[];
+  // Écrit par la plateforme (`de: "plateforme"`) : jamais présenté comme un message du propriétaire.
+  fromPlatform?: boolean;
 };
 // fil-21-11 : question de l'agent au propriétaire (événement `question`, docs/api-questions.md) et sa
 // fermeture (`answer`). Rendues seulement avec `activity(events, { exchanges: true })` : le fil d'une
@@ -114,7 +117,7 @@ export function SentFiles({ files }: { files?: SentFile[] }) {
   return (
     <ul className="bubble-files" aria-label="Fichiers joints">
       {files.map((f) => (
-        <li key={f.id}>{f.name}</li>
+        <li key={f.id}>{knownFileName(f.id) ?? f.name}</li>
       ))}
     </ul>
   );
@@ -291,6 +294,7 @@ export function activity(
       if (typeof m.text === "string" && m.text) owner.text = m.text;
       const files = sentFiles((m as { attachments?: unknown }).attachments);
       if (files) owner.files = files;
+      if (m.de === "plateforme") owner.fromPlatform = true;
       continue;
     }
     if (e.type !== "agent" || !e.data || typeof e.data !== "object") continue;
@@ -1006,6 +1010,10 @@ export function ownerStatus(message: {
 // The owner's message in the feed: its text (from the event, else the one this page sent) and state.
 export function OwnerBubble({ message }: { message: Owner }) {
   const text = message.text ?? ownerText(message.messageId);
+  // joindre-23-11 : une note de la plateforme (fichiers joints à une réponse de formulaire, message au
+  // chef…) reste une ligne discrète ; les fichiers sont déjà dans la bulle de la réponse.
+  if (message.fromPlatform)
+    return <p className="platform-note">{text ?? "Note de la plateforme"}</p>;
   return (
     <div className={"owner-message " + message.state}>
       <small className="owner-message-head">Vous, pendant la mission</small>

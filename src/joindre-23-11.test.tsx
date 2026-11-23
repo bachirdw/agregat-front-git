@@ -355,3 +355,48 @@ describe("carte de question : « Joindre un fichier »", () => {
     );
   });
 });
+
+describe("joindre-01 en service : notes de la plateforme et vrais noms", () => {
+  const owner = (data: Record<string, unknown>) =>
+    activity([
+      {
+        seq: 1,
+        type: "owner_message",
+        at: "2026-11-23T19:55:00.000Z",
+        data: { id: "m9", state: "pending", ...data },
+      },
+    ] as RunEvent[]).find((i) => i.kind === "owner") as Owner;
+  it("la note de la plateforme n'est jamais une bulle « Vous »", () => {
+    render(
+      <OwnerBubble
+        message={owner({
+          de: "plateforme",
+          text: "Fichier(s) joint(s) par le propriétaire avec sa réponse au formulaire.",
+          attachments: [{ id: "f1", name: "cv-fictif.pdf" }],
+        })}
+      />,
+    );
+    expect(document.querySelector(".prompt-bubble")).toBeNull();
+    expect(screen.queryByText(/Vous/)).toBeNull();
+    expect(document.querySelector(".platform-note")?.textContent).toMatch(
+      /^Fichier\(s\) joint\(s\)/,
+    );
+  });
+  it("mission privée : le vrai nom connu à l'envoi remplace « fichier privé »", async () => {
+    serveFiles();
+    pill({ send: vi.fn() });
+    pick();
+    await screen.findByText("cv-fictif.pdf");
+    cleanup();
+    render(
+      <OwnerBubble
+        message={owner({
+          text: "Voici",
+          attachments: [{ id: "f1", name: "fichier privé.pdf" }],
+        })}
+      />,
+    );
+    expect(screen.getByText("cv-fictif.pdf")).toBeTruthy();
+    expect(screen.queryByText("fichier privé.pdf")).toBeNull();
+  });
+});

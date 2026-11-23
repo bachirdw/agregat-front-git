@@ -6,6 +6,11 @@ import { Icon } from "./Icon";
 import { uploadFile } from "./api";
 import type { Attachment } from "./types";
 
+// Vrai nom des fichiers envoyés depuis cette page, par id : une mission privée ne le renvoie pas dans
+// `owner_message` (« fichier privé.pdf », joindre-01 point 5).
+const knownNames = new Map<string, string>();
+export const knownFileName = (id: string) => knownNames.get(id);
+
 export function useAttachedFiles() {
   const [files, setFiles] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -16,6 +21,7 @@ export function useAttachedFiles() {
     try {
       for (const file of [...list]) {
         const sent = await uploadFile(file);
+        knownNames.set(sent.id, sent.name || file.name);
         setFiles((old) => [...old, sent]);
       }
     } catch (e) {

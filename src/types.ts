@@ -588,6 +588,9 @@ export interface OwnerMessage {
   via: "steering" | "turn_end" | "with_answer" | null;
   deliveredAt: string | null;
   text?: string;
+  // Écrit par la plateforme, pas par le propriétaire (joindre-01 : note d'une réponse à formulaire avec
+  // fichier ; continuation : message au chef).
+  de?: string;
 }
 export const finalStates = new Set([
   "completed",

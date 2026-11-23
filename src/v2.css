@@ -2715,3 +2715,10 @@ button.team-row-head:hover {
 .question .mission-files {
   margin-top: 10px;
 }
+/* joindre-23-11 : note de la plateforme dans le fil (jamais une bulle « Vous »). */
+.platform-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
