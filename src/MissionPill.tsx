@@ -1,9 +1,14 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { Icon } from "./Icon";
 import { NotifyOwner } from "./NotifyOwner";
-import { uploadFile } from "./api";
 import type { Attachment } from "./types";
+import {
+  AttachButton,
+  FileChips,
+  filesText,
+  useAttachedFiles,
+} from "./AttachFiles";
 
 // Controls while a mission runs. For an agent mission (`canQueue`): a chat field in the composer's
 // place, always visible, to write to the agent while it works, with the stop button beside the send
@@ -34,36 +39,14 @@ export function MissionPill({
   answer?: (text: string, files: Attachment[]) => Promise<void>;
 }) {
   const [draft, setDraft] = useState("");
-  const [files, setFiles] = useState<Attachment[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const addFiles = async (list: FileList) => {
-    setUploading(true);
-    setFailure("");
-    try {
-      for (const file of [...list]) {
-        const sent = await uploadFile(file);
-        setFiles((old) => [...old, sent]);
-      }
-    } catch (error) {
-      setFailure(
-        `Fichier non joint : ${(error as Error).message || "erreur réseau"}`,
-      );
-    } finally {
-      setUploading(false);
-    }
-  };
+  const attached = useAttachedFiles();
+  const { files, uploading } = attached;
   const [sending, setSending] = useState(false);
   const [line, setLine] = useState("");
   const [failure, setFailure] = useState("");
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
-    // Un fichier seul part avec son nom pour texte, jamais avec des mots prêtés au propriétaire.
-    const text =
-      draft.trim() ||
-      (files.length
-        ? `Fichier joint : ${files.map((f) => f.name).join(", ")}`
-        : "");
+    const text = draft.trim() || filesText(files);
     if (!text || sending || uploading) return;
     // Sans `send` (file d'attente pour une reprise), aucun fichier ne peut suivre.
     if (!answer && !send && files.length) return;
@@ -74,7 +57,7 @@ export function MissionPill({
       try {
         await answer(text, files);
         setDraft("");
-        setFiles([]);
+        attached.clear();
       } catch (error) {
         setFailure(
           `Réponse non envoyée : ${(error as Error).message || "erreur réseau"}`,
@@ -95,7 +78,7 @@ export function MissionPill({
     try {
       const fallback = await send(text, files);
       setDraft("");
-      setFiles([]);
+      attached.clear();
       if (fallback) setLine(fallback);
     } catch (error) {
       setFailure(
@@ -160,9 +143,9 @@ export function MissionPill({
             ensuite
           </small>
         )}
-        {failure && (
+        {(failure || attached.error) && (
           <small className="mission-queue-error" role="alert">
-            {failure}
+            {failure || attached.error}
           </small>
         )}
         {line && (
@@ -170,50 +153,10 @@ export function MissionPill({
             {line}
           </small>
         )}
-        {files.length > 0 && (
-          <ul className="mission-files" aria-label="Fichiers joints">
-            {files.map((file) => (
-              <li key={file.id}>
-                <span>{file.name}</span>
-                <button
-                  type="button"
-                  aria-label={`Retirer ${file.name}`}
-                  onClick={() =>
-                    setFiles((old) => old.filter((f) => f.id !== file.id))
-                  }
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <FileChips attached={attached} />
         <div className="mission-chat-bottom">
           {(answer || send) && (
-            <>
-              <button
-                type="button"
-                className="mission-attach"
-                aria-label="Joindre un fichier"
-                title="Joindre un fichier (PDF, DOCX, Markdown, texte)"
-                disabled={uploading || sending}
-                onClick={() => fileRef.current?.click()}
-              >
-                <Icon name="plus" />
-              </button>
-              <input
-                ref={fileRef}
-                type="file"
-                hidden
-                multiple
-                accept=".pdf,.docx,.md,.markdown,.txt"
-                aria-label="Fichier à joindre pendant la mission"
-                onChange={(e) => {
-                  if (e.target.files?.length) void addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-            </>
+            <AttachButton attached={attached} disabled={sending} />
           )}
           <small>
             {uploading

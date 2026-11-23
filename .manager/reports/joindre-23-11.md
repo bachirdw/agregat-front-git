@@ -17,11 +17,16 @@ Contrat du back accepté par le manager (lot `joindre-01`, **pas encore servi su
   pendant une mission… » (événement arrivé avant la réponse HTTP couvert).
 - `Career.tsx` / `RunTurn.tsx` : fichiers joints affichés dans les bulles « Vous, pendant la mission » et « Vous, en
   réponse ».
-- Non fait : « + » dans la carte de question à formulaire (schéma à champs) ; le champ de chat répond déjà aux
-  questions en texte libre, cas de la capture.
+- Suite (contrat confirmé par le manager : `content` et `attachments` ensemble sur `/answer`) : « + Joindre un
+  fichier » dans la carte de question, texte libre comme formulaire ; une question en texte libre laissée vide avec
+  un fichier répond par « Fichier joint : <nom> » (le champ n'est plus obligatoire dès qu'un fichier est joint) ;
+  « Décliner » n'envoie aucun fichier. Module partagé `AttachFiles.tsx` (champ de chat et carte) ; la vérification
+  de retour des fichiers se fait dans `action()` d'App pour toute réponse de la mission ouverte.
+- Vu en passant : la question de l'agent s'affichait en titre brut, avec ses `**` ; elle est maintenant rendue en
+  Markdown (`.question-message`).
 
 ## Vérifications
 
-- `src/joindre-23-11.test.tsx` (8 tests) ; un test d'`orienter` mis au nouvel appel `send(texte, [])` ; 644/644 ;
+- `src/joindre-23-11.test.tsx` (12 tests) ; un test d'`orienter` mis au nouvel appel `send(texte, [])` ; 648/648 ;
   build et prettier verts. Capture du champ sur le banc. Envoi réel non essayé (le banc refuse tout POST, et 4310 ne
   sert pas encore joindre-01).

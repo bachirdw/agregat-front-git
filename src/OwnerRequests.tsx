@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { finalStates } from "./types";
+import { Markdown } from "./Markdown";
+import {
+  AttachButton,
+  FileChips,
+  filesText,
+  useAttachedFiles,
+} from "./AttachFiles";
 import type {
   Permission,
   Question,
@@ -216,7 +223,10 @@ function QuestionForm({
   const [values, setValues] = useState<Record<string, Value>>({});
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
+  // joindre-23-11 : fichiers joints à la réponse (contrat joindre-01 : `content` et `attachments` ensemble).
+  const attached = useAttachedFiles();
   const required = new Set(question.requestedSchema.required || []);
+  const fields = Object.entries(question.requestedSchema.properties);
   const set = (key: string, value: Value) =>
     setValues((old) => ({ ...old, [key]: value }));
   const reply = async (body: unknown) => {
@@ -224,6 +234,7 @@ function QuestionForm({
     setSending(true);
     try {
       await act(`/runs/${runId}/answer`, body, true);
+      attached.clear();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -232,10 +243,19 @@ function QuestionForm({
   };
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    void reply({ action: "accept", content: content(question, values) });
+    const files = attached.files;
+    const answer = content(question, values);
+    // Question en texte libre laissée vide avec un fichier : le nom du fichier sert de réponse.
+    const first = fields[0]?.[0];
+    if (files.length && question.kind === "prose" && first && !answer[first])
+      answer[first] = filesText(files);
+    void reply({
+      action: "accept",
+      content: answer,
+      ...(files.length ? { attachments: files.map((f) => f.id) } : {}),
+    });
   };
-  const disabled = busy || sending;
-  const fields = Object.entries(question.requestedSchema.properties);
+  const disabled = busy || sending || attached.uploading;
   return (
     <form
       className="card approval question"
@@ -246,7 +266,11 @@ function QuestionForm({
         <small className="warning" role="status">
           L’agent attend votre réponse
         </small>
-        <h2>{question.message}</h2>
+        {/* affichage-23-11 : la question de l'agent est du Markdown (« **À votre avis…** ») ; en titre
+            brut, ses signes s'affichaient tels quels. */}
+        <div className="question-message">
+          <Markdown text={question.message} />
+        </div>
         {question.kind === "prose" && !!question.options?.length && (
           <div className="quick-replies">
             {question.options.map((option) => (
@@ -273,15 +297,20 @@ function QuestionForm({
             key={key}
             name={key}
             field={field}
-            required={required.has(key)}
+            // Un fichier joint suffit à répondre à une question en texte libre.
+            required={
+              required.has(key) &&
+              !(question.kind === "prose" && attached.files.length > 0)
+            }
             long={question.kind === "prose"}
             value={values[key]}
             set={(value) => set(key, value)}
           />
         ))}
-        {error && (
+        <FileChips attached={attached} />
+        {(error || attached.error) && (
           <p className="danger" role="alert">
-            {error}
+            {error || attached.error}
           </p>
         )}
       </div>
@@ -296,6 +325,14 @@ function QuestionForm({
         >
           Décliner
         </button>
+        <AttachButton
+          attached={attached}
+          disabled={disabled}
+          className="question-attach"
+          inputLabel="Fichier à joindre à la réponse"
+        >
+          {attached.uploading ? "Envoi du fichier…" : "Joindre un fichier"}
+        </AttachButton>
       </footer>
     </form>
   );

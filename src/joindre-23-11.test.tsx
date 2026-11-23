@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react";
 import App from "./App";
 import { MissionPill } from "./MissionPill";
+import { OwnerRequests } from "./OwnerRequests";
 import { activity, OwnerBubble } from "./Career";
 import type { Owner } from "./Career";
 import { api, sendOwnerMessage, watchRun } from "./api";
@@ -240,5 +241,117 @@ describe("serveur sans pièce jointe pendant la mission", () => {
     echo([{ id: "f1", name: "cv-fictif.pdf" }]);
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText(/^Fichier non transmis/)).toBeNull();
+  });
+});
+
+describe("carte de question : « Joindre un fichier »", () => {
+  const question = (kind: "prose" | "form") => ({
+    id: "q1",
+    kind,
+    message: "Transmets-moi ton CV FICTIF",
+    requestedSchema: {
+      type: "object" as const,
+      properties:
+        kind === "prose"
+          ? { reponse: { type: "string" as const, title: "Réponse" } }
+          : { ecole: { type: "string" as const, title: "École" } },
+      required: [kind === "prose" ? "reponse" : "ecole"],
+    },
+    toolCallId: null,
+    askedAt: "2026-11-23T18:00:00.000Z",
+  });
+  const card = (kind: "prose" | "form") => {
+    const act = vi.fn(async () => {});
+    render(
+      <OwnerRequests
+        run={
+          {
+            id: "r1",
+            state: "awaiting_owner",
+            pendingQuestion: question(kind),
+          } as unknown as Run
+        }
+        busy={false}
+        act={act}
+      />,
+    );
+    return act;
+  };
+  const pickForm = () => {
+    const input = screen.getByLabelText(
+      "Fichier à joindre à la réponse",
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: {
+        files: [
+          new File(["%PDF"], "cv-fictif.pdf", { type: "application/pdf" }),
+        ],
+      },
+    });
+  };
+  it("question libre : le fichier seul répond, avec son nom pour texte", async () => {
+    serveFiles();
+    const act = card("prose");
+    pickForm();
+    await screen.findByText("cv-fictif.pdf");
+    fireEvent.click(screen.getByRole("button", { name: "Répondre" }));
+    await waitFor(() =>
+      expect(act).toHaveBeenCalledWith(
+        "/runs/r1/answer",
+        {
+          action: "accept",
+          content: { reponse: "Fichier joint : cv-fictif.pdf" },
+          attachments: ["f1"],
+        },
+        true,
+      ),
+    );
+  });
+  it("formulaire : les champs et le fichier partent ensemble", async () => {
+    serveFiles();
+    const act = card("form");
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "École FICTIVE" },
+    });
+    pickForm();
+    await screen.findByText("cv-fictif.pdf");
+    fireEvent.click(screen.getByRole("button", { name: "Répondre" }));
+    await waitFor(() =>
+      expect(act).toHaveBeenCalledWith(
+        "/runs/r1/answer",
+        {
+          action: "accept",
+          content: { ecole: "École FICTIVE" },
+          attachments: ["f1"],
+        },
+        true,
+      ),
+    );
+  });
+  it("décliner n'envoie aucun fichier", async () => {
+    serveFiles();
+    const act = card("prose");
+    pickForm();
+    await screen.findByText("cv-fictif.pdf");
+    fireEvent.click(screen.getByRole("button", { name: "Décliner" }));
+    await waitFor(() =>
+      expect(act).toHaveBeenCalledWith(
+        "/runs/r1/answer",
+        { action: "decline" },
+        true,
+      ),
+    );
+  });
+  it("sans fichier, la réponse reste celle d'avant", async () => {
+    const act = card("prose");
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Oui" } });
+    fireEvent.click(screen.getByRole("button", { name: "Répondre" }));
+    await waitFor(() =>
+      expect(act).toHaveBeenCalledWith(
+        "/runs/r1/answer",
+        { action: "accept", content: { reponse: "Oui" } },
+        true,
+      ),
+    );
   });
 });

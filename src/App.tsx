@@ -749,6 +749,18 @@ export default function App() {
     if (busy) return;
     setBusy(true);
     setError("");
+    // joindre-23-11 : une réponse de la mission ouverte qui joint des fichiers attend leur retour dans
+    // l'événement `answer` (champ de chat comme carte de question).
+    const question = (run?.pendingQuestion as { id?: unknown } | null)?.id;
+    const joined = (body as { attachments?: unknown } | null)?.attachments;
+    if (
+      run &&
+      path === `/runs/${run.id}/answer` &&
+      Array.isArray(joined) &&
+      joined.length &&
+      typeof question === "string"
+    )
+      expectFiles(`answer:${question}`);
     try {
       const response = await api<unknown>(path, body);
       if (path.startsWith("/skills")) {
@@ -1353,11 +1365,7 @@ export default function App() {
               const key = proseAnswerKey(run.pendingQuestion);
               if (!key) return undefined;
               const id = run.id;
-              const question = (run.pendingQuestion as { id?: unknown } | null)
-                ?.id;
               return async (text: string, files: Attachment[]) => {
-                if (files.length && typeof question === "string")
-                  expectFiles(`answer:${question}`);
                 await action(
                   `/runs/${id}/answer`,
                   {

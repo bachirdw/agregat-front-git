@@ -1180,6 +1180,18 @@ table.activity-log {
 .card.question h2 {
   margin: 0;
 }
+/* La question en Markdown, plus grande que le texte du fil sans être un gros titre. */
+.card.question .question-message {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.card.question .question-message p {
+  margin: 0 0 6px;
+}
+.card.question .question-message p:last-child {
+  margin-bottom: 0;
+}
 .request-meta {
   margin: 0;
   color: var(--muted);
@@ -2690,4 +2702,16 @@ button.team-row-head:hover {
 }
 .bubble-files {
   margin-top: 6px;
+}
+/* joindre-23-11 : « Joindre un fichier » de la carte de question, à droite des boutons de réponse. */
+.question .question-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  background: none;
+  color: var(--accentText);
+}
+.question .mission-files {
+  margin-top: 10px;
 }
